@@ -23,10 +23,10 @@ corredores de transição.
   `Assets/Troia/Gerado/` (edições manuais nesses arquivos são perdidas). O resultado é
   determinístico: a mesma semente gera o mesmo mapa.
 - **Prévias:** `Troia > Capturar Prévias do Mapa` salva PNGs em `Capturas/`.
-- **Gameplay (ainda sem lógica):** o objeto `--- GAMEPLAY ---` contém os marcadores
+- **Marcadores do mapa:** o objeto `--- GAMEPLAY ---` contém os marcadores
   `LevelMarker` (arenas com número de ondas, spawns de inimigos, barreiras de
   entrada/saída, objetivos e checkpoints) e o `NavMesh_Superficie` já gerado.
-  As barreiras têm colisor e muralha de fogo desligados; o sistema de ondas deve ligá-los.
+  O sistema de gameplay ativa colisores, navegação e muralhas de fogo durante o combate.
 
 ### Visual (sujeira, decals, texturas)
 
@@ -38,10 +38,27 @@ corredores de transição.
 - Texturas principais em 2048 (JPG); se o URP for atualizado, recopie o `Lit.shader` do pacote para
   `Assets/Troia/Shaders/TroiaLitSujo.shader` mantendo o fragmento `TroiaLitPassFragment`.
 
-### Explorar o mapa (controle temporário)
+### Jogar (plano v2)
 
-Dê Play na cena: `WASD` mover · `Shift` correr · `Espaço` pular · `F` voo livre
-(`Espaço`/`Ctrl` sobe/desce) · `Scroll` zoom · `Esc` solta o mouse · `H` esconde a ajuda.
+Abra a cena e dê Play. O bootstrap substitui o controle temporário por movimentação e
+combate; também funciona após regerar o mapa.
+
+- **WASD** mover, **Shift** correr, **Espaço** pular, **Ctrl** esquivar/cancelar golpe.
+- **Mouse** câmera, **Scroll** zoom, **clique esquerdo/J** leve, **clique direito/K** pesado.
+- Segure pesado para lançar; pule para perseguir e use **LLL** no ar ou pesado para cair em área.
+- **LLL** corte triplo; **LL (pausa) LL** estocadas. A pausa acontece depois do segundo golpe.
+- **Q** poder divino, **Tab** trocar deus, **1/2/3** escolher bênção, **Esc** pausa, **H** ajuda.
+- Controle: analógico esquerdo mover, direito câmera, **A** pulo, **B** esquiva,
+  **X/Y** leve/pesado, **RB** poder, direcional direito trocar deus, **Start** pausa.
+
+São 20 andares nas seis arenas. O timer global começa em 180 segundos; acertos variados
+aumentam o estilo e kills recuperam tempo/favor. Bênçãos e checkpoints após 5/10/15;
+capitão no andar 10 e Heitor no 20.
+
+Balanceamento em `Assets/Troia/Resources/Troia/Gameplay.asset`, com combos, andares e
+bênçãos separados. Menu `Troia > Gameplay > Criar configuracao e combos` cria os padrões
+se ainda não existirem. Os movimentos de combate são procedurais; integração de
+animações e verificações em [docs/JOGABILIDADE.md](docs/JOGABILIDADE.md).
 
 ## Código
 
@@ -51,5 +68,6 @@ Dê Play na cena: `WASD` mover · `Shift` correr · `Espaço` pular · `F` voo l
   - `TroiaMeshes.cs` — geometria das construções e adereços
   - `TroiaAssets.cs` / `TexGen.cs` — texturas, materiais, céu, fogo e prefabs
   - `MeshBuilder.cs` — utilitário de malhas procedurais
-- `Assets/Troia/Scripts/Runtime/` — `FireFlicker`, `LevelMarker`, `MapPreviewWalker`, `TroiaShaderGlobals`
+- `Assets/Troia/Scripts/Runtime/` — combate, movimentação, inimigos, andares, bênçãos, HUD e componentes do mapa
+- `Assets/Troia/Tests/` — testes Edit Mode e Play Mode
 - `Assets/Troia/Shaders/` — `TroiaLitSujo.shader` e `TroiaGrime.hlsl`

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Aereo_3
+  m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
+  id: Aereo_3
+  animationState: Aereo_3
+  input: 0
+  damage: 22
+  duration: 0.48
+  hitStart: 0.12
+  hitEnd: 0.2304
+  comboOpen: 0.25439999
+  comboClose: 0.45599997
+  range: 3.2
+  angle: 110
+  knockback: 4
+  launch: 0
+  lunge: 1
+  aerial: 1
+  finisher: 1
+  slam: 0
+  next: {fileID: 0}
+  delayedNext: {fileID: 0}
+  delayedThreshold: 0.43

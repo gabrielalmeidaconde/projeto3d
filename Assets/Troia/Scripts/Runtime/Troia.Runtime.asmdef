@@ -1,0 +1,5 @@
+{
+  "name": "Troia.Runtime",
+  "references": ["Unity.InputSystem", "Unity.RenderPipelines.Universal.Runtime"],
+  "autoReferenced": true
+}

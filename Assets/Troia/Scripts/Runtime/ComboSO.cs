@@ -1,0 +1,19 @@
+using System;
+using UnityEngine;
+
+namespace Troia
+{
+    [CreateAssetMenu(menuName = "Troia/Combo")]
+    public class ComboSO : ScriptableObject
+    {
+        public string id, animationState;
+        public AttackInput input;
+        public float damage = 14, duration = .5f, hitStart = .12f, hitEnd = .25f;
+        public float comboOpen = .26f, comboClose = .48f;
+        public float range = 2.8f, angle = 110, knockback = 1, launch, lunge = 1;
+        public bool aerial, finisher, slam;
+        public ComboSO next, delayedNext;
+        public float delayedThreshold = .43f;
+    }
+
+}
