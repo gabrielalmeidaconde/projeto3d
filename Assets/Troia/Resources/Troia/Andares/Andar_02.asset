@@ -19,4 +19,4 @@ MonoBehaviour:
     count: 2
   healthMultiplier: 1.025
   damageMultiplier: 1.025
-  spawnPoints: 
+  spawnPoints:

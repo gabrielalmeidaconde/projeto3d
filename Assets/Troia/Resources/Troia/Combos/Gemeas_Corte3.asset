@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Gemeas_Corte3
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Gemeas_Corte3
+  animationState: Gemeas_Corte3
+  displayName: Danca de bronze
+  command:
+  motion: 2
+  input: 0
+  damage: 12
+  duration: 0.33
+  hitStart: 0.0726
+  hitEnd: 0.165
+  comboOpen: 0.1716
+  comboClose: 0.31350002
+  range: 2.6
+  angle: 300
+  knockback: 0.65
+  launch: 0
+  lunge: 0.6
+  aerial: 0
+  finisher: 0
+  slam: 0
+  hitCount: 1
+  next: {fileID: 11400000, guid: dfcd37b6c86a6a9488b6e34ade2c2bd9, type: 2}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: b787ecf4bb8d75b4e91d61d61d03573c, type: 2}
+  delayedThreshold: 0.43

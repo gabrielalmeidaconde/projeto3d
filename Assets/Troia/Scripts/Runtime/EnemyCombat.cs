@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections.Generic;
 
 namespace Troia
 {
@@ -8,8 +9,13 @@ namespace Troia
     [RequireComponent(typeof(Health), typeof(NavMeshAgent), typeof(CharacterController))]
     public class EnemyCombat : MonoBehaviour
     {
+        static readonly List<EnemyCombat> combatants = new List<EnemyCombat>();
+        public static IReadOnlyList<EnemyCombat> Combatants => combatants;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ClearRegistry() => combatants.Clear();
         public EnemyKind kind;
         public PlayerCombat target;
+        public bool trainingDummy;
         public float damageMultiplier = 1;
         public Health Health { get; private set; }
         public EnemyState State { get; private set; }
@@ -25,6 +31,7 @@ namespace Troia
 
         void Awake()
         {
+            combatants.Add(this);
             Health = GetComponent<Health>(); agent = GetComponent<NavMeshAgent>(); controller = GetComponent<CharacterController>();
             controller.height = 1.8f; controller.radius = .4f; controller.center = Vector3.up * .9f;
             controller.enabled = true;
@@ -53,6 +60,7 @@ namespace Troia
                 TickReaction(dt); return;
             }
             if (!agent.enabled || !agent.isOnNavMesh) { RecoverNavigation(); return; }
+            if (trainingDummy) { agent.isStopped = true; return; }
             float distance = Vector3.Distance(transform.position, target.transform.position);
             if (State == EnemyState.Chasing)
             {
@@ -113,7 +121,12 @@ namespace Troia
         {
             if (Health.IsDead) return;
             // Armor resists light stagger, but damage still applies.
-            if (Armored && !info.heavy && !info.aerial && info.launch <= 0 && !info.divine) return;
+            if (Armored && State != EnemyState.Airborne && !info.heavy && !info.aerial && info.launch <= 0 && !info.divine) return;
+            if (State == EnemyState.Airborne && info.projectile)
+            {
+                velocity.y = Mathf.Max(velocity.y, .8f);
+                return;
+            }
             if (agent.enabled) { if (agent.isOnNavMesh) agent.ResetPath(); agent.enabled = false; }
             controller.enabled = true;
             velocity = info.direction * info.knockback;
@@ -125,7 +138,7 @@ namespace Troia
             {
                 velocity.y = 3.5f; SetState(EnemyState.Airborne, .2f);
             }
-            else { velocity.y = -1; SetState(EnemyState.Staggered, Mathf.Max(.25f, info.stagger)); }
+            else { velocity.y = -1; SetState(EnemyState.Staggered, Mathf.Max(info.projectile ? .08f : .25f, info.stagger)); }
         }
         void TickReaction(float dt)
         {
@@ -168,6 +181,11 @@ namespace Troia
             GUI.DrawTexture(new Rect(p.x - 30, Screen.height - p.y + 2, 60 * Health.Current / Health.maximum, 4), Texture2D.whiteTexture);
             if (Armored) GUI.Label(new Rect(p.x - 50, Screen.height - p.y - 23, 140, 24), kind == EnemyKind.Hector ? "HEITOR" : "CAPITAO");
             GUI.color = Color.white;
+        }
+        void OnDestroy()
+        {
+            combatants.Remove(this);
+            if (Health) { Health.Damaged -= React; Health.Died -= Die; }
         }
     }
 

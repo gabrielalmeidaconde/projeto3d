@@ -16,27 +16,56 @@ namespace Troia
             yield return new WaitForSecondsRealtime(4);
             bool passed = gm.FloorActive && gm.Alive > 0 && gm.player.IsGrounded;
             Directory.CreateDirectory("Capturas");
-            ScreenCapture.CaptureScreenshot(Path.GetFullPath("Capturas/gameplay-build.png"));
-            CaptureCamera();
+            CaptureCamera("gameplay-camera");
             Debug.Log($"TROIA_SMOKE {(passed ? "PASS" : "FAIL")} floor={gm.Floor} alive={gm.Alive} grounded={gm.player.IsGrounded} hp={gm.player.Health.Current}");
-            yield return new WaitForSecondsRealtime(2);
-            // Capture the modal independently of random combat progression.
-            foreach (var enemy in FindObjectsByType<EnemyCombat>(FindObjectsSortMode.None)) enemy.enabled = false;
-            gm.TogglePause();
-            ScreenCapture.CaptureScreenshot(Path.GetFullPath("Capturas/gameplay-pause.png"));
-            yield return new WaitForSecondsRealtime(1);
+            gm.BeginTraining(); yield return new WaitForSecondsRealtime(.25f);
+            var player = gm.player;
+            foreach (var enemy in EnemyCombat.Combatants)
+                if (enemy && enemy.trainingDummy && player.Targeting.Lock(enemy)) break;
+            for (int i = 0; i < player.config.weapons.Length; i++)
+            {
+                player.SelectWeapon(i); yield return new WaitForSecondsRealtime(.2f);
+                player.RequestAttack(AttackInput.Light);
+                yield return new WaitForSecondsRealtime(player.Weapon.light.hitStart + .035f);
+                CaptureCamera("arma-" + player.Weapon.id);
+                yield return new WaitForSecondsRealtime(player.Weapon.light.duration + .05f);
+            }
+            // Grade fixtures exercise every visible rank without relying on random AI timing.
+            var hud = gm.GetComponent<GameplayHUD>();
+            player.Style.ResetMeter();
+            for (int i = 0; i < 40; i++)
+                player.Style.RegisterHit("qa_" + i, false, player.Weapon.id, false, false, 9000 + i, 17, "Variedade / captura de validacao");
+            yield return null;
+            passed &= hud.DisplayedRank == "SSS";
+            CaptureCamera("estilo-SSS");
+            hud.ShowMoveList(); yield return null;
+            CaptureCamera("lista-de-golpes");
+            gm.Restart(false); gm.TogglePause(); yield return null;
+            CaptureCamera("pausa");
+            gm.Restart(false);
+            for (int floor = 1; floor <= 5; floor++)
+            {
+                gm.StartFloor();
+                foreach (var enemy in EnemyCombat.Combatants.ToArray())
+                    if (enemy && !enemy.Health.IsDead) enemy.Health.TakeDamage(new DamageInfo { source = player.gameObject, damage = 99999 });
+                gm.CompleteFloor();
+                yield return null;
+            }
+            CaptureCamera("bencaos");
+            Debug.Log($"TROIA_PRESENTATION {(passed ? "PASS" : "FAIL")} arsenal={player.config.weapons.Length} ui=SSS");
+            yield return new WaitForSecondsRealtime(.2f);
             Application.Quit(passed ? 0 : 1);
         }
-        static void CaptureCamera()
+        static void CaptureCamera(string name)
         {
             var camera = Camera.main;
             if (!camera) return;
             var rt = new RenderTexture(1280, 720, 24);
             var previousTarget = camera.targetTexture; var previousActive = RenderTexture.active;
-            camera.targetTexture = rt; camera.Render(); RenderTexture.active = rt;
+            camera.targetTexture = rt; Canvas.ForceUpdateCanvases(); camera.Render(); RenderTexture.active = rt;
             var texture = new Texture2D(1280, 720, TextureFormat.RGB24, false);
             texture.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); texture.Apply();
-            File.WriteAllBytes(Path.GetFullPath("Capturas/gameplay-camera.png"), texture.EncodeToPNG());
+            File.WriteAllBytes(Path.GetFullPath("Capturas/" + name + ".png"), texture.EncodeToPNG());
             camera.targetTexture = previousTarget; RenderTexture.active = previousActive;
             Destroy(texture); rt.Release(); Destroy(rt);
         }

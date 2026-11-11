@@ -45,12 +45,12 @@ namespace Troia
             int level = Level(Selected);
             switch (Selected)
             {
-                case God.Zeus: Area(player.transform.position, 9, 38 * level, 0, 4); break;
+                case God.Zeus: Area(player.transform.position, 9, 38 * level, 0, 4, God.Zeus); break;
                 case God.Ares: furyUntil = Time.time + 6 + level; break;
                 case God.Apollo: player.Health.Heal(30 + 10 * level); break;
-                case God.Hermes: player.GhostFor(player.config.dodgeDuration); Area(player.transform.position + player.transform.forward * 2, 5, 20 * level, 0, 6); break;
+                case God.Hermes: player.GhostFor(player.config.dodgeDuration); Area(player.transform.position + player.transform.forward * 2, 5, 20 * level, 0, 6, God.Hermes); break;
                 case God.Athena: shieldUntil = Time.time + 4 + level; break;
-                case God.Poseidon: Area(player.transform.position + player.transform.forward * 2, 7, 28 * level, 8, 7); break;
+                case God.Poseidon: Area(player.transform.position + player.transform.forward * 2, 7, 28 * level, 8, 7, God.Poseidon); break;
             }
             CombatVisuals.Burst(player.transform.position + Vector3.up, Color.cyan, 2);
             return true;
@@ -72,12 +72,12 @@ namespace Troia
         void Finisher(DamageInfo info, Health target)
         {
             int level = Level(God.Zeus);
-            if (level > 0) Area(target.transform.position, 2 + level, 12 * level, 0, 1);
+            if (level > 0) Area(target.transform.position, 2 + level, 12 * level, 0, 1, God.Zeus, info.sequence);
         }
         void Launch(DamageInfo info, Health target)
         {
             int level = Level(God.Poseidon);
-            if (level > 0) Area(target.transform.position, 2 + level, 8 * level, 7, 2);
+            if (level > 0) Area(target.transform.position, 2 + level, 8 * level, 7, 2, God.Poseidon, info.sequence);
         }
         void Dodge()
         {
@@ -89,16 +89,18 @@ namespace Troia
             if (rank > lastRank && rank >= 4 && Level(God.Apollo) > 0) player.Health.Heal(5 * Level(God.Apollo));
             lastRank = rank;
         }
-        void Area(Vector3 point, float radius, float damage, float launch, float push)
+        void Area(Vector3 point, float radius, float damage, float launch, float push, God deity, int sequence = 0)
         {
-            foreach (var enemy in FindObjectsByType<EnemyCombat>(FindObjectsSortMode.None))
+            int action = sequence != 0 ? sequence : player.AllocateActionId();
+            foreach (var enemy in EnemyCombat.Combatants)
             {
+                if (!enemy || !enemy.gameObject.activeInHierarchy) continue;
                 Vector3 delta = enemy.transform.position - point;
                 if (delta.sqrMagnitude > radius * radius || enemy.Health.IsDead) continue;
                 if (Physics.Linecast(point + Vector3.up, enemy.transform.position + Vector3.up, ~(1 << 2), QueryTriggerInteraction.Ignore)) continue;
-                if (enemy.Health.TakeDamage(new DamageInfo { source = gameObject, damage = damage, direction = delta.normalized, launch = launch, knockback = push, stagger = .6f, heavy = true, divine = true, moveId = "divine_" + Selected }))
+                if (enemy.Health.TakeDamage(new DamageInfo { source = gameObject, damage = damage, direction = delta.normalized, launch = launch, knockback = push, stagger = .6f, heavy = true, divine = true, moveId = "divine_" + deity, sequence = action }))
                 {
-                    player.Style.RegisterHit("divine_" + Selected, false);
+                    player.Style.RegisterHit("divine_" + deity, false, "divine", false, false, action, damage, "Poder / " + deity);
                     CombatVisuals.Burst(enemy.transform.position + Vector3.up, Color.cyan);
                 }
             }

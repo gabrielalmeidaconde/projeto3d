@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
   id: Pesado
   animationState: Pesado
+  displayName: Quebra-guarda
+  command:
+  motion: 4
   input: 1
   damage: 34
   duration: 0.8
@@ -29,6 +32,8 @@ MonoBehaviour:
   aerial: 0
   finisher: 0
   slam: 0
+  hitCount: 1
   next: {fileID: 0}
   delayedNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: f2f40f26a98dedd4c9572d7a74638bd5, type: 2}
   delayedThreshold: 0.43

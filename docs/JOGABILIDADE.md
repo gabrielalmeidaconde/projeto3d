@@ -1,4 +1,4 @@
-# Jogabilidade da Ilíada (plano v2)
+# Jogabilidade da Ilíada: arsenal e combate de estilo
 
 ## Escopo e integração
 
@@ -20,34 +20,63 @@ Checkpoints duram a sessão atual, com bênçãos e tempo preservados após os a
 | --- | --- | --- |
 | Mover / correr | WASD / Shift | Analógico esquerdo / pressionar analógico |
 | Câmera / zoom | Mouse / scroll | Analógico direito |
-| Pular | Espaço | A |
+| Pular / pulo duplo | Espaço / novamente no ar | A / novamente no ar |
 | Leve | Clique esquerdo ou J | X |
 | Pesado / lançador | Clique direito ou K / segurar 0,35 s | Y / segurar |
 | Esquivar e cancelar recuperação | Ctrl | B |
-| Poder divino / trocar deus | Q / Tab | RB / direcional direito |
+| Fixar alvo / próximo alvo | F ou clique do meio / T | LT / pressionar analógico direito |
+| Aproximar e atacar | E | RB |
+| Disparar / arremessar | R (pode segurar) | RT |
+| Trocar arma | 1 / 2 / 3 | Direcional esquerdo / direito |
+| Poder divino / trocar deus | Q / Tab | LB / direcional baixo |
+| Lista de golpes / treino livre | H / F2 | Menu de pausa |
 | Pausa | Esc | Start |
 
-- Corte triplo: leve, leve, leve. O terceiro golpe empurra.
+- Xifos: corte triplo, estocadas com pausa e rupturas em rotas leve/pesado.
+- Lança: estocadas de maior alcance, varreduras multihit, alavanca e azagaia pesada.
+- Lâminas gêmeas: quatro cortes, rajadas multihit, tesoura/furacão e duas facas por disparo.
+- Cada arma tem leve, pesado, lançador, sequência aérea, queda e aproximação próprios.
+- Trocas antes do impacto aguardam o fim da janela de dano. O próximo leve continua
+  na etapa seguinte da nova arma. Selecionar a arma atual cancela uma troca pendente.
 - Estocadas: leve, leve, pausa, leve, leve. No segundo golpe a janela normal abre
   em 0,371 s; a variação começa em 0,47 s e aceita entrada até 0,65 s.
 - Lançador: segurar pesado no chão. Pule durante a recuperação para perseguir o alvo.
-- Juggle: três leves no ar sustentam jogador e inimigo; pesado no ar faz queda com dano em área ao aterrissar.
+- Juggle: leves no ar sustentam jogador e inimigo somente ao acertar. Errar não permite
+  voo infinito. Pesado no ar faz queda com dano em área ao aterrissar.
+- O segundo pulo renova a velocidade vertical uma vez; cargas só voltam ao aterrissar.
+- Aproximação exige alvo visível, tem recarga, usa CharacterController e termina em
+  golpe. Funciona contra alvos lançados e não concede invulnerabilidade.
+- Projéteis usam varredura contínua e cadência independente. Trocar de arma não altera
+  um projétil já lançado; disparar não interrompe o ataque corpo a corpo.
 - A esquiva cancela o golpe, preserva a próxima etapa por 0,8 s e concede invulnerabilidade
   no início. Tem recarga para impedir invulnerabilidade contínua.
-- Entradas de ataque têm buffer de 0,2 s. Cada alvo recebe dano uma única vez por golpe.
+- Entradas de ataque têm buffer de 0,2 s. Cada alvo recebe dano uma vez por pulso configurado.
   Geometria entre atacante e alvo bloqueia golpes e poderes.
 
-O estilo vai de D a SSS. Repetições recentes dão menos pontos, inatividade provoca
-decaimento e dano recebido derruba dois níveis. A nota multiplica favor e tempo por kill.
+O estilo vai de D a SSS, com nome, cor, barra de progresso e animação no HUD. Repetições
+reduzem o ganho até zero; variar armas e acertar no ar dá bônus. Um identificador por
+ação impede multiplicar estilo com multidões, multihit ou duas facas. Hits e dano são
+contados separadamente. Inatividade provoca decaimento mesmo se o jogador insistir
+em um golpe que não pontua. Dano recebido derruba dois níveis. A nota multiplica favor
+e tempo por kill; pico e média são registrados para o placar.
+
+F2 inicia treino livre: alvos passivos com 5000 de vida, reações completas de combate,
+timer suspenso, recuperação de vida/favor e os seis deuses liberados no nível 1.
+Reiniciar partida sai do treino e restaura a progressão normal.
 
 ## Componentes e ajuste
 
 - `GameplayConfig`: velocidades, gravidade, pulo, esquiva, buffer, hold pesado, vida,
   tempo inicial, tempo por kill e referências aos assets.
-- `ComboSO`: dano, duração, alcance, arco, avanço, knockback, lançamento, janelas e
-  conexões normal/atrasada. São 11 golpes configurados; nenhum depende de nomes de assets em runtime.
+- `WeaponSO`: identidade, apresentação, entradas/continuação de combo, projéteis e cadência.
+- `ComboSO`: dano por impacto, pulsos, duração, alcance, arco, avanço, knockback,
+  lançamento, janelas e conexões leve/pesada/atrasada, configurados por assets.
 - `PlayerCombat`: estados de locomoção, ataque, esquiva, stagger e morte, câmera com
-  colisão, assistência frontal leve e efeitos de impacto.
+  colisão, buffer, troca de arma e aproximação. `PlayerTargeting` mantém foco e troca de alvo.
+- `PlayerProjectile`: varredura, bloqueio por cenário e crédito do acerto ao dono.
+- `PlayerPresentation` e `CombatAudio`: corpo articulado procedural, armas, rastros,
+  movimentos, pulo duplo e áudio sintetizado localmente.
+- `GameplayHUD`: Canvas uGUI na câmera, medidor de estilo, retículo, arsenal e menus.
 - `Health`, `IDamageable`, `DamageInfo`: contrato comum para dano, direção,
   knockback, lançamento, stagger, finalizador e origem.
 - `CombatEvents`: eventos por jogador para hit, finalizador, lançamento, esquiva e nota.
@@ -62,14 +91,17 @@ decaimento e dano recebido derruba dois níveis. A nota multiplica favor e tempo
   Atena: escudo/parry; Poseidon: onda/lançamento em grupo.
 
 Os valores estão em `Assets/Troia/Resources/Troia/Gameplay.asset` e subpastas.
-Regenerar o mapa não sobrescreve esses assets. O menu de configuração não sobrescreve
-assets existentes; o fallback em memória permite jogar mesmo sem configuração salva.
+Regenerar o mapa não sobrescreve esses assets. O menu migra configurações antigas uma
+vez para a versão do arsenal, mantendo os dados existentes do xifos e adicionando as
+armas/rotas novas. Configurações já migradas não são recriadas. O fallback em memória
+permite jogar mesmo sem configuração salva.
 
 ## Animações e apresentação
 
-O repositório original só fornece um corpo de cápsula e não contém rig/clips de combate.
-Esta implementação usa espada, antecipação de inimigos, movimentos de arma, partículas,
-hit stop e tremor de câmera procedurais. A lógica e os tempos funcionam sem Animator.
+O repositório original não contém rig/clips de combate. O jogador agora tem corpo
+articulado e três armas visuais procedurais, com movimentos de corte, estocada, giro,
+lançador e queda, mais rastros, partículas, áudio, hit stop e tremor. Modelos e clips
+de produção podem substituir essa apresentação; a lógica funciona sem Animator.
 
 Para integrar clips, atribua um `Animator` ao `PlayerCombat`, configure `animationState`
 nos `ComboSO` e habilite `useAnimationEvents`. Eventos dos clips devem chamar
@@ -78,7 +110,7 @@ Nesse modo os eventos controlam as janelas; `duration` continua sendo o limite d
 O impacto do golpe de queda depende da aterrissagem física em ambos os modos.
 
 Heitor usa o mesmo controlador de combate com vida, alcance, dano e ritmo próprios;
-não há animação cinematográfica ou segunda fase exclusiva. Áudio, modelos finais e
+não há animação cinematográfica ou segunda fase exclusiva. Áudio final, modelos finais e
 balanceamento por sessões humanas permanecem trabalho de apresentação.
 
 ## Executar as verificações
@@ -103,14 +135,17 @@ Os testes de regras verificam ramificações, janelas, assets serializados, comp
 usam o mapa real e uma plataforma de física isolada para movimentação, combos, buffer,
 esquiva, lançamento e queda. A progressão automatizada elimina os inimigos diretamente
 para verificar os 20 andares, barreiras, chefes, escolhas, tempo por kill, checkpoints,
-timeout, morte e reinício. Um terceiro cenário verifica poderes ativos dos seis deuses,
-recargas, dash, armadura, ataque da IA e projéteis. Isso não substitui uma partida humana
-completa para dificuldade.
+timeout, morte e reinício. Outros cenários verificam os seis poderes/recargas, armadura,
+ataque da IA, projéteis, pulo duplo, perseguição aérea, troca durante combos, multihit,
+estilo sem pontuação artificial por área, treino e HUD. Isso não substitui uma partida
+humana completa para dificuldade.
 
 Build de desenvolvimento: execute `Troia.Editor.GameplaySetup.BuildWindows` via
 `-executeMethod` em batchmode. A saída fica em `Builds/Windows/Iliada.exe`.
 O argumento `-troia-smoke` na build de desenvolvimento executa uma checagem inicial,
 salva a câmera em `Capturas/gameplay-camera.png` e encerra com código 0 em caso de sucesso.
-As capturas da janela inteira dependem de uma janela gráfica ativa; a captura direta
-da câmera também funciona em execução oculta. Resultados e limites da validação estão
+O diagnóstico também salva as três armas, o HUD em SSS, a lista de golpes, pausa e
+escolha de bênçãos. O HUD uGUI é renderizado pela câmera e aparece nessas capturas,
+inclusive em execução oculta. O SSS do diagnóstico usa uma sequência de acertos de
+teste para conferir o layout. Resultados e limites da validação estão
 em [VALIDACAO.md](VALIDACAO.md).

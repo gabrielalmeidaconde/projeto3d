@@ -52,6 +52,7 @@ namespace Troia
                 var b = ScriptableObject.CreateInstance<BlessingSO>(); b.name = titles[i]; b.god = (God)i;
                 b.title = titles[i]; b.description = descriptions[i]; c.blessings[i] = b;
             }
+            ArsenalDefaults.Populate(c);
             return c;
         }
         static ComboSO Move(string id, AttackInput input, float damage, float duration)

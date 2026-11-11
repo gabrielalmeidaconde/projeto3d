@@ -38,26 +38,34 @@ corredores de transição.
 - Texturas principais em 2048 (JPG); se o URP for atualizado, recopie o `Lit.shader` do pacote para
   `Assets/Troia/Shaders/TroiaLitSujo.shader` mantendo o fragmento `TroiaLitPassFragment`.
 
-### Jogar (plano v2)
+### Jogar: arsenal e combos
 
 Abra a cena e dê Play. O bootstrap substitui o controle temporário por movimentação e
 combate; também funciona após regerar o mapa.
 
-- **WASD** mover, **Shift** correr, **Espaço** pular, **Ctrl** esquivar/cancelar golpe.
+- **WASD** mover, **Shift** correr, **Espaço** pular (novamente no ar: pulo duplo), **Ctrl** esquivar/cancelar golpe.
 - **Mouse** câmera, **Scroll** zoom, **clique esquerdo/J** leve, **clique direito/K** pesado.
-- Segure pesado para lançar; pule para perseguir e use **LLL** no ar ou pesado para cair em área.
-- **LLL** corte triplo; **LL (pausa) LL** estocadas. A pausa acontece depois do segundo golpe.
-- **Q** poder divino, **Tab** trocar deus, **1/2/3** escolher bênção, **Esc** pausa, **H** ajuda.
+- **1/2/3** trocam entre xifos, lança e lâminas gêmeas, inclusive durante sequências.
+- **F/clique do meio** fixa alvo, **T** troca alvo, **E** aproxima e ataca (também no ar).
+- **R** dispara/arremessa projéteis; pode ser combinado com golpes de perto.
+- Segure pesado para lançar; pule e pressione **E** para perseguir, ou pesado no ar para cair em área.
+- **LLL** (lâminas: **LLLL**), **LP**, **PP** e **LL (pausa) LL** têm rotas próprias por arma.
+- **Q** poder divino, **Tab** trocar deus, **Esc** pausa, **H** lista de golpes, **F2** treino livre.
 - Controle: analógico esquerdo mover, direito câmera, **A** pulo, **B** esquiva,
-  **X/Y** leve/pesado, **RB** poder, direcional direito trocar deus, **Start** pausa.
+  **X/Y** leve/pesado, **LT** foco, **RB** aproximação, **RT** projéteis,
+  **LB** poder, direcional esquerdo/direito armas, direcional baixo trocar deus, **Start** pausa.
+
+O HUD destaca **D → C → B → A → S → SS → SSS**, progresso, hits e dano da sequência.
+Variar arma e acertar no ar rende mais estilo. Repetir o mesmo golpe deixa de pontuar;
+atingir vários alvos ou dar vários impactos com a mesma ação não multiplica a nota.
 
 São 20 andares nas seis arenas. O timer global começa em 180 segundos; acertos variados
 aumentam o estilo e kills recuperam tempo/favor. Bênçãos e checkpoints após 5/10/15;
 capitão no andar 10 e Heitor no 20.
 
 Balanceamento em `Assets/Troia/Resources/Troia/Gameplay.asset`, com combos, andares e
-bênçãos separados. Menu `Troia > Gameplay > Criar configuracao e combos` cria os padrões
-se ainda não existirem. Os movimentos de combate são procedurais; integração de
+bênçãos e armas separados. Menu `Troia > Gameplay > Criar configuracao e combos` cria os padrões
+e migra configurações antigas para o arsenal. Os movimentos de combate são procedurais; integração de
 animações e verificações em [docs/JOGABILIDADE.md](docs/JOGABILIDADE.md).
 
 ## Código

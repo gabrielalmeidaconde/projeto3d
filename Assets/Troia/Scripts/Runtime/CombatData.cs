@@ -3,10 +3,12 @@ using UnityEngine;
 
 namespace Troia
 {
-    public enum AttackInput { Light, Heavy }
+    public enum AttackInput { Light, Heavy, Launcher }
+    public enum WeaponKind { Sword, Spear, TwinBlades }
+    public enum AttackMotion { Slash, Thrust, Spin, Uppercut, Overhead }
     public enum God { Zeus, Ares, Apollo, Hermes, Athena, Poseidon }
     public enum EnemyKind { Soldier, Archer, Captain, Hector }
-    public enum PlayerState { Locomotion, Attacking, Dodging, Staggered, Dead }
+    public enum PlayerState { Locomotion, Attacking, Dodging, Staggered, Dead, Rushing }
 
     [Serializable]
     public struct DamageInfo
@@ -18,6 +20,8 @@ namespace Troia
         public float launch;
         public float stagger;
         public bool heavy, aerial, finisher, divine;
+        public bool projectile;
+        public int sequence;
         public string moveId;
     }
 

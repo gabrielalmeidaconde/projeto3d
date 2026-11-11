@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
   id: Lancador
   animationState: Lancador
+  displayName: Ascensao
+  command:
+  motion: 3
   input: 1
   damage: 22
   duration: 0.7
@@ -29,6 +32,8 @@ MonoBehaviour:
   aerial: 0
   finisher: 0
   slam: 0
+  hitCount: 1
   next: {fileID: 0}
   delayedNext: {fileID: 0}
+  heavyNext: {fileID: 0}
   delayedThreshold: 0.43

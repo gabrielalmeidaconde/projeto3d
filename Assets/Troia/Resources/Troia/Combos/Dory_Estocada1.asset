@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Dory_Estocada1
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Dory_Estocada1
+  animationState: Dory_Estocada1
+  displayName: Ponta de bronze
+  command: L L L / L P / L L (pausa) L L
+  motion: 1
+  input: 0
+  damage: 20
+  duration: 0.46
+  hitStart: 0.1012
+  hitEnd: 0.23
+  comboOpen: 0.2392
+  comboClose: 0.437
+  range: 4.2
+  angle: 70
+  knockback: 0.65
+  launch: 0
+  lunge: 1.8
+  aerial: 0
+  finisher: 0
+  slam: 0
+  hitCount: 1
+  next: {fileID: 11400000, guid: 8e84c6bbd3b353c4c9294aef7844aa32, type: 2}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: 844d7fcc937d95447ab42c1fbb7e7eec, type: 2}
+  delayedThreshold: 0.43

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Gemeas_Rajada
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Gemeas_Rajada
+  animationState: Gemeas_Rajada
+  displayName: Rajada
+  command:
+  motion: 2
+  input: 0
+  damage: 8
+  duration: 0.62
+  hitStart: 0.1364
+  hitEnd: 0.31
+  comboOpen: 0.3224
+  comboClose: 0.589
+  range: 2.6
+  angle: 300
+  knockback: 0.65
+  launch: 0
+  lunge: 0.6
+  aerial: 0
+  finisher: 0
+  slam: 0
+  hitCount: 4
+  next: {fileID: 11400000, guid: c74bc47730a613d41a85b79e0ac5ac1c, type: 2}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 0}
+  delayedThreshold: 0.43

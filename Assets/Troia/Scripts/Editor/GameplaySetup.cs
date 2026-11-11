@@ -12,23 +12,43 @@ namespace Troia.Editor
         [MenuItem("Troia/Gameplay/Criar configuracao e combos")]
         public static void EnsureAssets()
         {
-            if (AssetDatabase.LoadAssetAtPath<GameplayConfig>(Root + "/Gameplay.asset")) return;
+            var existing = AssetDatabase.LoadAssetAtPath<GameplayConfig>(Root + "/Gameplay.asset");
+            if (existing)
+            {
+                if (existing.combatVersion < ArsenalDefaults.Version || existing.weapons == null || existing.weapons.Length == 0)
+                {
+                    ArsenalDefaults.Populate(existing); SaveArsenal(existing); EditorUtility.SetDirty(existing); AssetDatabase.SaveAssets();
+                }
+                return;
+            }
             Directory.CreateDirectory(Root + "/Combos"); Directory.CreateDirectory(Root + "/Andares"); Directory.CreateDirectory(Root + "/Bencaos");
             AssetDatabase.Refresh();
             var config = GameplayDefaults.Create();
             var visited = new HashSet<ComboSO>();
             foreach (var combo in new[] { config.light, config.heavy, config.launcher, config.airLight, config.slam }) SaveCombo(combo, visited);
+            SaveArsenal(config);
             foreach (var floor in config.floors) AssetDatabase.CreateAsset(floor, Root + "/Andares/" + floor.name + ".asset");
             foreach (var blessing in config.blessings) AssetDatabase.CreateAsset(blessing, Root + "/Bencaos/" + blessing.name + ".asset");
             AssetDatabase.CreateAsset(config, Root + "/Gameplay.asset"); AssetDatabase.SaveAssets();
-            Debug.Log("Gameplay: configuracao, 11 golpes, 20 andares e 6 bencaos criados.");
+            Debug.Log("Gameplay: arsenal, combos, 20 andares e 6 bencaos criados.");
         }
         static void SaveCombo(ComboSO combo, HashSet<ComboSO> visited)
         {
             if (!combo || !visited.Add(combo)) return;
-            AssetDatabase.CreateAsset(combo, Root + "/Combos/" + combo.name + ".asset");
-            SaveCombo(combo.next, visited); SaveCombo(combo.delayedNext, visited);
+            if (!AssetDatabase.Contains(combo)) AssetDatabase.CreateAsset(combo, Root + "/Combos/" + combo.name + ".asset");
+            SaveCombo(combo.next, visited); SaveCombo(combo.delayedNext, visited); SaveCombo(combo.heavyNext, visited);
             EditorUtility.SetDirty(combo);
+        }
+        static void SaveArsenal(GameplayConfig config)
+        {
+            Directory.CreateDirectory(Root + "/Armas"); AssetDatabase.Refresh();
+            var visited = new HashSet<ComboSO>();
+            foreach (var weapon in config.weapons)
+            {
+                foreach (var root in new[] { weapon.light, weapon.heavy, weapon.launcher, weapon.airLight, weapon.slam, weapon.dash, weapon.airDash }) SaveCombo(root, visited);
+                if (!AssetDatabase.Contains(weapon)) AssetDatabase.CreateAsset(weapon, Root + "/Armas/" + weapon.name + ".asset");
+                EditorUtility.SetDirty(weapon);
+            }
         }
         public static void BuildWindows()
         {

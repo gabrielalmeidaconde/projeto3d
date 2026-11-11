@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
   id: Aereo_2
   animationState: Aereo_2
+  displayName: Reverso celeste
+  command:
+  motion: 0
   input: 0
   damage: 15
   duration: 0.38
@@ -29,6 +32,8 @@ MonoBehaviour:
   aerial: 1
   finisher: 0
   slam: 0
+  hitCount: 1
   next: {fileID: 11400000, guid: f152833497965ff4e9bb54652370734c, type: 2}
   delayedNext: {fileID: 0}
+  heavyNext: {fileID: 0}
   delayedThreshold: 0.43

@@ -22,6 +22,7 @@ namespace Troia
         public int Alive => enemies.Count(e => e && !e.Health.IsDead);
         public string Message { get; private set; }
         public bool FloorActive { get; private set; }
+        public bool TrainingMode { get; private set; }
         public int HighlightedChoice { get; private set; }
         readonly List<EnemyCombat> enemies = new List<EnemyCombat>();
         LevelMarker[] markers;
@@ -83,6 +84,12 @@ namespace Troia
             if (IsPlaying && Time.timeScale == 0 && Time.unscaledTime >= hitStopUntil) Time.timeScale = 1;
             if (!player || !IsPlaying) return;
             float dt = Time.deltaTime;
+            if (TrainingMode)
+            {
+                player.Health.Heal(config.playerHealth); player.Favor.Gain(100);
+                if (Alive == 0) { FloorActive = false; StartFloor(); }
+                return;
+            }
             if (FloorActive)
             {
                 RemainingTime = Mathf.Max(0, RemainingTime - dt);
@@ -123,6 +130,17 @@ namespace Troia
                 for (int i = 0; i < group.count; i++)
                 {
                     Vector3 desired = points[index % points.Length].transform.position;
+                    if (TrainingMode)
+                    {
+                        for (int attempt = 0; attempt < 8; attempt++)
+                        {
+                            var direction = Quaternion.AngleAxis((index % 2 == 0 ? -1 : 1) * (25 + attempt * 20), Vector3.up) * player.transform.forward;
+                            var candidate = player.transform.position + direction * (7 + index);
+                            if (NavMesh.SamplePosition(candidate, out var practice, 2, NavMesh.AllAreas) && Contains(arena, practice.position) &&
+                                !Physics.Linecast(player.transform.position + Vector3.up, practice.position + Vector3.up, ~(1 << 2), QueryTriggerInteraction.Ignore))
+                            { desired = practice.position; break; }
+                        }
+                    }
                     // Later enemies use small offsets to avoid coincident capsules.
                     desired += new Vector3((index / points.Length) * 1.1f, 0, 0); index++;
                     if (!NavMesh.SamplePosition(desired, out var nav, 5, NavMesh.AllAreas))
@@ -133,6 +151,7 @@ namespace Troia
                     go.transform.position = nav.position;
                     var enemy = go.AddComponent<EnemyCombat>();
                     enemy.Initialize(group.kind, player, wave.healthMultiplier, wave.damageMultiplier); enemies.Add(enemy);
+                    if (TrainingMode) { enemy.trainingDummy = true; enemy.Health.ResetHealth(5000); }
                 }
             pendingSpawn = false;
             if (Alive == 0) { FloorActive = false; SetBarriers(wave.arena, false); Message = "Falha ao gerar inimigos: confira o NavMesh."; return; }
@@ -146,6 +165,7 @@ namespace Troia
         }
         public void CompleteFloor()
         {
+            if (TrainingMode) return;
             if (!FloorActive || Alive > 0) return;
             FloorActive = false;
             int completed = Floor;
@@ -211,9 +231,11 @@ namespace Troia
         }
         public void Restart(bool checkpoint)
         {
+            TrainingMode = false;
             Time.timeScale = 1; hitStopUntil = 0;
             foreach (var enemy in enemies) if (enemy) Destroy(enemy.gameObject);
             foreach (var projectile in FindObjectsByType<EnemyProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
+            foreach (var projectile in FindObjectsByType<PlayerProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
             enemies.Clear(); pendingSpawn = FloorActive = false;
             foreach (var m in markers.Where(m => m.kind == MarkerKind.Barrier)) SetBarrier(m, false);
             Floor = checkpoint ? checkpointFloor : 1; Kills = 0;
@@ -263,6 +285,13 @@ namespace Troia
             }
         }
         public Vector3 Destination => arena ? arena.transform.position : startPosition;
+        public void BeginTraining()
+        {
+            Restart(false); TrainingMode = true; transition = 0;
+            foreach (var blessing in config.blessings) player.Favor.Grant(blessing);
+            player.Favor.Cycle(); player.Favor.Gain(100);
+            StartFloor(); Message = "TREINO / F2 reinicia / Esc para sair";
+        }
         public bool HasCheckpoint => checkpointFloor > 1;
         void OnDestroy() { if (Instance == this) { Instance = null; Time.timeScale = 1; PlayerCombat.LockCursor(false); } }
     }

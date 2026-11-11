@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ab7af37f9f75f4ba61412dcd4578bd, type: 3}
+  m_Name: Xifos
+  m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
+  id: Xifos
+  displayName: XIFOS
+  description: Equilibrio e cancelamentos. Corte triplo, estocadas e ruptura ascendente.
+  kind: 0
+  color: {r: 1, g: 0.65, b: 0.2, a: 1}
+  light: {fileID: 11400000, guid: d639dc941af2a9e41b9b35c7e672e8f6, type: 2}
+  heavy: {fileID: 11400000, guid: 4a06288b80bd1364c8f856ab331c0d52, type: 2}
+  launcher: {fileID: 11400000, guid: d481acb751dae134ea2bdb3e4fad01fd, type: 2}
+  airLight: {fileID: 11400000, guid: 8c6c694c4007c974da153dc51ed09230, type: 2}
+  slam: {fileID: 11400000, guid: 0e30205b026161b4e84ec7bda1276d77, type: 2}
+  dash: {fileID: 11400000, guid: 1a13a5cb2fa2cd24ebf21a0c16f2dc7f, type: 2}
+  airDash: {fileID: 11400000, guid: ba876afba3ba1894b85194a59cc01cf2, type: 2}
+  projectileDamage: 9
+  projectileSpeed: 32
+  projectileRange: 28
+  fireInterval: 0.28
+  projectileCount: 1
+  heavyProjectile: 0

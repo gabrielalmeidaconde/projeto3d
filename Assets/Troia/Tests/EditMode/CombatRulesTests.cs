@@ -12,10 +12,15 @@ namespace Troia.Tests
         GameplayConfig Config()
         {
             var c = Own(GameplayDefaults.Create());
-            foreach (var m in new[] { c.light, c.heavy, c.launcher, c.airLight, c.slam }) Collect(m, new HashSet<ComboSO>());
+            var visited = new HashSet<ComboSO>();
+            foreach (var weapon in c.weapons)
+            {
+                Own(weapon);
+                foreach (var m in new[] { weapon.light, weapon.heavy, weapon.launcher, weapon.airLight, weapon.slam, weapon.dash, weapon.airDash }) Collect(m, visited);
+            }
             foreach (var w in c.floors) Own(w); foreach (var b in c.blessings) Own(b); return c;
         }
-        void Collect(ComboSO m, HashSet<ComboSO> visited) { if (!m || !visited.Add(m)) return; Own(m); Collect(m.next, visited); Collect(m.delayedNext, visited); }
+        void Collect(ComboSO m, HashSet<ComboSO> visited) { if (!m || !visited.Add(m)) return; Own(m); Collect(m.next, visited); Collect(m.delayedNext, visited); Collect(m.heavyNext, visited); }
         [Test] public void GroundComboBranchesOnPauseAndTerminates()
         {
             var c = Config(); var second = PlayerCombat.ResolveNext(c.light, c.light.comboOpen);
@@ -31,6 +36,62 @@ namespace Troia.Tests
             Assert.That(config.light.next.next.finisher, Is.True);
             Assert.That(config.light.next.delayedNext.next.finisher, Is.True);
             Assert.That(config.airLight.next.next.aerial, Is.True);
+            Assert.That(config.combatVersion, Is.EqualTo(ArsenalDefaults.Version));
+            Assert.That(config.weapons.Length, Is.EqualTo(3));
+            foreach (var weapon in config.weapons) Assert.That(weapon.dash, Is.Not.Null);
+        }
+        [Test] public void WeaponsHaveDistinctReachRoutesAndCompleteAerialGraphs()
+        {
+            var c = Config(); var ids = new HashSet<string>(); var all = new HashSet<ComboSO>();
+            foreach (var weapon in c.weapons)
+            {
+                Assert.That(ids.Add(weapon.id), Is.True);
+                Assert.That(weapon.light.heavyNext, Is.Not.Null, weapon.name);
+                Assert.That(weapon.light.next.delayedNext, Is.Not.Null, weapon.name);
+                Assert.That(weapon.launcher.launch, Is.GreaterThan(0));
+                Assert.That(weapon.slam.slam && weapon.slam.aerial, Is.True);
+                Assert.That(weapon.airDash.aerial, Is.True);
+                var pending = new Queue<ComboSO>(new[] { weapon.light, weapon.heavy, weapon.launcher, weapon.airLight, weapon.slam, weapon.dash, weapon.airDash });
+                while (pending.Count > 0)
+                {
+                    var move = pending.Dequeue(); if (!move || !all.Add(move)) continue;
+                    Assert.That(move.damage, Is.Positive, move.name);
+                    Assert.That(move.hitStart, Is.LessThan(move.hitEnd), move.name);
+                    Assert.That(move.hitEnd, Is.LessThanOrEqualTo(move.comboOpen), move.name);
+                    Assert.That(move.comboOpen, Is.LessThan(move.comboClose), move.name);
+                    Assert.That(move.comboClose, Is.LessThanOrEqualTo(move.duration), move.name);
+                    Assert.That(move.hitCount, Is.InRange(1, 8));
+                    pending.Enqueue(move.next); pending.Enqueue(move.delayedNext); pending.Enqueue(move.heavyNext);
+                }
+            }
+            Assert.That(all.Count, Is.GreaterThanOrEqualTo(40));
+            Assert.That(c.weapons[1].light.range, Is.GreaterThan(c.weapons[0].light.range));
+            Assert.That(c.weapons[2].light.next.next.next.finisher, Is.True);
+            Assert.That(c.weapons[2].projectileCount, Is.EqualTo(2));
+        }
+        [Test] public void WeaponSwitchContinuesAtNextStepAndWrapsAfterFinisher()
+        {
+            var c = Config();
+            Assert.That(c.weapons[1].Continuation(1, false), Is.SameAs(c.weapons[1].light.next));
+            Assert.That(c.weapons[2].Continuation(2, true), Is.SameAs(c.weapons[2].airLight.next.next));
+            Assert.That(c.weapons[0].Continuation(3, false), Is.SameAs(c.weapons[0].light));
+        }
+        [Test] public void RepeatingOneMoveCannotFarmHighStyle()
+        {
+            var meter = Meter(); for (int i = 0; i < 100; i++) meter.RegisterHit("same", false);
+            Assert.That(meter.Rank, Is.Zero); Assert.That(meter.Freshness, Is.Zero);
+            meter.Tick(4); Assert.That(meter.ChainHits, Is.Zero);
+        }
+        [Test] public void MultiHitAndInterleavedProjectilesCreditStyleOnlyOncePerAction()
+        {
+            var meter = Meter();
+            meter.RegisterHit("sword.light", false, "sword", false, false, 1, 14, "Corte");
+            meter.RegisterHit("sword.shot", false, "sword", false, true, 2, 9, "Tiro");
+            float score = meter.Score;
+            meter.RegisterHit("sword.light", false, "sword", false, false, 1, 14, "Corte");
+            Assert.That(meter.Score, Is.EqualTo(score)); Assert.That(meter.ChainHits, Is.EqualTo(3));
+            meter.RegisterHit("spear.light", false, "spear", true, false, 3, 20, "Estocada");
+            Assert.That(meter.LastGain, Is.GreaterThan(15));
         }
         [Test] public void AllMovesHaveValidHitAndComboWindows()
         {

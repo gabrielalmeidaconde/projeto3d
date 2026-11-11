@@ -29,6 +29,16 @@ MonoBehaviour:
   launcher: {fileID: 11400000, guid: d481acb751dae134ea2bdb3e4fad01fd, type: 2}
   airLight: {fileID: 11400000, guid: 8c6c694c4007c974da153dc51ed09230, type: 2}
   slam: {fileID: 11400000, guid: 0e30205b026161b4e84ec7bda1276d77, type: 2}
+  combatVersion: 2
+  weapons:
+  - {fileID: 11400000, guid: db876764bc6f6054fb4b766d8eaef54e, type: 2}
+  - {fileID: 11400000, guid: ab17088990e3f1440be38d2fdb84b41b, type: 2}
+  - {fileID: 11400000, guid: b4e2e1773a01dce4ea3f5b62697a4e0e, type: 2}
+  doubleJumpSpeed: 8.5
+  approachSpeed: 26
+  approachRange: 18
+  approachCooldown: 0.75
+  lockRange: 24
   floors:
   - {fileID: 11400000, guid: 2cb5e74ba14693c45ae17cb69b89b4fe, type: 2}
   - {fileID: 11400000, guid: 68ca288b9d8510a42865c85783b4a6ed, type: 2}
