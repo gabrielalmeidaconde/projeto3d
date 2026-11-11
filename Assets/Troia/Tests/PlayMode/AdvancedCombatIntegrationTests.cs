@@ -60,6 +60,79 @@ namespace Troia.Tests
             player.RequestJump(); yield return new WaitForSeconds(.08f); Assert.That(player.JumpsUsed, Is.EqualTo(2));
             yield return new WaitForSeconds(1.7f); Assert.That(player.IsGrounded); Assert.That(player.JumpsUsed, Is.Zero);
         }
+        [UnityTest] public IEnumerator HeavyCooldownAndRecoverySurviveJumpDodgeAndWeaponSwap()
+        {
+            var heavy = player.Weapon.heavy;
+            Assert.That(player.RequestAttack(AttackInput.Heavy), Is.True);
+            yield return new WaitForSeconds(.03f);
+            player.RequestJump(); yield return new WaitForSeconds(.05f);
+            player.SelectWeapon(1);
+            Assert.That(player.RecoveryRemaining, Is.Positive);
+            Assert.That(player.RequestAttack(AttackInput.Light), Is.False, "Cancelamento defensivo nao elimina recuperacao ofensiva");
+            Assert.That(player.MoveCooldown(heavy), Is.GreaterThan(1));
+            player.RequestDodge(Vector3.back); yield return new WaitForSeconds(.6f);
+            player.SelectWeapon(0);
+            // Wait for landing so Heavy resolves to the same ground move, rather than a slam.
+            yield return new WaitForSeconds(.35f);
+            Assert.That(player.IsGrounded, Is.True);
+            Assert.That(player.RequestAttack(AttackInput.Heavy), Is.False, "Trocar de arma nao recarrega o golpe");
+            yield return new WaitForSeconds(.8f);
+            Assert.That(player.RequestAttack(AttackInput.Heavy), Is.True);
+        }
+        [UnityTest] public IEnumerator AnEarlyBufferedInputExpiresDuringProtectedRecovery()
+        {
+            player.RequestAttack(AttackInput.Heavy); yield return new WaitForSeconds(.03f);
+            player.RequestJump(); yield return new WaitForSeconds(.04f);
+            Assert.That(player.RequestAttack(AttackInput.Light), Is.False);
+            Assert.That(player.RecoveryRemaining, Is.GreaterThan(player.config.inputBuffer));
+            yield return new WaitForSeconds(.65f);
+            Assert.That(player.CurrentAttack, Is.Null, "Uma entrada antiga nao se renova a cada frame de recuperacao");
+            Assert.That(player.State, Is.EqualTo(PlayerState.Locomotion));
+        }
+        [UnityTest] public IEnumerator AxePullMovesOnlyEnemyAndRespectsArmorWallsAndCooldown()
+        {
+            player.SelectWeapon(2); var enemy = Enemy(10); player.Targeting.Lock(enemy);
+            Vector3 position = player.transform.position;
+            Assert.That(player.RequestApproach(), Is.True);
+            Assert.That(enemy.State, Is.EqualTo(EnemyState.Pulled));
+            yield return new WaitForSeconds(.5f);
+            Assert.That(Vector3.Distance(player.transform.position, enemy.transform.position), Is.LessThan(2.3f));
+            Assert.That(Vector3.Distance(player.transform.position, position), Is.LessThan(.1f));
+            Assert.That(player.Style.Score, Is.Zero, "Puxar sem acertar nao gera estilo");
+            Assert.That(player.RequestApproach(), Is.False);
+            Object.Destroy(enemy.gameObject); yield return null;
+            player.Respawn(origin, Quaternion.identity); player.SelectWeapon(2);
+            var captain = Enemy(10, EnemyKind.Captain); player.Targeting.Lock(captain);
+            Assert.That(player.RequestApproach(), Is.False, "Blindagem intacta resiste ao puxao");
+            captain.Health.TakeDamage(new DamageInfo { damage=1, heavy=true, stagger=1 });
+            Assert.That(player.RequestApproach(), Is.True, "Quebra de guarda abre uma oportunidade");
+            yield return new WaitForSeconds(.7f);
+            player.Respawn(origin, Quaternion.identity); player.SelectWeapon(2);
+            captain.transform.position=origin+Vector3.forward*10; Physics.SyncTransforms(); Wall();
+            Assert.That(player.RequestApproach(), Is.False, "Puxao exige linha de visao");
+        }
+        [UnityTest] public IEnumerator PistolsShareBurstRecoveryAcrossAllMeleeWeapons()
+        {
+            Assert.That(player.RequestShoot(), Is.True); yield return new WaitForSeconds(.23f);
+            player.SelectWeapon(1); Assert.That(player.RequestShoot(), Is.True); yield return new WaitForSeconds(.23f);
+            player.SelectWeapon(2); Assert.That(player.RequestShoot(), Is.True);
+            yield return new WaitForSeconds(.25f); player.SelectWeapon(0);
+            Assert.That(player.RequestShoot(), Is.False);
+            Assert.That(player.ShotCooldown, Is.GreaterThan(.5f));
+            yield return new WaitForSeconds(.75f); Assert.That(player.RequestShoot(), Is.True);
+        }
+        [UnityTest] public IEnumerator OnlyConfirmedDamageRewardsWeaponVariationAndDamageDropsTwoRanks()
+        {
+            var enemy = Enemy(); player.RequestAttack(AttackInput.Light); yield return new WaitForSeconds(.3f);
+            float initial = player.Style.Score; Assert.That(initial, Is.Positive);
+            player.SelectWeapon(1); Assert.That(player.Style.Score, Is.EqualTo(initial));
+            player.RequestAttack(AttackInput.Light); yield return new WaitForSeconds(.25f);
+            Assert.That(player.Style.LastGain, Is.GreaterThan(15), "Acertar com outra arma concede variedade");
+            for(int i=0;i<30;i++) player.Style.RegisterHit("unique"+i, true, i%2==0?"sword":"axe", false, false, 1000+i, 1, "Teste");
+            int rank=player.Style.Rank; Assert.That(rank, Is.GreaterThanOrEqualTo(3));
+            Assert.That(player.Health.TakeDamage(new DamageInfo { damage=1 }), Is.True);
+            Assert.That(player.Style.Rank, Is.EqualTo(rank-2));
+        }
         [UnityTest] public IEnumerator EveryWeaponCanRouteLightIntoItsOwnHeavyBranch()
         {
             for (int i = 0; i < 3; i++)
@@ -86,10 +159,10 @@ namespace Troia.Tests
             var move = player.CurrentAttack;
             Assert.That(player.RequestShoot(), Is.True); Assert.That(player.CurrentAttack, Is.SameAs(move), "Tiro nao interrompe melee");
         }
-        [UnityTest] public IEnumerator TwinBladeMultiHitDealsTwoImpactsWithoutMultiplyingStyle()
+        [UnityTest] public IEnumerator ScytheMultiHitDealsTwoImpactsWithoutMultiplyingStyle()
         {
-            player.SelectWeapon(2); var enemy = Enemy(); float hp = enemy.Health.Current;
-            player.RequestAttack(AttackInput.Heavy); yield return new WaitForSeconds(.36f);
+            player.SelectWeapon(1); var enemy = Enemy(); float hp = enemy.Health.Current;
+            player.RequestAttack(AttackInput.Heavy); yield return new WaitForSeconds(.5f);
             Assert.That(hp - enemy.Health.Current, Is.EqualTo(player.Weapon.heavy.damage * 2).Within(.1f));
             Assert.That(player.Style.ChainHits, Is.EqualTo(2)); Assert.That(player.Style.Score, Is.EqualTo(15).Within(.1f));
             float after = enemy.Health.Current; yield return new WaitForSeconds(.35f);
@@ -122,9 +195,9 @@ namespace Troia.Tests
             float hp = enemy.Health.Current;
             Assert.That(player.RequestShoot(), Is.True); player.SelectWeapon(1);
             yield return new WaitForSeconds(.8f);
-            Assert.That(hp - enemy.Health.Current, Is.EqualTo(10).Within(.1f), "As duas facas acertam o alvo distante e mantem o dano da arma original");
+            Assert.That(hp - enemy.Health.Current, Is.EqualTo(6).Within(.1f), "As duas pistolas acertam o alvo distante e mantem o dano da arma original");
             Assert.That(player.Style.ChainHits, Is.EqualTo(2));
-            Assert.That(player.Style.Score, Is.EqualTo(15 * .35f).Within(.1f), "Duas facas pertencem a uma unica acao de estilo");
+            Assert.That(player.Style.Score, Is.EqualTo(15 * .35f).Within(.1f), "Duas pistolas pertencem a uma unica acao de estilo");
         }
         [UnityTest] public IEnumerator DivineAreaCreditsOneActionAcrossMultipleEnemies()
         {

@@ -26,7 +26,13 @@ namespace Troia
         public int ComboDepth { get; private set; }
         public float AttackTime => attackTime;
         public float ShotCooldown => Mathf.Max(0, shotReady - Time.time);
-        public float ApproachCooldown => Mathf.Max(0, approachReady - Time.time);
+        public float ApproachCooldown => Weapon && utilityReady.TryGetValue(Weapon.id, out var ready) ? Mathf.Max(0, ready - Time.time) : 0;
+        public float RecoveryRemaining => Mathf.Max(0, offenseReady - Time.time);
+        public float MoveCooldown(ComboSO move) => move && moveReady.TryGetValue(move, out var ready) ? Mathf.Max(0, ready - Time.time) : 0;
+        readonly Dictionary<ComboSO, float> moveReady = new Dictionary<ComboSO, float>();
+        readonly Dictionary<string, float> utilityReady = new Dictionary<string, float>();
+        float offenseReady, lastShot = -10;
+        int gunBurst;
         public bool IsGrounded => controller && controller.isGrounded;
         public bool Invulnerable => State == PlayerState.Dodging && stateTime < config.dodgeDuration * .8f;
         public bool CanAct => Health && !Health.IsDead && (!GameManager.Instance || GameManager.Instance.IsPlaying);
@@ -38,7 +44,7 @@ namespace Troia
         readonly Collider[] overlap = new Collider[96];
         Vector3 velocity, dodgeDirection, moveDirection;
         EnemyCombat rushTarget;
-        float yaw, pitch = 16, cameraDistance = 6, stateTime, attackTime, dodgeReady, approachReady, shotReady;
+        float yaw, pitch = 16, cameraDistance = 6, stateTime, attackTime, dodgeReady, shotReady;
         float bufferExpiry, heavyPressed = -1, lastGrounded = -10, jumpQueued = -10, graceUntil, ghostUntil;
         float preservedTime, preserveUntil, swapUntil, shake, rushDuration;
         int pendingWeapon = -1, pulse, sequence, actionCounter;
@@ -91,7 +97,9 @@ namespace Troia
             if (State == PlayerState.Staggered && stateTime > .3f) SetState(PlayerState.Locomotion);
             if (State == PlayerState.Locomotion && buffered.HasValue && Time.time <= bufferExpiry)
             {
+                float originalExpiry = bufferExpiry;
                 var input = buffered.Value; buffered = null; RequestAttack(input);
+                if (buffered.HasValue) bufferExpiry = originalExpiry;
             }
             if (buffered.HasValue && Time.time > bufferExpiry) buffered = null;
             if (State == PlayerState.Rushing) { TickRush(dt); return; }
@@ -189,9 +197,11 @@ namespace Troia
             if (!CanAct || State == PlayerState.Staggered || State == PlayerState.Rushing) return false;
             if (State == PlayerState.Locomotion)
             {
+                if (RecoveryRemaining > 0) { buffered = input; bufferExpiry = Time.time + config.inputBuffer; return false; }
                 ComboSO next = null;
                 if (input == AttackInput.Light && swapContinuation && Time.time < swapUntil) next = swapContinuation;
                 else if (preserved && Time.time < preserveUntil && input == AttackInput.Light) next = ResolveNext(preserved, preservedTime);
+                if (MoveCooldown(next ? next : BaseAttack(input)) > 0) return false;
                 bool continuation = next;
                 preserved = swapContinuation = null;
                 BeginAttack(next ? next : BaseAttack(input), continuation); return true;
@@ -218,7 +228,7 @@ namespace Troia
             if (!config || config.weapons == null || index < 0 || index >= config.weapons.Length || !CanAct ||
                 State == PlayerState.Staggered || State == PlayerState.Rushing) return false;
             if (index == WeaponIndex) { bool cancelled = pendingWeapon >= 0; pendingWeapon = -1; return cancelled; }
-            if (CurrentAttack && attackTime < CurrentAttack.hitEnd)
+            if (CurrentAttack && attackTime < CurrentAttack.hitEnd + CurrentAttack.minimumRecovery)
             {
                 pendingWeapon = index; return true; // Commit the active swing before swapping; never erase an upcoming hit.
             }
@@ -236,13 +246,21 @@ namespace Troia
         }
         public bool RequestApproach()
         {
-            if (!CanAct || !Weapon || State == PlayerState.Staggered || State == PlayerState.Rushing || State == PlayerState.Dodging || Time.time < approachReady) return false;
+            if (!CanAct || !Weapon || State == PlayerState.Staggered || State == PlayerState.Rushing || State == PlayerState.Dodging || ApproachCooldown > 0 || RecoveryRemaining > 0) return false;
             Vector3 forward = cameraTransform ? cameraTransform.forward : transform.forward;
-            var target = Targeting.FindTarget(forward, config.approachRange, 100);
+            var target = Targeting.FindTarget(forward, Weapon.utilityRange, 100);
             if (!target || Vector3.Distance(target.transform.position, transform.position) < 1.8f) return false;
+            if (MoveCooldown(!IsGrounded ? Weapon.airDash : Weapon.dash) > 0) return false;
+            if (Weapon.pullsEnemy)
+            {
+                if (!target.TryPull(this)) return false;
+                utilityReady[Weapon.id] = Time.time + Weapon.utilityCooldown;
+                offenseReady = Time.time + .28f;
+                presentation?.Pull(target.transform); return true;
+            }
             rushTarget = target; rushAirborne = !IsGrounded || target.State == EnemyState.Airborne;
             rushDuration = Mathf.Clamp(Vector3.Distance(target.transform.position, transform.position) / config.approachSpeed + .1f, .15f, .7f);
-            approachReady = Time.time + config.approachCooldown;
+            utilityReady[Weapon.id] = Time.time + Weapon.utilityCooldown;
             CancelAttack(); SetState(PlayerState.Rushing); presentation?.Dodge(); return true;
         }
         void TickRush(float dt)
@@ -274,7 +292,10 @@ namespace Troia
             Vector3 direction = target ? (target.transform.position + Vector3.up - center).normalized : forward.normalized;
             Vector3 muzzle = center + direction * .65f;
             if (Physics.Linecast(center, muzzle, ~(1 << 2), QueryTriggerInteraction.Ignore)) return false;
-            shotReady = Time.time + Weapon.fireInterval;
+            if (Time.time - lastShot > .8f) gunBurst = 0;
+            lastShot = Time.time; gunBurst++;
+            shotReady = Time.time + (gunBurst >= 3 ? .95f : Weapon.fireInterval);
+            if (gunBurst >= 3) gunBurst = 0;
             int action = AllocateActionId();
             for (int i = 0; i < Weapon.projectileCount; i++)
             {
@@ -306,7 +327,9 @@ namespace Troia
         }
         void BeginAttack(ComboSO move, bool continuation)
         {
-            if (!move) return;
+            if (!move || MoveCooldown(move) > 0) { SetState(PlayerState.Locomotion); return; }
+            moveReady[move] = Time.time + move.duration / Favor.AttackSpeed + move.cooldown;
+            offenseReady = Mathf.Max(offenseReady, Time.time + (move.hitEnd + move.minimumRecovery) / Favor.AttackSpeed);
             CurrentAttack = move; attackTime = 0; buffered = null; hitTargets.Clear(); slamLanded = false; pulse = 0; sequence = AllocateActionId();
             ComboDepth = continuation ? ComboDepth + 1 : 1;
             hitWindow = comboWindow = false; SetState(PlayerState.Attacking);
@@ -350,14 +373,14 @@ namespace Troia
                 }
                 if (count == 1 && attackTime <= move.hitEnd && previous >= move.hitStart) Strike(move, false);
             }
-            if (pendingWeapon >= 0 && attackTime >= move.hitEnd) { Equip(pendingWeapon); return; }
+            if (pendingWeapon >= 0 && attackTime >= move.hitEnd + move.minimumRecovery) { Equip(pendingWeapon); return; }
             bool open = comboWindow || (!useAnimationEvents && attackTime >= move.comboOpen && attackTime <= move.comboClose);
-            if (open && buffered.HasValue && Time.time <= bufferExpiry)
+            if (open && attackTime >= move.hitEnd + move.minimumRecovery && buffered.HasValue && Time.time <= bufferExpiry)
             {
                 var input = buffered.Value;
                 var next = input == AttackInput.Light ? ResolveNext(move, attackTime) : input == AttackInput.Heavy ? move.heavyNext : null;
                 if (!next && input != AttackInput.Light) next = BaseAttack(input);
-                if (next) { BeginAttack(next, true); return; }
+                if (next && MoveCooldown(next) <= 0) { BeginAttack(next, true); return; }
             }
             if (attackTime >= move.duration) { CurrentAttack = null; SetState(PlayerState.Locomotion); }
         }
@@ -384,7 +407,7 @@ namespace Troia
         }
         public void ConfirmHit(DamageInfo info, Health target, WeaponSO profile, string title, bool hitStop)
         {
-            Style.RegisterHit(info.moveId, info.finisher, profile ? profile.id : "", info.aerial, info.projectile, info.sequence, info.damage, title);
+            Style.RegisterHit(info.moveId, info.finisher, info.projectile ? "pistols" : profile ? profile.id : "", info.aerial, info.projectile, info.sequence, info.damage, title);
             Favor.Gain((info.projectile ? .7f : 2) * Style.Multiplier);
             Events.Hit(info, target);
             CombatVisuals.Burst(target.transform.position + Vector3.up, profile ? profile.color : Color.yellow, .25f);
@@ -414,7 +437,8 @@ namespace Troia
             EndGhost(); CancelAttack(); moveDirection = velocity = Vector3.zero; rushTarget = null;
             controller.enabled = false; transform.SetPositionAndRotation(position, rotation); controller.enabled = true;
             heavyPressed = -1; JumpsUsed = ComboDepth = 0; jumpQueued = lastGrounded = -10;
-            Health.ResetHealth(config.playerHealth); graceUntil = Time.time + 1; dodgeReady = approachReady = shotReady = 0;
+            Health.ResetHealth(config.playerHealth); graceUntil = Time.time + 1; dodgeReady = shotReady = 0;
+            moveReady.Clear(); utilityReady.Clear(); offenseReady = 0; gunBurst = 0; lastShot = -10;
             WeaponIndex = 0; Targeting.Clear(); presentation?.Equip(Weapon);
             yaw = rotation.eulerAngles.y; SetState(PlayerState.Locomotion);
         }

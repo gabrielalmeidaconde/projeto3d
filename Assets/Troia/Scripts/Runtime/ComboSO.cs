@@ -13,6 +13,8 @@ namespace Troia
         public AttackInput input;
         public float damage = 14, duration = .5f, hitStart = .12f, hitEnd = .25f;
         public float comboOpen = .26f, comboClose = .48f;
+        [Min(0)] public float cooldown;
+        [Min(0)] public float minimumRecovery = .02f;
         public float range = 2.8f, angle = 110, knockback = 1, launch, lunge = 1;
         public bool aerial, finisher, slam;
         [Min(1)] public int hitCount = 1;

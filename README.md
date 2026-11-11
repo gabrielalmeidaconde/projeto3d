@@ -45,11 +45,11 @@ combate; também funciona após regerar o mapa.
 
 - **WASD** mover, **Shift** correr, **Espaço** pular (novamente no ar: pulo duplo), **Ctrl** esquivar/cancelar golpe.
 - **Mouse** câmera, **Scroll** zoom, **clique esquerdo/J** leve, **clique direito/K** pesado.
-- **1/2/3** trocam entre xifos, lança e lâminas gêmeas, inclusive durante sequências.
-- **F/clique do meio** fixa alvo, **T** troca alvo, **E** aproxima e ataca (também no ar).
-- **R** dispara/arremessa projéteis; pode ser combinado com golpes de perto.
+- **1/2/3** trocam entre espada, foice e machado, inclusive durante sequências.
+- **F/clique do meio** fixa alvo, **T** troca alvo, **E** avança com espada/foice ou puxa com machado.
+- **R** dispara pistolas duplas; três rajadas exigem 0,95 s de recuperação compartilhada.
 - Segure pesado para lançar; pule e pressione **E** para perseguir, ou pesado no ar para cair em área.
-- **LLL** (lâminas: **LLLL**), **LP**, **PP** e **LL (pausa) LL** têm rotas próprias por arma.
+- **LLL** (machado: **LL**), **LP**, **PP** e **LL (pausa) LL** têm rotas próprias por arma.
 - **Q** poder divino, **Tab** trocar deus, **Esc** pausa, **H** lista de golpes, **F2** treino livre.
 - Controle: analógico esquerdo mover, direito câmera, **A** pulo, **B** esquiva,
   **X/Y** leve/pesado, **LT** foco, **RB** aproximação, **RT** projéteis,
@@ -58,6 +58,10 @@ combate; também funciona após regerar o mapa.
 O HUD destaca **D → C → B → A → S → SS → SSS**, progresso, hits e dano da sequência.
 Variar arma e acertar no ar rende mais estilo. Repetir o mesmo golpe deixa de pontuar;
 atingir vários alvos ou dar vários impactos com a mesma ação não multiplica a nota.
+Tomar dano derruba dois níveis. Trocar de arma sem acertar não gera estilo.
+Pesados, lançadores e quedas têm recargas próprias; esquiva, salto e troca preservam
+essas recargas e a recuperação ofensiva. O HUD mostra recuperação, pesado e habilidade E.
+O herói usa malhas procedurais com casaco vermelho articulado, cabelo claro e armas modeladas.
 
 São 20 andares nas seis arenas. O timer global começa em 180 segundos; acertos variados
 aumentam o estilo e kills recuperam tempo/favor. Bênçãos e checkpoints após 5/10/15;

@@ -24,9 +24,12 @@ MonoBehaviour:
   slam: {fileID: 11400000, guid: 0e30205b026161b4e84ec7bda1276d77, type: 2}
   dash: {fileID: 11400000, guid: 1a13a5cb2fa2cd24ebf21a0c16f2dc7f, type: 2}
   airDash: {fileID: 11400000, guid: ba876afba3ba1894b85194a59cc01cf2, type: 2}
-  projectileDamage: 9
-  projectileSpeed: 32
+  projectileDamage: 3
+  projectileSpeed: 42
   projectileRange: 28
-  fireInterval: 0.28
-  projectileCount: 1
+  fireInterval: 0.22
+  projectileCount: 2
   heavyProjectile: 0
+  utilityRange: 18
+  utilityCooldown: 1.1
+  pullsEnemy: 0

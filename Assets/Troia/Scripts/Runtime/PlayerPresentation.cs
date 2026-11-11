@@ -10,6 +10,10 @@ namespace Troia
         TrailRenderer rightTrail, leftTrail;
         float gait, flip, shootPose;
         int previousRank;
+        Transform[] coatTails;
+        Transform rightPistol, leftPistol, hookTarget;
+        LineRenderer hook;
+        float hookTime;
         Vector3 previousPosition;
 
         public void Initialize(PlayerCombat combat)
@@ -21,25 +25,16 @@ namespace Troia
                 var old = transform.Find(name); if (old) old.gameObject.SetActive(false);
             }
             rig = Joint(transform, "Guerreiro", Vector3.zero);
-            Color bronze = new Color(.56f, .36f, .16f), cloth = new Color(.4f, .07f, .08f), skin = new Color(.67f, .44f, .29f);
-            CombatVisuals.Part(rig, "Couraca", PrimitiveType.Cube, new Vector3(0, 1.22f, 0), new Vector3(.64f, .68f, .35f), bronze);
-            CombatVisuals.Part(rig, "Cinto", PrimitiveType.Cube, new Vector3(0, .91f, 0), new Vector3(.69f, .12f, .4f), new Color(.85f, .65f, .25f));
-            CombatVisuals.Part(rig, "Tunica", PrimitiveType.Cube, new Vector3(0, .72f, 0), new Vector3(.59f, .35f, .34f), cloth);
-            CombatVisuals.Part(rig, "Elmo", PrimitiveType.Sphere, new Vector3(0, 1.73f, 0), new Vector3(.43f, .46f, .43f), bronze);
-            CombatVisuals.Part(rig, "Rosto", PrimitiveType.Cube, new Vector3(0, 1.68f, .18f), new Vector3(.25f, .23f, .11f), skin);
-            CombatVisuals.Part(rig, "Crista", PrimitiveType.Cube, new Vector3(0, 2.02f, -.04f), new Vector3(.08f, .25f, .49f), cloth);
-            rightArm = Limb("Braco_D", new Vector3(.41f, 1.47f, 0), .5f, skin);
-            leftArm = Limb("Braco_E", new Vector3(-.41f, 1.47f, 0), .5f, skin);
-            rightLeg = Limb("Perna_D", new Vector3(.19f, .65f, 0), .58f, bronze);
-            leftLeg = Limb("Perna_E", new Vector3(-.19f, .65f, 0), .58f, bronze);
+            HeroModel.Body(rig, out rightArm, out leftArm, out rightLeg, out leftLeg, out coatTails);
+            // Soft character fill keeps the dark leather and red coat readable in the night scene.
+            var fill = Joint(rig, "Luz_personagem", new Vector3(-.7f, 2.1f, 1.1f)).gameObject.AddComponent<Light>();
+            fill.type = LightType.Point; fill.color = new Color(1, .83f, .73f);
+            fill.intensity = 1.1f; fill.range = 3; fill.shadows = LightShadows.None;
+            rightPistol = HeroModel.Pistol(rightArm, Vector3.down * .56f, false);
+            leftPistol = HeroModel.Pistol(leftArm, Vector3.down * .56f, true);
+            rightPistol.gameObject.SetActive(false); leftPistol.gameObject.SetActive(false);
             player.Events.OnStyleRankChanged += StyleChanged;
             Equip(player.Weapon);
-        }
-        Transform Limb(string name, Vector3 position, float length, Color color)
-        {
-            var pivot = Joint(rig, name, position);
-            CombatVisuals.Part(pivot, name + "_malha", PrimitiveType.Capsule, Vector3.down * length * .5f, new Vector3(.18f, length * .5f, .2f), color);
-            return pivot;
         }
         static Transform Joint(Transform parent, string name, Vector3 position)
         {
@@ -56,18 +51,30 @@ namespace Troia
         }
         Transform CreateWeapon(Transform arm, WeaponSO profile, out TrailRenderer trail)
         {
-            var root = Joint(arm, profile.displayName, Vector3.down * .5f);
+            var root = Joint(arm, profile.displayName, Vector3.down * .56f);
             float length = profile.kind == WeaponKind.Spear ? 2.4f : profile.kind == WeaponKind.TwinBlades ? .85f : 1.25f;
             Color metal = Color.Lerp(profile.color, Color.white, .6f);
-            if (profile.kind == WeaponKind.Spear)
+            if (profile.kind == WeaponKind.Scythe || profile.kind == WeaponKind.Axe)
             {
-                CombatVisuals.Part(root, "Haste", PrimitiveType.Cube, new Vector3(0, 0, .45f), new Vector3(.065f, .065f, 2.3f), new Color(.27f, .13f, .07f));
-                var tip = CombatVisuals.Part(root, "Ponta", PrimitiveType.Cube, new Vector3(0, 0, 1.7f), new Vector3(.16f, .035f, .47f), metal);
-                tip.localRotation = Quaternion.Euler(0, 0, 45);
+                length = profile.kind == WeaponKind.Scythe ? 1.9f : 1.35f;
+                HeroModel.Part(root, "Haste", PrimitiveType.Cylinder, new Vector3(0, 0, .35f), new Vector3(.065f, length * .5f, .065f), HeroModel.Leather).localRotation = Quaternion.Euler(90,0,0);
+                for (int i=0;i<4;i++) HeroModel.Part(root,"Anel",PrimitiveType.Cylinder,new Vector3(0,0,-.15f+i*.17f),new Vector3(.085f,.025f,.085f),HeroModel.Silver,.8f).localRotation=Quaternion.Euler(90,0,0);
+                if (profile.kind == WeaponKind.Scythe)
+                {
+                    HeroModel.Blade(root,"Ceifadora_base",new Vector3(0,0,1.25f),metal,.025f,new Vector2(-.06f,-.12f),new Vector2(-.11f,.22f),new Vector2(.48f,.15f),new Vector2(.54f,-.02f));
+                    HeroModel.Blade(root,"Ceifadora_curva",new Vector3(0,0,1.25f),metal,.02f,new Vector2(.48f,.15f),new Vector2(.88f,-.16f),new Vector2(1.05f,-.65f),new Vector2(.54f,-.02f));
+                }
+                else
+                {
+                    HeroModel.Blade(root,"Machado_cabeca",new Vector3(0,0,1),new Color(.38f,.4f,.45f),.07f,new Vector2(-.16f,-.22f),new Vector2(-.16f,.22f),new Vector2(.46f,.37f),new Vector2(.46f,-.38f));
+                    HeroModel.Blade(root,"Machado_gume",new Vector3(0,0,1),metal,.025f,new Vector2(.46f,-.38f),new Vector2(.46f,.37f),new Vector2(.68f,.29f),new Vector2(.68f,-.31f));
+                    HeroModel.Part(root,"Contrapeso",PrimitiveType.Cube,new Vector3(-.22f,0,1),new Vector3(.22f,.17f,.24f),HeroModel.Silver,.7f);
+                }
             }
             else
             {
-                CombatVisuals.Part(root, "Lamina", PrimitiveType.Cube, new Vector3(0, 0, length * .5f), new Vector3(profile.kind == WeaponKind.TwinBlades ? .16f : .13f, .045f, length), metal);
+                HeroModel.Blade(root, "Lamina_forjada", Vector3.zero, metal, .023f, new Vector2(-.085f,0), new Vector2(-.075f,1.02f), new Vector2(0,1.34f), new Vector2(.075f,1.02f), new Vector2(.085f,0));
+                HeroModel.Part(root,"Nervura",PrimitiveType.Cube,new Vector3(0,.025f,.49f),new Vector3(.022f,.018f,.95f),HeroModel.Silver,.8f);
                 CombatVisuals.Part(root, "Guarda", PrimitiveType.Cube, Vector3.zero, new Vector3(.34f, .09f, .12f), profile.color);
                 CombatVisuals.Part(root, "Punho", PrimitiveType.Cube, Vector3.back * .15f, new Vector3(.08f, .09f, .3f), new Color(.25f, .1f, .06f));
             }
@@ -81,7 +88,18 @@ namespace Troia
         }
         public void Attack() { if (player.Weapon) audioFeedback.Swing(player.Weapon.kind); }
         public void Impact(bool heavy) => audioFeedback?.Impact(heavy);
-        public void Shoot() { shootPose = .15f; audioFeedback?.Shoot(); }
+        public void Shoot() { shootPose = .18f; audioFeedback?.Shoot(); }
+        public void Pull(Transform target)
+        {
+            hookTarget=target; hookTime=.6f;
+            if (!hook)
+            {
+                hook=new GameObject("Corrente_do_machado").AddComponent<LineRenderer>(); hook.transform.SetParent(transform,false);
+                hook.positionCount=2; hook.startWidth=.035f; hook.endWidth=.02f;
+                var material=new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); material.color=new Color(.8f,.55f,.3f);
+                hook.sharedMaterial=material; hook.gameObject.AddComponent<OwnedMaterial>().material=material;
+            }
+        }
         public void Dodge() => audioFeedback?.Dodge();
         public void Jump(bool twice)
         {
@@ -129,7 +147,17 @@ namespace Troia
             }
             else rig.localPosition = Vector3.up * (Mathf.Abs(Mathf.Sin(gait)) * .025f * Mathf.Clamp01(speed));
             flip = Mathf.Max(0, flip - dt); shootPose = Mathf.Max(0, shootPose - dt);
-            if (shootPose > 0) leftArm.localRotation = Quaternion.Euler(-75, -10, 12);
+            if (shootPose > 0) { leftArm.localRotation = Quaternion.Euler(-85, -5, 8); if (!move) rightArm.localRotation=Quaternion.Euler(-85,5,-8); }
+            leftPistol.gameObject.SetActive(shootPose>0); rightPistol.gameObject.SetActive(shootPose>0 && !move);
+            if(rightWeapon) rightWeapon.gameObject.SetActive(!(shootPose>0 && !move));
+            for(int i=0;i<coatTails.Length;i++)
+            {
+                float side=i%2==0?-1:1;
+                float sway=Mathf.Sin(gait+(i%2)*Mathf.PI)*Mathf.Min(speed,8)*1.5f;
+                coatTails[i].localRotation=Quaternion.Slerp(coatTails[i].localRotation,Quaternion.Euler((i<2?12:-10)+Mathf.Min(speed,10)*2+sway,spin*.025f,side*(8+Mathf.Min(speed,10))),1-Mathf.Exp(-10*dt));
+            }
+            hookTime-=dt;
+            if(hook) { hook.enabled=hookTime>0 && hookTarget; if(hook.enabled) { hook.SetPosition(0,leftArm.position-Vector3.up*.35f); hook.SetPosition(1,hookTarget.position+Vector3.up); } }
             rig.localRotation = Quaternion.Euler(player.State == PlayerState.Rushing ? 18 : 0, spin, flip > 0 ? (1 - flip / .32f) * 360 : 0);
         }
         void OnDestroy() { if (player && player.Events) player.Events.OnStyleRankChanged -= StyleChanged; }

@@ -1,71 +1,62 @@
-# Validação do arsenal e da build Windows
+# Validação do combate v3 e da build Windows
 
-Concluída em 11/11/2026, Unity 6000.3.25f1.
+11/11/2026, Unity 6000.3.25f1. Configuração persistida na versão 3.
 
 | Verificação | Resultado |
 | --- | --- |
-| Dados do arsenal | 3 armas e 48 golpes configurados em assets |
-| Edit Mode | 14/14 testes aprovados |
-| Play Mode | 13/13 cenários aprovados |
-| Facas convergentes | As duas atingem o alvo distante, preservam a arma de origem após a troca e creditam uma ação de estilo |
-| Build Windows 64 bits | Build Finished, Result: Success; código de saída 0 |
-| Executável com API gráfica padrão | Direct3D 12 na RTX 3050; código de saída 0 |
-| Diagnóstico funcional | TROIA_SMOKE PASS; primeiro andar ativo, dois inimigos, jogador no chão e vida 120 |
-| Diagnóstico de apresentação | TROIA_PRESENTATION PASS; três armas e HUD em SSS |
+| Arsenal ativo | Espada, foice e machado; 46 golpes: 16 / 15 / 15 |
+| Edit Mode | 15/15 testes aprovados |
+| Play Mode | 18/18 cenários aprovados |
+| Build Windows 64 bits | BuildPipeline concluído com sucesso |
+| Executável com gráficos | Direct3D 12; saída 0 |
+| Diagnóstico funcional | TROIA_SMOKE PASS; andar 1 ativo, dois inimigos, jogador no chão e vida 120 |
+| Diagnóstico visual | TROIA_PRESENTATION PASS; arsenal e HUD em SSS |
 
-Os 27 testes cobrem pulo duplo e aterrissagem, rotas leve/pesado das três armas,
-troca durante combo sem apagar o impacto, multihit sem multiplicar estilo, projéteis
-bloqueados por paredes, aproximação terrestre/aérea, impossibilidade de sustentar voo
-errando golpes, poderes em área sem pontuação artificial, treino com os seis deuses,
-abertura/fechamento da lista de golpes e a regressão de movimentação, esquiva, dano,
-cura, estilo, IA, armadura e progressão pelos 20 andares.
+## Cobertura
 
-Foram corrigidas e verificadas a interceptação de alvos aéreos em movimento, a retomada
-do jogo após abrir a lista de golpes e a convergência das facas a longa distância.
-Os bloqueios anteriores de armazenamento foram resolvidos antes da execução final.
+Os testes verificam os grafos persistidos, janelas válidas, rotas com pausa e pesado,
+pulo duplo, aterrissagem, juggle confirmado e queda. A troca de arma aguarda o impacto
+e a recuperação; saltar, esquivar ou trocar não apaga recargas ofensivas.
 
-## Entrega para teste
+O puxão do machado move o inimigo sem deslocar o jogador, exige visão, respeita paredes,
+não gera estilo sozinho e rejeita blindagem intacta. Quebrar a guarda abre a oportunidade.
+As pistolas convergem no alvo, param em paredes e compartilham três rajadas e a
+recuperação de 0,95 s entre todas as armas. Multihit e duas balas creditam uma ação de estilo.
 
-Execute Builds/Windows/Iliada.exe mantendo a pasta inteira junto do executável.
-Ela inclui Iliada_Data, MonoBleedingEdge e as bibliotecas necessárias; não é preciso
-abrir o Unity. Builds/Windows/LEIA-ME.txt traz os controles e atalhos de treino.
+O cenário adicional verifica que uma entrada expira após os 0,2 s do buffer,
+sem se renovar automaticamente durante uma recuperação mais longa.
 
-F2 abre o treino livre; H mostra a lista de golpes; Esc abre a pausa.
-O código e os dados do arsenal estão no commit 230d4b8, sobre a fundação eb333c3.
+Há cenários de dano real para verificar o bônus de trocar a arma que acerta e a perda
+de dois níveis ao sofrer dano. Apenas equipar outra arma não pontua. As regressões
+incluem treino, os seis deuses, IA, armadura, movimentação, cura, pausa, lista de golpes,
+progressão pelos 20 andares, checkpoints e chefe.
 
-A build foi executada com -troia-smoke usando a API gráfica padrão. O diagnóstico
-encerra sozinho; ao abrir Iliada.exe normalmente esse diagnóstico não é ativado.
+O pesado básico do machado foi reduzido de 88,4 para 58 durante a calibração desta
+entrega, com preparação de 0,4 s, duração de 1,1 s, recuperação protegida de 0,18 s e
+recarga adicional de 1 s. Os testes foram repetidos após essa calibração.
 
-## Verificação visual
+## Entrega e inspeção visual
 
-Capturas reais da câmera foram inspecionadas para xifos, lança, lâminas gêmeas,
-ranking SSS, lista de golpes, pausa e escolha de bênçãos. Os menus agora ocultam
-o HUD e escurecem o cenário, sem a sobreposição encontrada na primeira inspeção.
-O diagnóstico aguarda a atualização da interface entre reiniciar e abrir a pausa,
-e verifica que a lista de golpes foi fechada antes de capturar essa tela.
+Abra `Builds/Windows/Iliada.exe` mantendo a pasta inteira junto dele. Não requer Unity.
+`LEIA-ME.txt` contém os controles; F2 inicia treino livre e H mostra a lista de golpes.
 
-Arquivos locais em Capturas/:
-- gameplay-camera.png
-- arma-Xifos.png
-- arma-Dory.png
-- arma-Gemeas.png
-- estilo-SSS.png
-- lista-de-golpes.png
-- pausa.png
-- bencaos.png
+Capturas do executável em `Capturas/`: `personagem-frente.png`, `arma-Xifos.png`,
+`arma-Foice.png`, `arma-Machado.png`, `gameplay-camera.png`, `estilo-SSS.png`,
+`lista-de-golpes.png`, `pausa.png` e `bencaos.png`.
 
-O SSS do diagnóstico usa uma sequência de acertos de teste para conferir o layout;
-não representa uma partida humana. O HUD uGUI é capturado junto da câmera, inclusive
-na execução oculta. A progressão automatizada elimina inimigos diretamente para
-verificar os 20 andares; não substitui uma sessão humana de balanceamento ou uma
-avaliação manual dos controles físicos.
+A câmera renderiza o personagem e o HUD reais. Foram inspecionados o casaco, cabelo,
+silhuetas das armas, informações de recuperação e as telas de menus. Os menus ocultam
+o HUD de combate. O diagnóstico só é ativado pelo argumento `-troia-smoke`.
 
 ## Evidências e limites
 
-Relatórios em Logs/editmode-results.xml, Logs/playmode-results.xml, Logs/build.log
-e Logs/player-smoke.log. Build, logs e capturas permanecem nas pastas ignoradas pelo Git.
+Relatórios: `Logs/editmode-results.xml`, `Logs/playmode-results.xml`, `Logs/build.log`
+e `Logs/player-smoke.log`. Builds, relatórios e capturas são artefatos locais ignorados pelo Git.
 
-O URP reduz automaticamente a resolução de sombras das muitas luzes do mapa para
-caber no atlas. Isso foi registrado no diagnóstico, sem impedir a execução nem
-as capturas. Personagens, armas, animações e áudio continuam procedurais; modelos,
-clips e acabamento de produção podem substituir essa apresentação.
+O SSS visual usa acertos sintéticos para verificar o layout. A progressão automatizada
+elimina inimigos diretamente. Isso valida regras e integração, mas a sensação dos
+controles e o balanceamento fino ainda precisam de uma sessão humana de jogo.
+
+O herói, as armas e as animações são procedurais; esta entrega remodela a apresentação
+com malhas próprias, sem importar um personagem licenciado. O mapa continua com o aviso
+do URP de redução de resolução das sombras para acomodar suas muitas luzes.

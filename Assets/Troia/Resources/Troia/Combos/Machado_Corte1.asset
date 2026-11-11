@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Machado_Corte1
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Machado_Corte1
+  animationState: Machado_Corte1
+  displayName: Talho do carrasco
+  command: L L / L P / L L (pausa) L L
+  motion: 0
+  input: 0
+  damage: 25
+  duration: 0.62
+  hitStart: 0.24
+  hitEnd: 0.34
+  comboOpen: 0.4
+  comboClose: 0.5952
+  cooldown: 0.12
+  minimumRecovery: 0.06
+  range: 2.9
+  angle: 100
+  knockback: 0.45499998
+  launch: 0
+  lunge: 0.6
+  aerial: 0
+  finisher: 0
+  slam: 0
+  hitCount: 1
+  next: {fileID: 11400000, guid: 32d2a1a1be34ae642be317302602964f, type: 2}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: 7a8947c60e8bc7546829bbf74ce0ab71, type: 2}
+  delayedThreshold: 0.731

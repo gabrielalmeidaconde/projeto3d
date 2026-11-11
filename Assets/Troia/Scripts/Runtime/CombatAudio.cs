@@ -34,7 +34,7 @@ namespace Troia
             if (!source || !isActiveAndEnabled) return;
             source.pitch = pitch; source.PlayOneShot(clip, volume);
         }
-        public void Swing(WeaponKind kind) => Play(swing, kind == WeaponKind.Spear ? .8f : kind == WeaponKind.TwinBlades ? 1.4f : 1, .5f);
+        public void Swing(WeaponKind kind) => Play(swing, kind == WeaponKind.Axe ? .65f : kind == WeaponKind.Scythe ? .9f : 1.15f, .5f);
         public void Impact(bool heavy) => Play(impact, heavy ? .65f : 1.1f, heavy ? 1 : .65f);
         public void Shoot() => Play(shot, 1.1f, .45f);
         public void Dodge() => Play(dash, 1.25f, .5f);

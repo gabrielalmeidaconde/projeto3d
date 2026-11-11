@@ -15,8 +15,8 @@ namespace Troia
         {
             owner = player; weapon = profile; direction = aim.normalized; sequence = action;
             transform.rotation = Quaternion.LookRotation(direction);
-            CombatVisuals.Part(transform, "Projetil", profile.kind == WeaponKind.Sword ? PrimitiveType.Sphere : PrimitiveType.Cube,
-                Vector3.zero, profile.kind == WeaponKind.Spear ? new Vector3(.07f, .07f, 1.1f) : new Vector3(.12f, .12f, .5f), profile.color);
+            CombatVisuals.Part(transform, "Projetil", PrimitiveType.Cube,
+                Vector3.zero, new Vector3(.045f, .045f, .45f), new Color(1, .85f, .5f));
         }
         void Update()
         {
@@ -39,8 +39,8 @@ namespace Troia
                 {
                     var info = new DamageInfo { source = owner.gameObject, damage = weapon.projectileDamage * owner.Favor.DamageMultiplier,
                         direction = direction, knockback = weapon.heavyProjectile ? 2 : .2f, stagger = .09f, projectile = true,
-                        heavy = weapon.heavyProjectile, moveId = weapon.id + ".projectile", sequence = sequence };
-                    if (health.TakeDamage(info)) owner.ConfirmHit(info, health, weapon, "Arremesso", false);
+                        heavy = weapon.heavyProjectile, moveId = "pistols.volley", sequence = sequence };
+                    if (health.TakeDamage(info)) owner.ConfirmHit(info, health, weapon, "Pistolas duplas", false);
                 }
                 CombatVisuals.Burst(hits[nearest].point, weapon.color, .15f); Destroy(gameObject); return;
             }

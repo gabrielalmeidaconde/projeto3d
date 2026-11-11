@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Machado_Espiral
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Machado_Espiral
+  animationState: Machado_Espiral
+  displayName: Erguer o condenado
+  command:
+  motion: 3
+  input: 1
+  damage: 32
+  duration: 0.95
+  hitStart: 0.34
+  hitEnd: 0.5
+  comboOpen: 0.68
+  comboClose: 0.91199994
+  cooldown: 1.2
+  minimumRecovery: 0.18
+  range: 2.9
+  angle: 100
+  knockback: 0.45499998
+  launch: 9
+  lunge: 0.6
+  aerial: 0
+  finisher: 0
+  slam: 0
+  hitCount: 1
+  next: {fileID: 0}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 0}
+  delayedThreshold: 0.731

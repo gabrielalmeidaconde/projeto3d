@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ab7af37f9f75f4ba61412dcd4578bd, type: 3}
+  m_Name: Machado
+  m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
+  id: Machado
+  displayName: MACHADO / CARRASCO
+  description: Impacto e quebra de guarda. Puxe o alvo e finalize com golpes pesados.
+  kind: 4
+  color: {r: 0.95, g: 0.28, b: 0.1, a: 1}
+  light: {fileID: 11400000, guid: b218328fbca2f104b86e5234a6f92f28, type: 2}
+  heavy: {fileID: 11400000, guid: 3f8bdd7eac2499840ad3fa7bd0dcc4d6, type: 2}
+  launcher: {fileID: 11400000, guid: abd1683b8525b044ca2c8b991cdd28ea, type: 2}
+  airLight: {fileID: 11400000, guid: fca15bc08afc7c44a9fff4232ce5535a, type: 2}
+  slam: {fileID: 11400000, guid: 11bce66a7880d994ca62c983964faf01, type: 2}
+  dash: {fileID: 11400000, guid: e0a36216bccb1c94986a99c1f62f81fa, type: 2}
+  airDash: {fileID: 11400000, guid: 14c63154dcf8ad747950018ee2cee9b9, type: 2}
+  projectileDamage: 3
+  projectileSpeed: 42
+  projectileRange: 28
+  fireInterval: 0.22
+  projectileCount: 2
+  heavyProjectile: 0
+  utilityRange: 14
+  utilityCooldown: 2.4
+  pullsEnemy: 1

@@ -42,13 +42,33 @@ namespace Troia.Editor
         static void SaveArsenal(GameplayConfig config)
         {
             Directory.CreateDirectory(Root + "/Armas"); AssetDatabase.Refresh();
-            var visited = new HashSet<ComboSO>();
-            foreach (var weapon in config.weapons)
+            var saved = new Dictionary<ComboSO, ComboSO>();
+            for (int i = 0; i < config.weapons.Length; i++)
             {
-                foreach (var root in new[] { weapon.light, weapon.heavy, weapon.launcher, weapon.airLight, weapon.slam, weapon.dash, weapon.airDash }) SaveCombo(root, visited);
-                if (!AssetDatabase.Contains(weapon)) AssetDatabase.CreateAsset(weapon, Root + "/Armas/" + weapon.name + ".asset");
+                var weapon = config.weapons[i];
+                weapon.light = PersistMove(weapon.light, saved); weapon.heavy = PersistMove(weapon.heavy, saved);
+                weapon.launcher = PersistMove(weapon.launcher, saved); weapon.airLight = PersistMove(weapon.airLight, saved);
+                weapon.slam = PersistMove(weapon.slam, saved); weapon.dash = PersistMove(weapon.dash, saved); weapon.airDash = PersistMove(weapon.airDash, saved);
+                string path = Root + "/Armas/" + weapon.name + ".asset";
+                var prior = AssetDatabase.LoadAssetAtPath<WeaponSO>(path);
+                if (prior && prior != weapon) { EditorUtility.CopySerialized(weapon, prior); Object.DestroyImmediate(weapon); weapon = prior; }
+                else if (!prior) AssetDatabase.CreateAsset(weapon, path);
+                config.weapons[i] = weapon;
                 EditorUtility.SetDirty(weapon);
             }
+        }
+        static ComboSO PersistMove(ComboSO move, Dictionary<ComboSO, ComboSO> saved)
+        {
+            if (!move) return null;
+            if (saved.TryGetValue(move, out var known)) return known;
+            string path = Root + "/Combos/" + move.name + ".asset";
+            var result = AssetDatabase.LoadAssetAtPath<ComboSO>(path);
+            if (!result) { result = move; AssetDatabase.CreateAsset(result, path); }
+            else if (result != move) EditorUtility.CopySerialized(move, result);
+            saved[move] = result;
+            result.next = PersistMove(move.next, saved); result.delayedNext = PersistMove(move.delayedNext, saved);
+            result.heavyNext = PersistMove(move.heavyNext, saved); EditorUtility.SetDirty(result);
+            return result;
         }
         public static void BuildWindows()
         {

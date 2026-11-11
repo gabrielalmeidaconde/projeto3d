@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Troia
 {
     public enum AttackInput { Light, Heavy, Launcher }
-    public enum WeaponKind { Sword, Spear, TwinBlades }
+    public enum WeaponKind { Sword, Spear, TwinBlades, Scythe, Axe }
     public enum AttackMotion { Slash, Thrust, Spin, Uppercut, Overhead }
     public enum God { Zeus, Ares, Apollo, Hermes, Athena, Poseidon }
     public enum EnemyKind { Soldier, Archer, Captain, Hector }

@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Foice_Aereo2
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Foice_Aereo2
+  animationState: Foice_Aereo2
+  displayName: Passo no ceu
+  command:
+  motion: 0
+  input: 0
+  damage: 15.2
+  duration: 0.43049997
+  hitStart: 0.09470999
+  hitEnd: 0.21524999
+  comboOpen: 0.23524998
+  comboClose: 0.40897498
+  cooldown: 0.12
+  minimumRecovery: 0.02
+  range: 4.2
+  angle: 150
+  knockback: 0.65
+  launch: 0
+  lunge: 1.8
+  aerial: 1
+  finisher: 0
+  slam: 0
+  hitCount: 1
+  next: {fileID: 11400000, guid: 9e755df9802bf3c4f8e7a3d60294af12, type: 2}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 0}
+  delayedThreshold: 0.4515

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Troia
 {
-    public enum EnemyState { Chasing, Windup, Recovery, Staggered, Airborne, Dead }
+    public enum EnemyState { Chasing, Windup, Recovery, Staggered, Airborne, Dead, Pulled }
 
     [RequireComponent(typeof(Health), typeof(NavMeshAgent), typeof(CharacterController))]
     public class EnemyCombat : MonoBehaviour
@@ -28,6 +28,7 @@ namespace Troia
         Renderer body;
         Transform weapon;
         bool launched;
+        PlayerCombat puller;
 
         void Awake()
         {
@@ -55,6 +56,7 @@ namespace Troia
         {
             if (State == EnemyState.Dead || !target || !target.CanAct) return;
             float dt = Time.deltaTime; timer -= dt;
+            if (State == EnemyState.Pulled) { TickPull(dt); return; }
             if (State == EnemyState.Airborne || State == EnemyState.Staggered)
             {
                 TickReaction(dt); return;
@@ -139,6 +141,22 @@ namespace Troia
                 velocity.y = 3.5f; SetState(EnemyState.Airborne, .2f);
             }
             else { velocity.y = -1; SetState(EnemyState.Staggered, Mathf.Max(info.projectile ? .08f : .25f, info.stagger)); }
+        }
+        public bool TryPull(PlayerCombat source)
+        {
+            if (!source || Health.IsDead || (Armored && State != EnemyState.Staggered && State != EnemyState.Airborne)) return false;
+            if (Physics.Linecast(transform.position + Vector3.up, source.transform.position + Vector3.up, ~(1 << 2), QueryTriggerInteraction.Ignore)) return false;
+            if (agent.enabled) { if (agent.isOnNavMesh) agent.ResetPath(); agent.enabled = false; }
+            puller = source; velocity = Vector3.zero; SetState(EnemyState.Pulled, .65f); return true;
+        }
+        void TickPull(float dt)
+        {
+            if (!puller || !puller.CanAct || timer <= 0) { puller = null; SetState(EnemyState.Staggered, .3f); return; }
+            Vector3 delta = puller.transform.position - transform.position;
+            float remaining = delta.magnitude - 1.9f;
+            if (remaining <= .12f) { puller = null; velocity.y = -1; SetState(EnemyState.Staggered, .4f); return; }
+            // CharacterController collisions stop the pull against walls; no teleport or navigation warp.
+            controller.Move(delta.normalized * Mathf.Min(26 * dt, remaining));
         }
         void TickReaction(float dt)
         {

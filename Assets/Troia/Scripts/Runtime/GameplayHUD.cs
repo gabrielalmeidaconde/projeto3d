@@ -60,7 +60,7 @@ namespace Troia
             shade.GetComponent<Image>().raycastTarget = true; modalBackdrop = shade.gameObject; modalBackdrop.SetActive(false);
             BuildModals();
             var footer = Panel(gameplayRoot, "Atalhos", new Vector2(.5f, 0), new Vector2(-420, 40), new Vector2(840, 26), new Color(.025f, .035f, .055f, .86f));
-            Label(footer, "WASD mover   ESPACO pulo duplo   CTRL esquiva   E aproximar   R disparar   F foco   1/2/3 armas   H golpes   F2 treino", 12, Color.white, new Rect(10, 4, 820, 22), TextAnchor.MiddleCenter);
+            Label(footer, "WASD mover   ESPACO pulo duplo   CTRL esquiva   E avanco/puxao   R pistolas   F foco   1/2/3 armas   H golpes   F2 treino", 12, Color.white, new Rect(10, 4, 820, 22), TextAnchor.MiddleCenter);
             var marker = Panel(gameplayRoot, "Alvo", Vector2.zero, Vector2.zero, new Vector2(110, 80), Color.clear);
             targetMarker = marker; targetMarker.pivot = new Vector2(.5f, .5f);
             Label(marker, "[    ]", 36, Gold, new Rect(0, 0, 110, 48), TextAnchor.MiddleCenter);
@@ -96,12 +96,12 @@ namespace Troia
         }
         void BuildArsenal()
         {
-            var panel = Panel(gameplayRoot, "Arsenal", Vector2.zero, new Vector2(24, 166), new Vector2(350, 112), Ink);
+            var panel = Panel(gameplayRoot, "Arsenal", Vector2.zero, new Vector2(24, 166), new Vector2(350, 132), Ink);
             Label(panel, "ARSENAL  /  1 · 2 · 3", 11, Muted, new Rect(16, 10, 320, 20));
             weaponText = Label(panel, "", 24, Gold, new Rect(16, 30, 320, 32));
             weaponText.fontStyle = FontStyle.Bold;
             weaponDetail = Label(panel, "", 12, Color.white, new Rect(16, 64, 320, 22));
-            cooldowns = Label(panel, "", 11, Muted, new Rect(16, 87, 320, 22));
+            cooldowns = Label(panel, "", 11, Muted, new Rect(16, 87, 320, 40));
         }
         void BuildModals()
         {
@@ -177,9 +177,10 @@ namespace Troia
             {
                 weaponText.text = p.Weapon.displayName; weaponText.color = p.Weapon.color;
                 weaponDetail.text = p.CurrentAttack ? (string.IsNullOrEmpty(p.CurrentAttack.displayName) ? p.CurrentAttack.id : p.CurrentAttack.displayName) :
-                    p.Weapon.kind == WeaponKind.Spear ? "ALCANCE / CONTROLE" : p.Weapon.kind == WeaponKind.TwinBlades ? "VELOCIDADE / JUGGLE" : "EQUILÍBRIO / CANCELAMENTOS";
+                    p.Weapon.kind == WeaponKind.Scythe ? "CONTROLE / AVANÇO" : p.Weapon.kind == WeaponKind.Axe ? "IMPACTO / PUXÃO" : "PRECISÃO / ENCADEAMENTO";
                 cooldowns.text = p.PendingWeapon >= 0 ? "TROCA PREPARADA / FINALIZANDO IMPACTO" :
-                    $"E APROXIMAR {(p.ApproachCooldown > 0 ? p.ApproachCooldown.ToString("0.0") + "s" : "PRONTO")}    R DISPARAR";
+                    $"E {(p.Weapon.pullsEnemy ? "PUXAR" : "AVANÇAR")} {(p.ApproachCooldown > 0 ? p.ApproachCooldown.ToString("0.0") + "s" : "OK")} / R {(p.ShotCooldown > .3f ? "ESFRIANDO" : "PISTOLAS")}\n" +
+                    (p.RecoveryRemaining > 0 ? $"RECUPERAÇÃO {p.RecoveryRemaining:0.0}s" : p.MoveCooldown(p.Weapon.heavy) > 0 ? $"PESADO {p.MoveCooldown(p.Weapon.heavy):0.0}s" : "PESADO PRONTO");
             }
             if (previousState != manager.State) { if (manager.State != RunState.Paused) showMoves = false; RefreshModals(); previousState = manager.State; }
             UpdateTarget(p);
@@ -236,7 +237,7 @@ namespace Troia
             moves.text = "L = LEVE / P = PESADO     |     TROQUE 1 / 2 / 3 DURANTE O COMBO\n\n";
             foreach (var weapon in manager.config.weapons)
                 moves.text += $"{weapon.displayName}\n{weapon.light.command}   /   P P pesado\n{weapon.description}\n\n";
-            moves.text += "SEGURAR P: lançador   /   ESPAÇO duas vezes: pulo duplo\nNO AR: L L L (L) juggle / P queda   /   E caça aérea ao alvo\nF / clique do meio: foco   /   T: próximo alvo   /   R: projéteis\nCTRL cancela golpes. Estilo sobe com variedade; repetir deixa de pontuar.";
+            moves.text += "SEGURAR P: lançador / ESPAÇO duas vezes: pulo duplo\nE: avanço (espada/foice) ou puxão (machado); blindados exigem quebra de guarda.\nR: pistolas duplas, 3 rajadas e 0,95s para esfriar. F: foco / T: próximo alvo.\nCTRL cancela; recargas persistem. Alterne ACERTOS; repetir não pontua.\nSofrer dano derruba dois níveis de estilo. Pesados e quedas exigem recuperação.";
         }
         RectTransform Panel(Transform parent, string name, Vector2 anchor, Vector2 position, Vector2 size, Color color)
         {

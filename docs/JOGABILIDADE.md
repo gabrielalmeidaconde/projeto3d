@@ -23,20 +23,20 @@ Checkpoints duram a sessão atual, com bênçãos e tempo preservados após os a
 | Pular / pulo duplo | Espaço / novamente no ar | A / novamente no ar |
 | Leve | Clique esquerdo ou J | X |
 | Pesado / lançador | Clique direito ou K / segurar 0,35 s | Y / segurar |
-| Esquivar e cancelar recuperação | Ctrl | B |
+| Esquivar e cancelar animação | Ctrl | B |
 | Fixar alvo / próximo alvo | F ou clique do meio / T | LT / pressionar analógico direito |
-| Aproximar e atacar | E | RB |
-| Disparar / arremessar | R (pode segurar) | RT |
+| Avançar (espada/foice) / puxar (machado) | E | RB |
+| Pistolas duplas | R (pode segurar) | RT |
 | Trocar arma | 1 / 2 / 3 | Direcional esquerdo / direito |
 | Poder divino / trocar deus | Q / Tab | LB / direcional baixo |
 | Lista de golpes / treino livre | H / F2 | Menu de pausa |
 | Pausa | Esc | Start |
 
 - Xifos: corte triplo, estocadas com pausa e rupturas em rotas leve/pesado.
-- Lança: estocadas de maior alcance, varreduras multihit, alavanca e azagaia pesada.
-- Lâminas gêmeas: quatro cortes, rajadas multihit, tesoura/furacão e duas facas por disparo.
+- Foice: maior alcance, varreduras multihit, controle de grupos e avanço terrestre/aéreo.
+- Machado: dois golpes de base mais lentos, alto impacto, quebra de guarda e puxão.
 - Cada arma tem leve, pesado, lançador, sequência aérea, queda e aproximação próprios.
-- Trocas antes do impacto aguardam o fim da janela de dano. O próximo leve continua
+- Trocas durante um golpe aguardam a janela de dano e a recuperação mínima. O próximo leve continua
   na etapa seguinte da nova arma. Selecionar a arma atual cancela uma troca pendente.
 - Estocadas: leve, leve, pausa, leve, leve. No segundo golpe a janela normal abre
   em 0,371 s; a variação começa em 0,47 s e aceita entrada até 0,65 s.
@@ -55,7 +55,7 @@ Checkpoints duram a sessão atual, com bênçãos e tempo preservados após os a
 
 O estilo vai de D a SSS, com nome, cor, barra de progresso e animação no HUD. Repetições
 reduzem o ganho até zero; variar armas e acertar no ar dá bônus. Um identificador por
-ação impede multiplicar estilo com multidões, multihit ou duas facas. Hits e dano são
+ação impede multiplicar estilo com multidões, multihit ou duas balas. Hits e dano são
 contados separadamente. Inatividade provoca decaimento mesmo se o jogador insistir
 em um golpe que não pontua. Dano recebido derruba dois níveis. A nota multiplica favor
 e tempo por kill; pico e média são registrados para o placar.
@@ -63,6 +63,40 @@ e tempo por kill; pico e média são registrados para o placar.
 F2 inicia treino livre: alvos passivos com 5000 de vida, reações completas de combate,
 timer suspenso, recuperação de vida/favor e os seis deuses liberados no nível 1.
 Reiniciar partida sai do treino e restaura a progressão normal.
+
+## Balanceamento do arsenal (v3)
+
+| Papel | Espada | Foice | Machado |
+| --- | --- | --- | --- |
+| Sequência terrestre | 3 cortes precisos | 3 golpes de alcance / giros | 2 talhos de alto impacto |
+| E | Investida, 1,1 s | Avanço de até 18 m, 0,9 s | Puxão de até 14 m, 2,4 s |
+| Complemento | Encadear e lançar | Alcançar e conter grupos | Trazer o alvo e quebrar guarda |
+
+Cada golpe reserva sua recarga ao começar: duração + 0,12 s em leves comuns,
+0,55 s em finalizadores, 0,8 s em pesados, 1,2 s em lançadores e 1,6 s em quedas.
+Após a janela de impacto há recuperação protegida de 0,02 s (leve) ou 0,12 s
+(pesado), chegando a 0,06/0,18 s nos golpes principais do machado, ajustada à velocidade de ataque. Saltar ou esquivar permite defesa,
+mas não apaga esse compromisso ofensivo. Trocar de arma também preserva as recargas.
+Continuar para um golpe diferente permanece possível dentro da janela de combo.
+O pesado básico do machado causa 58 de dano, prepara por 0,4 s e tem duração de
+1,1 s + 1 s de recarga; a espada causa 34, prepara por 0,16 s e dura 0,8 s + 0,8 s.
+Assim o impacto maior exige uma abertura maior. Os dois talhos básicos do machado
+causam 25/42 de dano; a foice distribui dano em arcos mais amplos, com alcance de 4,2 m.
+
+As duas pistolas causam 3 de dano por bala, com intervalo de 0,22 s entre rajadas.
+Depois de três rajadas, esfriam por 0,95 s. Trocas de arma não reiniciam o contador.
+Todas as balas pertencem à categoria de estilo compartilhada `pistols`, evitando
+ganhar variedade apenas trocando a arma corpo a corpo durante disparos idênticos.
+Acertos consecutivos de armas diferentes recebem multiplicador de variedade de 1,4.
+
+O puxão move o inimigo pelo CharacterController; exige linha de visão, não causa dano
+nem concede estilo. Capitães e Heitor resistem enquanto a guarda estiver intacta;
+um stagger pesado ou lançamento permite puxá-los. Paredes continuam bloqueando o movimento.
+
+O personagem foi remodelado com seções de malha afuniladas, rosto e cabelo prateado,
+casaco vermelho com quatro abas animadas, colete, fivelas, luvas e botas. As armas têm
+lâminas desenhadas, haste, contrapeso e pistolas em duas cores. A apresentação é
+procedural, com inspiração visual no Dante clássico e animação por juntas em código.
 
 ## Componentes e ajuste
 

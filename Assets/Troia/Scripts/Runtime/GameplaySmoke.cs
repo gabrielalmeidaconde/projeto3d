@@ -20,6 +20,12 @@ namespace Troia
             Debug.Log($"TROIA_SMOKE {(passed ? "PASS" : "FAIL")} floor={gm.Floor} alive={gm.Alive} grounded={gm.player.IsGrounded} hp={gm.player.Health.Current}");
             gm.BeginTraining(); yield return new WaitForSecondsRealtime(.25f);
             var player = gm.player;
+            var view=Camera.main.transform;
+            Vector3 viewPosition=view.position; Quaternion viewRotation=view.rotation;
+            view.position=player.transform.TransformPoint(new Vector3(-2.2f,1.3f,3.1f));
+            view.LookAt(player.transform.position+Vector3.up*1.05f);
+            CaptureCamera("personagem-frente");
+            view.SetPositionAndRotation(viewPosition,viewRotation);
             foreach (var enemy in EnemyCombat.Combatants)
                 if (enemy && enemy.trainingDummy && player.Targeting.Lock(enemy)) break;
             for (int i = 0; i < player.config.weapons.Length; i++)

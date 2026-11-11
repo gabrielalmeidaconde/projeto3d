@@ -13,6 +13,8 @@ namespace Troia
         public float projectileDamage = 8, projectileSpeed = 32, projectileRange = 28, fireInterval = .28f;
         [Range(1, 3)] public int projectileCount = 1;
         public bool heavyProjectile;
+        public float utilityRange = 18, utilityCooldown = .9f;
+        public bool pullsEnemy;
 
         public ComboSO Entry(AttackInput input, bool airborne)
         {

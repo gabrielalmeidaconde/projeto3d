@@ -66,7 +66,7 @@ namespace Troia.Tests
             }
             Assert.That(all.Count, Is.GreaterThanOrEqualTo(40));
             Assert.That(c.weapons[1].light.range, Is.GreaterThan(c.weapons[0].light.range));
-            Assert.That(c.weapons[2].light.next.next.next.finisher, Is.True);
+            Assert.That(c.weapons[2].light.next.finisher, Is.True);
             Assert.That(c.weapons[2].projectileCount, Is.EqualTo(2));
         }
         [Test] public void WeaponSwitchContinuesAtNextStepAndWrapsAfterFinisher()
@@ -75,6 +75,22 @@ namespace Troia.Tests
             Assert.That(c.weapons[1].Continuation(1, false), Is.SameAs(c.weapons[1].light.next));
             Assert.That(c.weapons[2].Continuation(2, true), Is.SameAs(c.weapons[2].airLight.next.next));
             Assert.That(c.weapons[0].Continuation(3, false), Is.SameAs(c.weapons[0].light));
+        }
+        [Test] public void ArsenalBalancesReachImpactRecoveryAndSharedPistols()
+        {
+            var c=Config(); var sword=c.weapons[0]; var scythe=c.weapons[1]; var axe=c.weapons[2];
+            Assert.That(scythe.kind, Is.EqualTo(WeaponKind.Scythe)); Assert.That(axe.kind, Is.EqualTo(WeaponKind.Axe));
+            Assert.That(axe.pullsEnemy, Is.True); Assert.That(scythe.pullsEnemy, Is.False);
+            Assert.That(axe.utilityCooldown, Is.GreaterThan(scythe.utilityCooldown));
+            Assert.That(axe.heavy.damage, Is.GreaterThan(sword.heavy.damage));
+            Assert.That(axe.light.duration, Is.GreaterThan(sword.light.duration));
+            foreach(var w in c.weapons)
+            {
+                Assert.That(w.heavy.cooldown, Is.GreaterThanOrEqualTo(.8f));
+                Assert.That(w.heavy.minimumRecovery, Is.GreaterThanOrEqualTo(.1f));
+                Assert.That(w.slam.cooldown, Is.GreaterThan(w.heavy.cooldown));
+                Assert.That(w.projectileDamage, Is.EqualTo(3)); Assert.That(w.projectileCount, Is.EqualTo(2));
+            }
         }
         [Test] public void RepeatingOneMoveCannotFarmHighStyle()
         {
