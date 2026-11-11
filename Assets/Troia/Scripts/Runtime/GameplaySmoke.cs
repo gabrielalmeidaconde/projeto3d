@@ -40,7 +40,9 @@ namespace Troia
             CaptureCamera("estilo-SSS");
             hud.ShowMoveList(); yield return null;
             CaptureCamera("lista-de-golpes");
-            gm.Restart(false); gm.TogglePause(); yield return null;
+            gm.Restart(false); yield return null;
+            gm.TogglePause(); yield return null;
+            passed &= !hud.MoveListVisible && gm.State == RunState.Paused;
             CaptureCamera("pausa");
             gm.Restart(false);
             for (int floor = 1; floor <= 5; floor++)

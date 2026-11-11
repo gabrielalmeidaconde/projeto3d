@@ -1,60 +1,71 @@
-# Validação do arsenal e do combate de estilo
+# Validação do arsenal e da build Windows
 
-Estado em 11/11/2026, Unity 6000.3.25f1.
+Concluída em 11/11/2026, Unity 6000.3.25f1.
 
 | Verificação | Resultado |
 | --- | --- |
-| Base do projeto | Revisados a178377 e ce8970f; fundação anterior em eb333c3 |
 | Dados do arsenal | 3 armas e 48 golpes configurados em assets |
 | Edit Mode | 14/14 testes aprovados |
-| Play Mode: última execução completa | 12/12 cenários aprovados |
-| Cenário adicional de facas convergentes | Adicionado após essa execução; reteste pendente por falta de disco |
-| Build Windows | Uma build do arsenal foi compilada e executada; a build final ficou bloqueada por disco cheio |
-| Diagnóstico gráfico dessa build | TROIA_SMOKE PASS e TROIA_PRESENTATION PASS, arsenal=3, UI=SSS |
+| Play Mode | 13/13 cenários aprovados |
+| Facas convergentes | As duas atingem o alvo distante, preservam a arma de origem após a troca e creditam uma ação de estilo |
+| Build Windows 64 bits | Build Finished, Result: Success; código de saída 0 |
+| Executável com API gráfica padrão | Direct3D 12 na RTX 3050; código de saída 0 |
+| Diagnóstico funcional | TROIA_SMOKE PASS; primeiro andar ativo, dois inimigos, jogador no chão e vida 120 |
+| Diagnóstico de apresentação | TROIA_PRESENTATION PASS; três armas e HUD em SSS |
 
-Os cenários aprovados cobrem pulo duplo e aterrissagem, rotas leve/pesado das três armas,
+Os 27 testes cobrem pulo duplo e aterrissagem, rotas leve/pesado das três armas,
 troca durante combo sem apagar o impacto, multihit sem multiplicar estilo, projéteis
 bloqueados por paredes, aproximação terrestre/aérea, impossibilidade de sustentar voo
-errando golpes, poderes em área sem pontuação artificial, treino e abertura/fechamento
-da lista de golpes. Também cobrem a regressão de movimentação, esquiva, dano, cura,
-estilo, seis deuses, IA, armadura e progressão pelos 20 andares.
+errando golpes, poderes em área sem pontuação artificial, treino com os seis deuses,
+abertura/fechamento da lista de golpes e a regressão de movimentação, esquiva, dano,
+cura, estilo, IA, armadura e progressão pelos 20 andares.
 
-A aproximação aérea foi corrigida após um teste detectar que um alvo em movimento
-podia permanecer fora da distância exata de interceptação. O cenário passou após a
-correção. A lista de golpes também foi corrigida para fechar ao retomar o jogo no
-mesmo frame.
+Foram corrigidas e verificadas a interceptação de alvos aéreos em movimento, a retomada
+do jogo após abrir a lista de golpes e a convergência das facas a longa distância.
+Os bloqueios anteriores de armazenamento foram resolvidos antes da execução final.
 
-A última alteração de combate faz as duas facas convergirem no ponto de mira, mantendo
-os dados da arma original quando o jogador troca de arma com os projéteis no ar.
-O teste dedicado existe no projeto, mas ainda não foi possível executá-lo: a nova
-tentativa de Play Mode ficou bloqueada na inicialização por armazenamento insuficiente.
+## Entrega para teste
 
-Foram inspecionadas capturas reais da câmera com xifos, lança, lâminas gêmeas, ranking
-SSS, lista de golpes e escolha de bênçãos. Elas revelaram sobreposição do HUD sob os
-menus; o código agora oculta o HUD e adiciona escurecimento de fundo durante os menus.
-As capturas finais desse ajuste ainda precisam ser regeneradas. O SSS do diagnóstico
-usa acertos de teste para verificar o layout; não representa uma partida humana.
+Execute Builds/Windows/Iliada.exe mantendo a pasta inteira junto do executável.
+Ela inclui Iliada_Data, MonoBleedingEdge e as bibliotecas necessárias; não é preciso
+abrir o Unity. Builds/Windows/LEIA-ME.txt traz os controles e atalhos de treino.
 
-## O que falta validar
+F2 abre o treino livre; H mostra a lista de golpes; Esc abre a pausa.
+O código e os dados do arsenal estão no commit 230d4b8, sobre a fundação eb333c3.
 
-1. Liberar pelo menos 2 GB no disco do projeto.
-2. Executar scripts/Test-Gameplay.ps1 -Build (14 testes Edit Mode + 13 Play Mode).
-3. Executar a build de desenvolvimento com -troia-smoke e conferir as capturas finais.
-4. Atualizar este relatório com os resultados e commitar a conclusão da validação.
+A build foi executada com -troia-smoke usando a API gráfica padrão. O diagnóstico
+encerra sozinho; ao abrir Iliada.exe normalmente esse diagnóstico não é ativado.
 
-O script verifica espaço antes de iniciar para evitar que o Editor fique aguardando
-na inicialização. Durante esta sessão o C: chegou a zero bytes livres; o processamento
-das DLLs falhou com System.IO.IOException: espaço insuficiente no disco. A exclusão
-recursiva do cache de compilação foi bloqueada pela política de execução, e não foi
-realizada. Não foram apagados código, assets ou arquivos de outros aplicativos.
+## Verificação visual
 
-Relatórios locais em Logs/editmode-results.xml, Logs/playmode-results.xml,
-Logs/build.log e Logs/player-smoke.log. Capturas em Capturas/; a pasta
-Builds/Windows/ contém a última build bem-sucedida, anterior aos ajustes finais.
-Essas pastas são ignoradas pelo Git. O XML de Play Mode registra a última execução
-completa de 12 cenários, não a tentativa interrompida por falta de espaço.
+Capturas reais da câmera foram inspecionadas para xifos, lança, lâminas gêmeas,
+ranking SSS, lista de golpes, pausa e escolha de bênçãos. Os menus agora ocultam
+o HUD e escurecem o cenário, sem a sobreposição encontrada na primeira inspeção.
+O diagnóstico aguarda a atualização da interface entre reiniciar e abrir a pausa,
+e verifica que a lista de golpes foi fechada antes de capturar essa tela.
 
-A progressão automatizada elimina inimigos diretamente para verificar os 20 andares;
-não substitui uma partida humana de balanceamento. Apresentação do jogador, armas,
-animações e áudio são procedurais; modelos/clips finais e o acabamento de Heitor
-continuam substituíveis por assets de produção.
+Arquivos locais em Capturas/:
+- gameplay-camera.png
+- arma-Xifos.png
+- arma-Dory.png
+- arma-Gemeas.png
+- estilo-SSS.png
+- lista-de-golpes.png
+- pausa.png
+- bencaos.png
+
+O SSS do diagnóstico usa uma sequência de acertos de teste para conferir o layout;
+não representa uma partida humana. O HUD uGUI é capturado junto da câmera, inclusive
+na execução oculta. A progressão automatizada elimina inimigos diretamente para
+verificar os 20 andares; não substitui uma sessão humana de balanceamento ou uma
+avaliação manual dos controles físicos.
+
+## Evidências e limites
+
+Relatórios em Logs/editmode-results.xml, Logs/playmode-results.xml, Logs/build.log
+e Logs/player-smoke.log. Build, logs e capturas permanecem nas pastas ignoradas pelo Git.
+
+O URP reduz automaticamente a resolução de sombras das muitas luzes do mapa para
+caber no atlas. Isso foi registrado no diagnóstico, sem impedir a execução nem
+as capturas. Personagens, armas, animações e áudio continuam procedurais; modelos,
+clips e acabamento de produção podem substituir essa apresentação.
