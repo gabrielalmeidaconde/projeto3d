@@ -51,7 +51,8 @@ namespace Troia.EditorTools
 
         static void Door(MeshBuilder b, float x, float zFace, float sign, float y0 = 0f, float w = 1.2f, float h = 2.3f)
         {
-            b.Box(V(x, y0 + h * 0.5f, zFace), V(w, h, 0.1f), M.Dark);
+            double dr = _r.NextDouble();
+            b.Box(V(x, y0 + h * 0.5f, zFace), V(w, h, 0.1f), dr < 0.4 ? M.Dark : dr < 0.7 ? M.PaintedBlue : M.WoodDark);
             b.Box(V(x, y0 + h + 0.12f, zFace + sign * 0.06f), V(w + 0.5f, 0.24f, 0.2f), M.Wood);
             b.Box(V(x - w * 0.5f - 0.08f, y0 + h * 0.5f, zFace + sign * 0.04f), V(0.16f, h, 0.14f), M.Wood);
             b.Box(V(x + w * 0.5f + 0.08f, y0 + h * 0.5f, zFace + sign * 0.04f), V(0.16f, h, 0.14f), M.Wood);
@@ -59,14 +60,14 @@ namespace Troia.EditorTools
 
         static void Window(MeshBuilder b, float x, float y, float zFace, float sign, float w = 0.7f, float h = 0.55f)
         {
-            b.Box(V(x, y, zFace), V(w, h, 0.1f), M.Dark);
+            b.Box(V(x, y, zFace), V(w, h, 0.1f), _r.NextDouble() < 0.3 ? M.WindowLit : M.Dark);
             b.Box(V(x, y - h * 0.5f - 0.04f, zFace + sign * 0.06f), V(w + 0.2f, 0.08f, 0.16f), M.Wood);
             b.Box(V(x, y + h * 0.5f + 0.05f, zFace + sign * 0.05f), V(w + 0.2f, 0.1f, 0.12f), M.Wood);
         }
 
         static void WindowX(MeshBuilder b, float z, float y, float xFace, float sign, float w = 0.7f, float h = 0.55f)
         {
-            b.Box(V(xFace, y, z), V(0.1f, h, w), M.Dark);
+            b.Box(V(xFace, y, z), V(0.1f, h, w), _r.NextDouble() < 0.3 ? M.WindowLit : M.Dark);
             b.Box(V(xFace + sign * 0.06f, y - h * 0.5f - 0.04f, z), V(0.16f, 0.08f, w + 0.2f), M.Wood);
         }
 
@@ -758,77 +759,274 @@ namespace Troia.EditorTools
         // =====================================================================================
         // Marcos
         // =====================================================================================
+        // ---------------------------------------------------------------- Cavalo de Troia
+        // Tabela do corpo: (z, y do centro, raio lateral, raio vertical). Frente do cavalo em +Z.
+        static readonly float[,] HorseBody =
+        {
+            { -5.65f, 7.75f, 0.3f, 0.35f }, { -5.3f, 7.7f, 1.2f, 1.3f }, { -4.75f, 7.55f, 1.85f, 1.95f },
+            { -3.8f, 7.4f, 2.1f, 2.15f }, { -2.4f, 7.25f, 2.2f, 2.2f }, { -0.6f, 7.05f, 2.25f, 2.3f },
+            { 1.2f, 7.1f, 2.2f, 2.3f }, { 2.6f, 7.4f, 2.0f, 2.35f }, { 3.6f, 7.85f, 1.7f, 2.2f },
+            { 4.3f, 8.4f, 1.25f, 1.75f }, { 4.7f, 8.9f, 0.55f, 0.85f }
+        };
+
+        static void BodyAt(float z, out float y, out float rx, out float ry)
+        {
+            int n = HorseBody.GetLength(0);
+            int i = 0;
+            while (i < n - 2 && z > HorseBody[i + 1, 0]) i++;
+            float t = Mathf.Clamp01((z - HorseBody[i, 0]) / (HorseBody[i + 1, 0] - HorseBody[i, 0]));
+            y = Mathf.Lerp(HorseBody[i, 1], HorseBody[i + 1, 1], t);
+            rx = Mathf.Lerp(HorseBody[i, 2], HorseBody[i + 1, 2], t);
+            ry = Mathf.Lerp(HorseBody[i, 3], HorseBody[i + 1, 3], t);
+        }
+
+        static void Loft(MeshBuilder b, int seg, M m, params (Vector3 c, Vector2 r)[] rings)
+        {
+            var cs = new Vector3[rings.Length];
+            var rs = new Vector2[rings.Length];
+            for (int i = 0; i < rings.Length; i++) { cs[i] = rings[i].c; rs[i] = rings[i].r; }
+            b.Loft(cs, rs, seg, m);
+        }
+
+        static (Vector3, Vector2) R(float x, float y, float z, float rx, float ry) => (V(x, y, z), V2(rx, ry));
+
+        /// <summary>Faixa (anel curto) ao redor do corpo do cavalo na posição z.</summary>
+        static void BodyBand(MeshBuilder b, float z, float width, float extra, M m, bool studs)
+        {
+            BodyAt(z - width * 0.5f, out float y0, out float rx0, out float ry0);
+            BodyAt(z + width * 0.5f, out float y1, out float rx1, out float ry1);
+            b.Loft(new[] { V(0, y0, z - width * 0.5f), V(0, y1, z + width * 0.5f) },
+                new[] { V2(rx0 + extra, ry0 + extra), V2(rx1 + extra, ry1 + extra) }, 24, m, false, false);
+            if (!studs) return;
+            BodyAt(z, out float y, out float rx, out float ry);
+            for (int k = 0; k < 16; k++)
+            {
+                float a = (-35f + k * 250f / 15f) * Mathf.Deg2Rad;
+                b.Sphere(V(Mathf.Cos(a) * (rx + extra + 0.03f), y + Mathf.Sin(a) * (ry + extra + 0.03f), z), 0.065f, 0.065f, 6, M.Bronze);
+            }
+        }
+
+        static void Wheel(MeshBuilder b, Vector3 c)
+        {
+            b.Push(c, Quaternion.Euler(0f, 0f, 90f));
+            b.Torus(Vector3.zero, Id, 0.78f, 0.1f, 22, 6, M.WoodDark);
+            b.Torus(Vector3.zero, Id, 0.86f, 0.035f, 22, 4, M.Bronze);
+            b.Cylinder(V(0, -0.2f, 0), 0.19f, 0.19f, 0.4f, 10, M.Bronze);
+            for (int k = 0; k < 8; k++)
+            {
+                float a = k * Mathf.PI / 4f;
+                var d = V(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                b.BoxBetween(d * 0.16f, d * 0.72f, 0.08f, 0.08f, M.Wood);
+            }
+            b.Pop();
+        }
+
         public static MeshBuilder Horse()
         {
+            _r = new System.Random(1184);
             var b = new MeshBuilder();
             float[] sides = { -1f, 1f };
-            // plataforma com rodas (foi arrastado para dentro da cidade)
-            b.Box(V(0, 1.05f, 0), V(5.4f, 0.5f, 12f), M.WoodDark);
+            const float deck = 1.28f;
+
+            // ---------------- plataforma de pranchas sobre rodas
+            foreach (float sx in sides) b.Box(V(sx * 2.1f, 0.95f, 0), V(0.35f, 0.42f, 12.4f), M.WoodDark);
+            for (int i = 0; i < 7; i++) b.Box(V(0, 0.95f, -5.7f + i * 1.9f), V(5.2f, 0.32f, 0.3f), M.WoodDark);
+            for (int i = 0; i < 11; i++)
+            {
+                float x = -2.6f + i * 0.52f;
+                b.Box(V(x, 1.22f, F(-0.1f, 0.1f)), V(0.48f, 0.12f, 12.5f + F(-0.15f, 0.25f)), M.HorseWood);
+            }
+            foreach (float sx in sides)
+            foreach (float sz in sides)
+            {
+                b.Box(V(sx * 2.62f, 1.1f, sz * 6.2f), V(0.3f, 0.5f, 0.3f), M.Bronze);
+                b.Torus(V(sx * 2.2f, 1.0f, sz * 6.35f), Quaternion.Euler(90f, 0f, 0f), 0.18f, 0.045f, 12, 5, M.Bronze);
+            }
             for (int i = 0; i < 3; i++)
             {
-                foreach (float s in sides)
+                float z = -4.4f + i * 4.4f;
+                b.CylinderBetween(V(-3.25f, 0.85f, z), V(3.25f, 0.85f, z), 0.1f, 0.1f, 8, M.WoodDark);
+                foreach (float sx in sides) Wheel(b, V(sx * 2.98f, 0.85f, z));
+            }
+
+            // ---------------- corpo de tábuas
+            int nb = HorseBody.GetLength(0);
+            var bc = new Vector3[nb];
+            var br = new Vector2[nb];
+            for (int i = 0; i < nb; i++) { bc[i] = V(0, HorseBody[i, 1], HorseBody[i, 0]); br[i] = V2(HorseBody[i, 2], HorseBody[i, 3]); }
+            b.Loft(bc, br, 24, M.HorseWood);
+            // músculos: paletas e ancas
+            foreach (float sx in sides)
+            {
+                b.Sphere(V(sx * 1.45f, 7.05f, 2.75f), 0.95f, 1.35f, 12, M.HorseWood);
+                b.Sphere(V(sx * 1.5f, 7.45f, -3.55f), 1.05f, 1.35f, 12, M.HorseWood);
+            }
+            // cavernas (costelas da estrutura) e cintas de bronze cravejadas
+            foreach (float z in new[] { -4.2f, -1.5f, 1.0f, 3.2f }) BodyBand(b, z, 0.2f, 0.05f, M.WoodDark, false);
+            foreach (float z in new[] { -2.9f, -0.25f, 2.2f }) BodyBand(b, z, 0.34f, 0.07f, M.Bronze, true);
+
+            // ---------------- manta cerimonial sobre o lombo (festa troiana)
+            {
+                var mc = new List<Vector3>();
+                var mr = new List<Vector2>();
+                for (float z = -1.45f; z <= 1.46f; z += 0.725f)
                 {
-                    float z = -4.4f + i * 4.4f;
-                    b.CylinderBetween(V(s * 2.75f, 0.8f, z), V(s * 3.1f, 0.8f, z), 0.8f, 0.8f, 16, M.WoodDark);
-                    b.CylinderBetween(V(s * 3.1f, 0.8f, z), V(s * 3.25f, 0.8f, z), 0.22f, 0.22f, 8, M.Bronze);
+                    BodyAt(z, out float y, out float rx, out float ry);
+                    mc.Add(V(0, y, z));
+                    mr.Add(V2(rx + 0.12f, ry + 0.12f));
+                }
+                b.Loft(mc, mr, 18, M.Cloth, false, false, 22f, 158f);
+                foreach (float aDeg in new[] { 22f, 158f })
+                {
+                    float a = aDeg * Mathf.Deg2Rad;
+                    for (float z = -1.4f; z <= 1.41f; z += 0.28f)
+                    {
+                        BodyAt(z, out float y, out float rx, out float ry);
+                        Vector3 p = V(Mathf.Cos(a) * (rx + 0.14f), y + Mathf.Sin(a) * (ry + 0.14f), z);
+                        b.CylinderBetween(p, p + V(0, -0.28f, 0), 0.025f, 0.025f, 4, M.Gold);
+                        b.Sphere(p + V(0, -0.32f, 0), 0.06f, 0.07f, 6, M.Gold);
+                    }
+                }
+                foreach (float sx in sides)
+                {
+                    BodyAt(0f, out float y, out float rx, out float ry);
+                    float a = (sx > 0 ? 55f : 125f) * Mathf.Deg2Rad;
+                    Vector3 p = V(Mathf.Cos(a) * (rx + 0.13f), y + Mathf.Sin(a) * (ry + 0.13f), 0f);
+                    Vector3 nrm = V(Mathf.Cos(a) / rx, Mathf.Sin(a) / ry, 0f).normalized;
+                    b.CylinderBetween(p, p + nrm * 0.06f, 0.42f, 0.42f, 16, M.Gold);
+                    b.CylinderBetween(p + nrm * 0.06f, p + nrm * 0.1f, 0.2f, 0.12f, 12, M.Bronze);
                 }
             }
-            // pernas
-            foreach (float s in sides)
+
+            // ---------------- pernas (tábuas), joelhos e cascos ferrados
+            foreach (float sx in sides)
             {
-                b.BoxBetween(V(s * 1.25f, 1.3f, 3.6f), V(s * 1.2f, 3.4f, 3.4f), 0.75f, 0.75f, M.Wood);
-                b.BoxBetween(V(s * 1.2f, 3.3f, 3.4f), V(s * 1.15f, 5.8f, 3.0f), 0.85f, 0.85f, M.Wood);
-                b.Box(V(s * 1.25f, 1.5f, 3.65f), V(0.95f, 0.4f, 1.0f), M.WoodDark);
-                b.BoxBetween(V(s * 1.25f, 1.3f, -3.7f), V(s * 1.25f, 3.3f, -4.1f), 0.75f, 0.75f, M.Wood);
-                b.BoxBetween(V(s * 1.25f, 3.2f, -4.1f), V(s * 1.25f, 6.0f, -3.0f), 0.95f, 0.95f, M.Wood);
-                b.Box(V(s * 1.25f, 1.5f, -3.7f), V(0.95f, 0.4f, 1.0f), M.WoodDark);
+                float x = sx * 1.05f;
+                Loft(b, 14, M.HorseWood,
+                    R(x, 6.4f, 3.1f, 0.75f, 0.85f), R(x, 5.2f, 3.3f, 0.55f, 0.68f), R(x, 4.25f, 3.4f, 0.43f, 0.52f),
+                    R(x, 3.9f, 3.42f, 0.44f, 0.5f), R(x, 2.9f, 3.45f, 0.3f, 0.36f), R(x, 2.15f, 3.5f, 0.36f, 0.42f),
+                    R(x, 1.8f, 3.62f, 0.33f, 0.38f), R(x, 1.65f, 3.68f, 0.38f, 0.43f));
+                b.Sphere(V(x, 4.05f, 3.5f), 0.46f, 0.5f, 10, M.HorseWood);
+                Loft(b, 14, M.WoodDark, R(x, 1.7f, 3.68f, 0.38f, 0.43f), R(x, deck + 0.05f, 3.76f, 0.5f, 0.56f));
+                b.Torus(V(x, 1.72f, 3.69f), Id, 0.42f, 0.05f, 14, 5, M.Bronze);
+
+                float xh = sx * 1.1f;
+                Loft(b, 14, M.HorseWood,
+                    R(xh, 6.8f, -3.4f, 0.95f, 1.1f), R(xh, 5.5f, -3.9f, 0.65f, 0.8f), R(xh, 4.3f, -4.35f, 0.42f, 0.55f),
+                    R(xh, 3.9f, -4.3f, 0.38f, 0.45f), R(xh, 2.9f, -4.1f, 0.3f, 0.36f), R(xh, 2.15f, -3.95f, 0.36f, 0.42f),
+                    R(xh, 1.8f, -3.86f, 0.33f, 0.38f), R(xh, 1.65f, -3.8f, 0.38f, 0.43f));
+                b.Sphere(V(xh, 4.3f, -4.42f), 0.42f, 0.42f, 10, M.HorseWood);
+                Loft(b, 14, M.WoodDark, R(xh, 1.7f, -3.8f, 0.38f, 0.43f), R(xh, deck + 0.05f, -3.74f, 0.5f, 0.56f));
+                b.Torus(V(xh, 1.72f, -3.79f), Id, 0.42f, 0.05f, 14, 5, M.Bronze);
             }
-            // corpo de tábuas
-            var body = new[] { V2(0.3f, 0f), V2(1.5f, 0.35f), V2(2.05f, 1.4f), V2(2.25f, 4.5f), V2(2.15f, 7.4f), V2(1.75f, 8.7f), V2(0.6f, 9.3f) };
-            b.Lathe(V(0, 7.3f, -4.7f), Quaternion.Euler(90f, 0f, 0f), body, 10, M.Wood, true, true);
-            foreach (float z in new[] { -2.5f, 1.8f })
-                b.Lathe(V(0, 7.3f, z), Quaternion.Euler(90f, 0f, 0f), new[] { V2(2.2f, 0f), V2(2.33f, 0.05f), V2(2.33f, 0.35f), V2(2.2f, 0.4f) }, 10, M.Bronze, false, false);
-            // pescoço, cabeça, orelhas, olhos
-            b.CylinderBetween(V(0, 8.2f, 3.3f), V(0, 12.3f, 6.0f), 1.45f, 1.0f, 8, M.Wood);
-            b.CylinderBetween(V(0, 12.9f, 5.5f), V(0, 11.2f, 8.6f), 1.0f, 0.62f, 8, M.Wood);
-            b.Box(V(0, 11.05f, 8.35f), V(1.05f, 0.5f, 1.0f), M.Wood);
-            foreach (float s in sides)
+
+            // ---------------- pescoço, cabeça e mandíbula
+            var neck = new[]
             {
-                b.BoxBetween(V(s * 0.45f, 13.2f, 5.6f), V(s * 0.55f, 14.2f, 5.3f), 0.28f, 0.4f, M.Wood);
-                b.Sphere(V(s * 0.8f, 12.35f, 7.0f), 0.2f, 0.2f, 8, M.Bronze);
-            }
-            // freio de bronze
-            b.Lathe(V(0, 11.75f, 7.6f), Quaternion.FromToRotation(Vector3.up, V(0, -0.5f, 0.87f)), new[] { V2(0.86f, 0f), V2(0.86f, 0.18f) }, 8, M.Bronze, false, false);
-            // crina
-            for (int i = 0; i < 9; i++)
+                R(0, 8.3f, 2.7f, 1.35f, 1.75f), R(0, 9.6f, 3.6f, 1.18f, 1.52f), R(0, 10.8f, 4.45f, 1.02f, 1.32f),
+                R(0, 11.9f, 5.15f, 0.9f, 1.14f), R(0, 12.8f, 5.65f, 0.82f, 0.98f), R(0, 13.3f, 5.95f, 0.7f, 0.75f)
+            };
+            Loft(b, 20, M.HorseWood, neck);
+            Loft(b, 18, M.HorseWood,
+                R(0, 13.45f, 5.55f, 0.45f, 0.4f), R(0, 13.4f, 6.0f, 0.78f, 0.8f), R(0, 13.0f, 6.75f, 0.8f, 0.9f),
+                R(0, 12.4f, 7.55f, 0.66f, 0.8f), R(0, 11.85f, 8.25f, 0.55f, 0.68f), R(0, 11.45f, 8.85f, 0.52f, 0.62f),
+                R(0, 11.25f, 9.25f, 0.42f, 0.5f), R(0, 11.18f, 9.45f, 0.18f, 0.22f));
+            Loft(b, 14, M.HorseWood, R(0, 12.55f, 6.6f, 0.62f, 0.55f), R(0, 12.05f, 7.3f, 0.55f, 0.45f), R(0, 11.55f, 7.95f, 0.36f, 0.3f));
+            BodyBand(b, 4.0f, 0.3f, 0.0f, M.Bronze, false); // colar no peito
+
+            // olhos, sobrancelhas, narinas e boca
+            foreach (float sx in sides)
             {
-                Vector3 p = Vector3.Lerp(V(0, 9.4f, 2.6f), V(0, 13.5f, 5.3f), i / 8f);
-                b.Box(p + V(0, 0.15f, -0.35f), V(0.22f, 0.9f, 0.55f), M.WoodDark, Quaternion.Euler(-35f, 0, 0));
+                b.Sphere(V(sx * 0.74f, 12.85f, 6.95f), 0.21f, 0.21f, 10, M.Bronze);
+                b.Sphere(V(sx * 0.9f, 12.85f, 7.02f), 0.1f, 0.11f, 8, M.Dark);
+                b.BoxBetween(V(sx * 0.68f, 13.15f, 6.65f), V(sx * 0.8f, 13.08f, 7.25f), 0.12f, 0.12f, M.WoodDark);
+                b.Sphere(V(sx * 0.26f, 11.32f, 9.32f), 0.1f, 0.13f, 8, M.Dark);
+                b.BoxBetween(V(sx * 0.42f, 10.95f, 8.6f), V(sx * 0.24f, 10.97f, 9.35f), 0.04f, 0.04f, M.Dark);
+                // orelhas
+                Loft(b, 10, M.HorseWood, R(sx * 0.32f, 13.45f, 5.85f, 0.2f, 0.13f), R(sx * 0.4f, 14.0f, 5.75f, 0.17f, 0.11f), R(sx * 0.47f, 14.5f, 5.68f, 0.03f, 0.02f));
+                // freio: argolas, faces e rédeas
+                b.Torus(V(sx * 0.55f, 11.25f, 8.95f), Quaternion.Euler(0f, 0f, 90f), 0.14f, 0.035f, 12, 5, M.Bronze);
+                b.BoxBetween(V(sx * 0.6f, 11.75f, 8.5f), V(sx * 0.8f, 13.25f, 6.2f), 0.07f, 0.14f, M.Bronze);
+                Loft(b, 6, M.Rope, R(sx * 0.62f, 11.22f, 8.98f, 0.05f, 0.05f), R(sx * 0.98f, 10.45f, 8.05f, 0.05f, 0.05f),
+                    R(sx * 1.18f, 9.85f, 6.7f, 0.05f, 0.05f), R(sx * 1.12f, 10.3f, 5.3f, 0.05f, 0.05f), R(sx * 0.95f, 10.95f, 4.55f, 0.05f, 0.05f));
             }
-            // guirlandas da festa troiana
-            for (int i = 0; i < 10; i++)
+            Loft(b, 18, M.Bronze, R(0, 11.7f, 8.46f, 0.6f, 0.72f), R(0, 11.6f, 8.64f, 0.58f, 0.7f));   // focinheira
+            Loft(b, 18, M.Bronze, R(0, 13.42f, 6.1f, 0.84f, 0.85f), R(0, 13.36f, 6.3f, 0.84f, 0.86f)); // testeira
+            b.Sphere(V(0, 13.6f, 6.25f), 0.2f, 0.2f, 8, M.Gold);
+
+            // ---------------- crina e topete de ripas
+            for (int i = 0; i < 14; i++)
             {
-                float a = i / 9f * Mathf.PI;
-                b.Sphere(V(Mathf.Cos(a) * 1.5f, 8.9f - Mathf.Sin(a) * 0.9f, 3.6f), 0.28f, 0.28f, 6, M.Foliage);
+                float t = i / 13f * (neck.Length - 1.001f);
+                int k = Mathf.FloorToInt(t);
+                float f = t - k;
+                Vector3 c = Vector3.Lerp(neck[k].Item1, neck[k + 1].Item1, f);
+                float ry = Mathf.Lerp(neck[k].Item2.y, neck[k + 1].Item2.y, f);
+                Vector3 tg = (neck[k + 1].Item1 - neck[k].Item1).normalized;
+                Vector3 up = (Vector3.up - Vector3.Dot(Vector3.up, tg) * tg).normalized;
+                Vector3 crest = c + up * (ry - 0.1f);
+                Vector3 dir = (up * 0.85f - tg * 0.45f).normalized;
+                b.BoxBetween(crest - dir * 0.15f, crest + dir * F(0.75f, 1.05f), 0.14f, 0.5f, M.WoodDark);
             }
-            // cauda
-            b.CylinderBetween(V(0, 8.6f, -4.5f), V(0, 6.2f, -6.0f), 0.45f, 0.3f, 6, M.Rope);
-            b.CylinderBetween(V(0, 6.2f, -6.0f), V(0, 3.8f, -6.3f), 0.3f, 0.12f, 6, M.Rope);
-            // escotilha aberta no flanco esquerdo e escada de corda
-            b.Box(V(-2.2f, 6.5f, 0.2f), V(0.12f, 1.4f, 1.8f), M.Dark, Quaternion.Euler(0, 0, -12f));
-            b.Box(V(-2.4f, 5.1f, 0.2f), V(0.12f, 1.4f, 1.8f), M.WoodDark, Quaternion.Euler(0, 0, 15f));
+            for (int i = 0; i < 3; i++)
+                b.BoxBetween(V(-0.15f + i * 0.15f, 13.6f, 5.95f), V(-0.2f + i * 0.2f, 13.15f, 6.65f), 0.1f, 0.3f, M.WoodDark);
+
+            // ---------------- guirlanda de flores no pescoço
+            {
+                Vector3 c0 = neck[1].Item1;
+                Vector3 tg = (neck[2].Item1 - neck[0].Item1).normalized;
+                Vector3 up = (Vector3.up - Vector3.Dot(Vector3.up, tg) * tg).normalized;
+                Vector3 sd = Vector3.Cross(up, tg).normalized;
+                Vector2 rr = neck[1].Item2;
+                M[] flowers = { M.Cloth, M.PlasterWhite, M.Gold, M.Cloth };
+                for (int k = 0; k < 26; k++)
+                {
+                    float a = k * Mathf.PI * 2f / 26f;
+                    Vector3 p = c0 + sd * (Mathf.Cos(a) * (rr.x + 0.1f)) + up * (Mathf.Sin(a) * (rr.y + 0.1f));
+                    b.Sphere(p, 0.2f, 0.17f, 6, M.Foliage);
+                    if (k % 2 == 0) b.Sphere(p + (p - c0).normalized * 0.16f, 0.1f, 0.1f, 6, flowers[(k / 2) % flowers.Length]);
+                }
+            }
+
+            // ---------------- cauda de cordas
+            b.Torus(V(0, 7.62f, -5.62f), Quaternion.Euler(70f, 0f, 0f), 0.28f, 0.07f, 12, 5, M.Bronze);
+            for (int i = 0; i < 7; i++)
+            {
+                float dx = (i - 3) * 0.08f, sway = F(-0.25f, 0.25f);
+                Loft(b, 6, M.Rope, R(dx, 7.65f, -5.6f, 0.09f, 0.09f), R(dx * 1.3f, 6.9f, -6.2f, 0.085f, 0.085f),
+                    R(dx * 2f + sway * 0.5f, 5.1f, -6.55f, 0.07f, 0.07f), R(dx * 2.6f + sway, 3.3f, -6.4f, 0.05f, 0.05f));
+            }
+
+            // ---------------- escotilha aberta no flanco esquerdo + escada de corda
+            b.Push(V(-2.2f, 6.45f, 0.2f), Quaternion.Euler(0f, 0f, 15f));
+            b.Box(V(0, 0, 0), V(0.08f, 1.4f, 1.7f), M.Dark);
+            b.Box(V(-0.06f, 0.76f, 0), V(0.14f, 0.14f, 1.95f), M.WoodDark);
+            b.Box(V(-0.06f, -0.76f, 0), V(0.14f, 0.14f, 1.95f), M.WoodDark);
+            b.Box(V(-0.06f, 0, 0.92f), V(0.14f, 1.5f, 0.14f), M.WoodDark);
+            b.Box(V(-0.06f, 0, -0.92f), V(0.14f, 1.5f, 0.14f), M.WoodDark);
+            b.Box(V(-0.2f, -1.5f, 0), V(0.1f, 1.45f, 1.7f), M.HorseWood, Quaternion.Euler(0f, 0f, -12f));
+            foreach (float zz in new[] { -0.55f, 0.55f }) b.Box(V(-0.12f, -0.8f, zz), V(0.1f, 0.25f, 0.16f), M.Bronze);
+            b.Pop();
             foreach (float zz in new[] { -0.3f, 0.7f })
-                b.CylinderBetween(V(-2.3f, 5.9f, zz), V(-3.2f, 0.05f, zz), 0.04f, 0.04f, 5, M.Rope);
-            for (int i = 1; i < 12; i++)
+                b.CylinderBetween(V(-2.35f, 5.8f, zz), V(-3.4f, 0.05f, zz), 0.04f, 0.04f, 5, M.Rope);
+            for (int i = 1; i < 13; i++)
             {
-                Vector3 p = Vector3.Lerp(V(-2.3f, 5.9f, 0), V(-3.2f, 0.05f, 0), i / 12f);
-                b.CylinderBetween(p + V(0, 0, -0.3f), p + V(0, 0, 0.7f), 0.035f, 0.035f, 5, M.Wood);
+                Vector3 p = Vector3.Lerp(V(-2.35f, 5.8f, 0), V(-3.4f, 0.05f, 0), i / 13f);
+                b.CylinderBetween(p + V(0, 0, -0.3f), p + V(0, 0, 0.7f), 0.035f, 0.035f, 5, M.HorseWood);
             }
-            // cordas usadas para arrastá-lo
-            foreach (float s in sides)
+
+            // ---------------- cordas de arrasto, rolos de corda e oferendas no deque
+            foreach (float sx in sides)
             {
-                b.CylinderBetween(V(s * 1.8f, 1.1f, 6.0f), V(s * 2.6f, 0.06f, 9.5f), 0.07f, 0.07f, 6, M.Rope);
-                b.CylinderBetween(V(s * 2.6f, 0.06f, 9.5f), V(s * 3.4f, 0.06f, 18f), 0.07f, 0.07f, 6, M.Rope);
+                Loft(b, 6, M.Rope, R(sx * 2.2f, 1.0f, 6.45f, 0.07f, 0.07f), R(sx * 2.45f, 0.45f, 7.4f, 0.07f, 0.07f),
+                    R(sx * 2.8f, 0.08f, 9.0f, 0.07f, 0.07f), R(sx * 3.1f, 0.07f, 12.5f, 0.07f, 0.07f),
+                    R(sx * 3.5f, 0.07f, 16f, 0.07f, 0.07f), R(sx * 3.4f, 0.07f, 18.4f, 0.07f, 0.07f));
+                for (int k = 0; k < 3; k++)
+                    b.Torus(V(sx * 3.8f, 0.08f + k * 0.13f, 19.1f), Quaternion.Euler(0f, k * 20f, 0f), 0.55f - k * 0.05f, 0.07f, 16, 5, M.Rope);
+                Amphora(b, V(sx * 2.0f, deck, -5.4f), 0.75f);
+                Amphora(b, V(sx * 1.6f, deck, 5.5f), 0.6f, M.Gold);
+                for (int k = 0; k < 6; k++)
+                    b.Sphere(V(sx * F(0.3f, 2.3f), deck + 0.08f, F(-5.5f, 5.5f)), 0.16f, 0.09f, 6, k % 2 == 0 ? M.Foliage : M.Cloth);
             }
             return b;
         }
@@ -1082,6 +1280,83 @@ namespace Troia.EditorTools
                 }
                 else b.CylinderBetween(V(0.28f, 0.0f, 0.1f), V(0.3f, 2.6f, 0.15f), 0.022f, 0.022f, 4, M.WoodDark);
                 b.Pop();
+            }
+            return b;
+        }
+
+        /// <summary>Detritos de batalha espalhados no chão (um único mesh, sem colisor).</summary>
+        public static MeshBuilder Debris(IList<Vector3> pos, int seed)
+        {
+            _r = new System.Random(seed);
+            var b = new MeshBuilder();
+            foreach (var p in pos)
+            {
+                float yaw = F(0f, 360f);
+                Quaternion q = Quaternion.Euler(F(-12f, 12f), yaw, F(-12f, 12f));
+                Vector3 dir = Yaw(yaw) * Vector3.forward;
+                int t = _r.Next(12);
+                switch (t)
+                {
+                    case 0:
+                    case 1:
+                    case 2:
+                    {
+                        int n = 1 + _r.Next(3);
+                        for (int i = 0; i < n; i++)
+                        {
+                            float s = F(0.12f, 0.32f);
+                            b.Box(p + V(F(-0.4f, 0.4f), s * 0.25f, F(-0.4f, 0.4f)), V(s * 1.6f, s * 0.6f, s), _r.NextDouble() < 0.6 ? M.MudBrick : M.Stone,
+                                Quaternion.Euler(F(-25f, 25f), F(0f, 360f), F(-25f, 25f)));
+                        }
+                        break;
+                    }
+                    case 3:
+                        for (int i = 0; i < 4; i++)
+                            b.Box(p + V(F(-0.35f, 0.35f), 0.02f, F(-0.35f, 0.35f)), V(F(0.08f, 0.2f), 0.025f, F(0.06f, 0.16f)), M.Terracotta,
+                                Quaternion.Euler(F(-20f, 20f), F(0f, 360f), F(-20f, 20f)));
+                        break;
+                    case 4:
+                    {
+                        Vector3 a = p + V(0, 0.03f, 0) - dir * 0.4f, c = p + V(0, 0.05f, 0) + dir * 0.4f;
+                        b.CylinderBetween(a, c, 0.012f, 0.012f, 4, M.Wood);
+                        b.Lathe(c, Quaternion.FromToRotation(Vector3.up, dir), new[] { V2(0.025f, 0f), V2(0f, 0.08f) }, 4, M.Bronze, false, false);
+                        b.Box(a + dir * 0.06f, V(0.09f, 0.002f, 0.1f), M.Cloth, Quaternion.LookRotation(dir));
+                        break;
+                    }
+                    case 5:
+                    {
+                        float L = F(0.7f, 1.4f);
+                        Vector3 a = p + V(0, 0.04f, 0) - dir * L * 0.5f, c = p + V(0, 0.04f, 0) + dir * L * 0.5f;
+                        b.CylinderBetween(a, c, 0.025f, 0.025f, 5, M.WoodDark);
+                        if (_r.NextDouble() < 0.5)
+                            b.Lathe(c, Quaternion.FromToRotation(Vector3.up, dir), new[] { V2(0.05f, 0f), V2(0f, 0.25f) }, 5, M.Bronze, false, false);
+                        break;
+                    }
+                    case 6:
+                    {
+                        Vector3 up = q * Vector3.up;
+                        b.CylinderBetween(p + V(0, 0.02f, 0), p + V(0, 0.02f, 0) + up * 0.06f, 0.42f, 0.4f, 14, M.Bronze);
+                        b.Sphere(p + V(0, 0.08f, 0) + up * 0.04f, 0.1f, 0.06f, 8, M.Bronze);
+                        break;
+                    }
+                    case 7:
+                        b.Sphere(p + V(0, 0.13f, 0), 0.16f, 0.15f, 8, M.Bronze);
+                        b.Box(p + V(0, 0.2f, 0) + dir * 0.12f, V(0.04f, 0.22f, 0.36f), M.Cloth, Quaternion.LookRotation(dir) * Quaternion.Euler(0f, 0f, 70f));
+                        break;
+                    case 8:
+                    case 9:
+                    {
+                        float L = F(0.6f, 1.6f);
+                        b.BoxBetween(p + V(0, 0.08f, 0) - dir * L * 0.5f, p + V(0, F(0.08f, 0.3f), 0) + dir * L * 0.5f, F(0.1f, 0.2f), F(0.1f, 0.18f), M.Charred);
+                        break;
+                    }
+                    case 10:
+                        b.Sphere(p + V(0, 0.01f, 0), F(0.25f, 0.45f), 0.06f, 8, M.Charred);
+                        break;
+                    default:
+                        b.Box(p + V(0, 0.015f, 0), V(F(0.4f, 0.8f), 0.02f, F(0.3f, 0.6f)), _r.NextDouble() < 0.5 ? M.Cloth : M.ClothBlue, q);
+                        break;
+                }
             }
             return b;
         }

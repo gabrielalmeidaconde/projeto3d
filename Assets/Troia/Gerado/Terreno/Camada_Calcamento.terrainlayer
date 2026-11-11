@@ -7,17 +7,17 @@ TerrainLayer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Calcamento
-  m_DiffuseTexture: {fileID: 2800000, guid: 93bbd3dd6b0b2652192fe35a54e3d2de, type: 3}
-  m_NormalMapTexture: {fileID: 2800000, guid: 4aac2233fbd01145e9faae59208435ed, type: 3}
+  m_DiffuseTexture: {fileID: 2800000, guid: 3a51ff5805e42fa0e97152d67cd615ba, type: 3}
+  m_NormalMapTexture: {fileID: 2800000, guid: 85c00757dd0e05decb75b9301b7bd813, type: 3}
   m_MaskMapTexture: {fileID: 0}
-  m_TileSize: {x: 3, y: 3}
+  m_TileSize: {x: 4, y: 4}
   m_TileOffset: {x: 0, y: 0}
   m_Specular: {r: 0, g: 0, b: 0, a: 0}
   m_Metallic: 0
-  m_Smoothness: 0.1
+  m_Smoothness: 0.05
   m_NormalScale: 1
   m_DiffuseRemapMin: {x: 0, y: 0, z: 0, w: 0}
-  m_DiffuseRemapMax: {x: 1, y: 1, z: 1, w: 1}
+  m_DiffuseRemapMax: {x: 0.76, y: 0.69, z: 0.6, w: 1}
   m_MaskMapRemapMin: {x: 0, y: 0, z: 0, w: 0}
   m_MaskMapRemapMax: {x: 1, y: 1, z: 1, w: 1}
   m_SmoothnessSource: 1

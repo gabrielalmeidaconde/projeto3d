@@ -136,7 +136,7 @@ namespace Troia.EditorTools
         static Color C(float r, float g, float b, float a = 1f) => new Color(r, g, b, a);
 
         // ------------------------------------------------------------------ texturas
-        static Texture2D ImportTex(string path, bool normal, TextureWrapMode wrap = TextureWrapMode.Repeat, int max = 1024,
+        static Texture2D ImportTex(string path, bool normal, TextureWrapMode wrap = TextureWrapMode.Repeat, int max = 2048,
             bool mips = true, bool alpha = false, bool uncompressed = false)
         {
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
@@ -154,33 +154,44 @@ namespace Troia.EditorTools
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
+        /// <summary>Gera albedo + normal map. Em 2048 salva como JPG para não pesar no repositório.</summary>
         static Texture2D MakeTex(string name, TexGen.Px fn, int size, float normalStrength, out Texture2D normal)
         {
             TexGen.Bake(size, fn, out var col, out var hgt);
-            string p = $"{TexDir}/{name}.png";
-            TexGen.SavePng(p, col, size, size);
-            var tex = ImportTex(p, false);
+            var tex = SaveTex($"{TexDir}/{name}", col, size, false);
             normal = null;
             if (normalStrength > 0f)
-            {
-                string pn = $"{TexDir}/{name}_N.png";
-                TexGen.SavePng(pn, TexGen.NormalMap(hgt, size, normalStrength), size, size);
-                normal = ImportTex(pn, true);
-            }
+                normal = SaveTex($"{TexDir}/{name}_N", TexGen.NormalMap(hgt, size, normalStrength), size, true);
             return tex;
+        }
+
+        static Texture2D SaveTex(string pathNoExt, Color[] px, int size, bool normal)
+        {
+            bool jpg = size >= 2048;
+            string p = pathNoExt + (jpg ? ".jpg" : ".png");
+            string other = pathNoExt + (jpg ? ".png" : ".jpg");
+            if (AssetDatabase.LoadAssetAtPath<Texture2D>(other) != null) AssetDatabase.DeleteAsset(other);
+            if (jpg) TexGen.SaveJpg(p, px, size, size, normal ? 96 : 92);
+            else TexGen.SavePng(p, px, size, size);
+            return ImportTex(p, normal);
         }
 
         static Texture2D AlphaTex(string name, Color[] px, int s)
         {
             string p = $"{TexDir}/{name}.png";
             TexGen.SavePng(p, px, s, s);
-            return ImportTex(p, false, TextureWrapMode.Clamp, 256, true, true);
+            return ImportTex(p, false, TextureWrapMode.Clamp, Mathf.Max(256, s), true, true);
         }
 
         // ------------------------------------------------------------------ materiais
-        static Material Lit(string name, Texture2D albedo, Texture2D normal, Color tint, float smooth, float metal = 0f, float bump = 1f)
+        /// <summary>Material "Troia/Lit Sujo" (Lit do URP + sujeira em espaço de mundo). grime = quantidade de sujeira 0..1.</summary>
+        static Material Lit(string name, Texture2D albedo, Texture2D normal, Color tint, float smooth, float metal = 0f, float bump = 1f,
+            Color? emission = null, float grime = 0f, Texture2D emissionMap = null)
         {
-            var m = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
+            var shader = Shader.Find("Troia/Lit Sujo") ?? Shader.Find("Universal Render Pipeline/Lit");
+            var m = new Material(shader) { name = name };
+            m.SetFloat("_Parallax", grime);
+            if (emissionMap != null) m.SetTexture("_EmissionMap", emissionMap);
             if (albedo != null)
             {
                 m.SetTexture("_BaseMap", albedo);
@@ -195,6 +206,8 @@ namespace Troia.EditorTools
             }
             m.SetFloat("_Smoothness", smooth);
             m.SetFloat("_Metallic", metal);
+            m.SetColor("_EmissionColor", emission ?? Color.black);
+            m.globalIlluminationFlags = emission.HasValue ? MaterialGlobalIlluminationFlags.RealtimeEmissive : MaterialGlobalIlluminationFlags.EmissiveIsBlack;
             m.enableInstancing = true;
             BaseShaderGUI.SetMaterialKeywords(m, LitGUI.SetMaterialKeywords, null);
             return SaveAsset(m, $"{MatDir}/{name}.mat");
@@ -211,47 +224,66 @@ namespace Troia.EditorTools
             return SaveAsset(m, $"{MatDir}/{name}.mat");
         }
 
+        public static readonly Dictionary<string, Material> Decals = new Dictionary<string, Material>();
+        public static Texture2D GrimeTex;
+
         public static void CreateMaterials()
         {
-            var stone = MakeTex("T_PedraMuralha", TexGen.Stone, 512, 5f, out var stoneN);
-            var brick = MakeTex("T_Adobe", TexGen.MudBrick, 512, 4f, out var brickN);
-            var plaster = MakeTex("T_Reboco", TexGen.Plaster, 512, 2f, out var plasterN);
-            var wood = MakeTex("T_Madeira", TexGen.Wood, 512, 3f, out var woodN);
-            TexEarth = MakeTex("T_Terra", TexGen.Earth, 512, 3f, out TexEarthN);
-            var tile = MakeTex("T_Telha", TexGen.RoofTile, 512, 4f, out var tileN);
-            TexCobble = MakeTex("T_Calcamento", TexGen.Cobble, 512, 5f, out TexCobbleN);
-            var marble = MakeTex("T_Marmore", TexGen.Marble, 512, 1f, out var marbleN);
-            TexGrass = MakeTex("T_Grama", TexGen.Grass, 512, 2f, out TexGrassN);
-            TexSand = MakeTex("T_Areia", TexGen.Sand, 512, 1.5f, out TexSandN);
-            var charred = MakeTex("T_Carvao", TexGen.Charred, 512, 3f, out var charredN);
-            var cloth = MakeTex("T_Tecido", TexGen.Cloth, 256, 1f, out var clothN);
+            var stone = MakeTex("T_PedraMuralha", TexGen.Stone, 2048, 16f, out var stoneN);
+            var brick = MakeTex("T_Adobe", TexGen.MudBrick, 2048, 12f, out var brickN);
+            var plaster = MakeTex("T_Reboco", TexGen.Plaster, 2048, 6f, out var plasterN);
+            var wood = MakeTex("T_Madeira", TexGen.Wood, 1024, 5f, out var woodN);
+            TexEarth = MakeTex("T_Terra", TexGen.Earth, 2048, 5f, out TexEarthN);
+            var tile = MakeTex("T_Telha", TexGen.RoofTile, 1024, 7f, out var tileN);
+            TexCobble = MakeTex("T_Calcamento", TexGen.Cobble, 2048, 11f, out TexCobbleN);
+            var marble = MakeTex("T_Marmore", TexGen.Marble, 1024, 2f, out var marbleN);
+            TexGrass = MakeTex("T_Grama", TexGen.Grass, 1024, 3.5f, out TexGrassN);
+            TexSand = MakeTex("T_Areia", TexGen.Sand, 1024, 2.5f, out TexSandN);
+            var charred = MakeTex("T_Carvao", TexGen.Charred, 1024, 5f, out var charredN);
+            var embers = SaveTex($"{TexDir}/T_Carvao_Brasas", TexGen.CharredEmission(1024), 1024, false);
+            var cloth = MakeTex("T_Tecido", TexGen.Cloth, 512, 1.5f, out var clothN);
+
+            string gp = $"{TexDir}/T_Sujeira_Global.png";
+            TexGen.SavePng(gp, TexGen.Grime(1024), 1024, 1024);
+            AssetDatabase.ImportAsset(gp, ImportAssetOptions.ForceUpdate);
+            var gti = (TextureImporter)AssetImporter.GetAtPath(gp);
+            gti.sRGBTexture = false;
+            gti.alphaSource = TextureImporterAlphaSource.FromInput;
+            gti.alphaIsTransparency = false;
+            gti.wrapMode = TextureWrapMode.Repeat;
+            gti.textureCompression = TextureImporterCompression.Uncompressed;
+            gti.SaveAndReimport();
+            GrimeTex = AssetDatabase.LoadAssetAtPath<Texture2D>(gp);
 
             Color white = Color.white;
             Pal = new Material[(int)M.Count];
-            Pal[(int)M.Stone] = Lit("M_PedraMuralha", stone, stoneN, white, 0.15f);
-            Pal[(int)M.MudBrick] = Lit("M_Adobe", brick, brickN, white, 0.1f);
-            Pal[(int)M.Plaster] = Lit("M_Reboco", plaster, plasterN, C(0.92f, 0.86f, 0.76f), 0.12f);
-            Pal[(int)M.PlasterOchre] = Lit("M_Reboco_Ocre", plaster, plasterN, C(0.95f, 0.76f, 0.5f), 0.12f);
-            Pal[(int)M.PlasterRed] = Lit("M_Reboco_Vermelho", plaster, plasterN, C(0.75f, 0.36f, 0.28f), 0.12f);
-            Pal[(int)M.PlasterWhite] = Lit("M_Reboco_Branco", plaster, plasterN, C(1f, 0.98f, 0.95f), 0.15f);
-            Pal[(int)M.Terracotta] = Lit("M_Terracota", plaster, plasterN, C(0.72f, 0.38f, 0.24f), 0.25f);
-            Pal[(int)M.Straw] = Lit("M_Palha", plaster, plasterN, C(0.85f, 0.72f, 0.42f), 0.05f);
-            Pal[(int)M.Wood] = Lit("M_Madeira", wood, woodN, white, 0.2f);
-            Pal[(int)M.WoodDark] = Lit("M_Madeira_Escura", wood, woodN, C(0.55f, 0.5f, 0.48f), 0.2f);
-            Pal[(int)M.WoodPainted] = Lit("M_Madeira_Pintada", wood, woodN, C(0.78f, 0.2f, 0.14f), 0.3f);
-            Pal[(int)M.Roof] = Lit("M_Telhado_Terra", TexEarth, TexEarthN, C(0.85f, 0.8f, 0.75f), 0.05f);
-            Pal[(int)M.RoofTile] = Lit("M_Telha", tile, tileN, white, 0.25f);
-            Pal[(int)M.Cobble] = Lit("M_Calcamento", TexCobble, TexCobbleN, white, 0.2f);
-            Pal[(int)M.Marble] = Lit("M_Marmore", marble, marbleN, white, 0.45f);
-            Pal[(int)M.Bronze] = Lit("M_Bronze", plaster, plasterN, C(0.72f, 0.5f, 0.28f), 0.55f, 0.85f);
-            Pal[(int)M.Gold] = Lit("M_Ouro", plaster, null, C(1f, 0.78f, 0.34f), 0.7f, 1f);
-            Pal[(int)M.Cloth] = Lit("M_Tecido_Vermelho", cloth, clothN, C(0.6f, 0.12f, 0.1f), 0.1f);
-            Pal[(int)M.ClothBlue] = Lit("M_Tecido_Azul", cloth, clothN, C(0.18f, 0.25f, 0.5f), 0.1f);
+            Pal[(int)M.Stone] = Lit("M_PedraMuralha", stone, stoneN, C(0.86f, 0.8f, 0.72f), 0.22f, grime: 0.9f);
+            Pal[(int)M.MudBrick] = Lit("M_Adobe", brick, brickN, white, 0.1f, grime: 0.9f);
+            Pal[(int)M.Plaster] = Lit("M_Reboco", plaster, plasterN, C(0.95f, 0.9f, 0.8f), 0.12f, grime: 1f);
+            Pal[(int)M.PlasterOchre] = Lit("M_Reboco_Ocre", plaster, plasterN, C(0.95f, 0.79f, 0.55f), 0.12f, grime: 1f);
+            Pal[(int)M.PlasterRed] = Lit("M_Reboco_Vermelho", plaster, plasterN, C(0.82f, 0.52f, 0.42f), 0.12f, grime: 1f);
+            Pal[(int)M.PlasterWhite] = Lit("M_Reboco_Branco", plaster, plasterN, C(1f, 0.98f, 0.95f), 0.15f, grime: 1f);
+            Pal[(int)M.Terracotta] = Lit("M_Terracota", plaster, plasterN, C(0.72f, 0.38f, 0.24f), 0.25f, grime: 0.6f);
+            Pal[(int)M.Straw] = Lit("M_Palha", plaster, plasterN, C(0.85f, 0.72f, 0.42f), 0.05f, grime: 0.4f);
+            Pal[(int)M.Wood] = Lit("M_Madeira", wood, woodN, white, 0.2f, grime: 0.75f);
+            Pal[(int)M.WoodDark] = Lit("M_Madeira_Escura", wood, woodN, C(0.55f, 0.5f, 0.48f), 0.2f, grime: 0.75f);
+            Pal[(int)M.WoodPainted] = Lit("M_Madeira_Pintada", wood, woodN, C(0.78f, 0.2f, 0.14f), 0.3f, grime: 0.8f);
+            Pal[(int)M.Roof] = Lit("M_Telhado_Terra", TexEarth, TexEarthN, C(0.9f, 0.84f, 0.76f), 0.05f, grime: 0.6f);
+            Pal[(int)M.RoofTile] = Lit("M_Telha", tile, tileN, white, 0.25f, grime: 0.6f);
+            Pal[(int)M.Cobble] = Lit("M_Calcamento", TexCobble, TexCobbleN, white, 0.3f, grime: 0.6f);
+            Pal[(int)M.Marble] = Lit("M_Marmore", marble, marbleN, white, 0.55f, grime: 0.65f);
+            Pal[(int)M.Bronze] = Lit("M_Bronze", plaster, plasterN, C(0.72f, 0.5f, 0.28f), 0.55f, 0.85f, grime: 0.5f);
+            Pal[(int)M.Gold] = Lit("M_Ouro", plaster, null, C(1f, 0.78f, 0.34f), 0.7f, 1f, grime: 0.25f);
+            Pal[(int)M.Cloth] = Lit("M_Tecido_Vermelho", cloth, clothN, C(0.66f, 0.17f, 0.12f), 0.1f, grime: 0.6f);
+            Pal[(int)M.ClothBlue] = Lit("M_Tecido_Azul", cloth, clothN, C(0.2f, 0.33f, 0.56f), 0.1f, grime: 0.6f);
             Pal[(int)M.Dark] = Lit("M_Abertura_Escura", null, null, C(0.02f, 0.018f, 0.016f), 0f);
-            Pal[(int)M.Charred] = Lit("M_Carbonizado", charred, charredN, white, 0.08f);
-            Pal[(int)M.Rope] = Lit("M_Corda", cloth, clothN, C(0.55f, 0.45f, 0.3f), 0.05f);
-            Pal[(int)M.Foliage] = Lit("M_Folhagem", TexGrass, TexGrassN, C(0.45f, 0.6f, 0.35f), 0.15f);
+            Pal[(int)M.Charred] = Lit("M_Carbonizado", charred, charredN, white, 0.08f, 0f, 1f, new Color(2.6f, 2.6f, 2.6f), 0.2f, embers);
+            Pal[(int)M.Rope] = Lit("M_Corda", cloth, clothN, C(0.55f, 0.45f, 0.3f), 0.05f, grime: 0.5f);
+            Pal[(int)M.Foliage] = Lit("M_Folhagem", TexGrass, TexGrassN, C(0.45f, 0.6f, 0.35f), 0.15f, grime: 0.2f);
             Pal[(int)M.Water] = Lit("M_Agua", null, null, C(0.02f, 0.04f, 0.07f), 0.95f);
+            Pal[(int)M.WindowLit] = Lit("M_Janela_Acesa", null, null, C(0.08f, 0.05f, 0.03f), 0.1f, 0f, 1f, new Color(2.2f, 1.05f, 0.4f));
+            Pal[(int)M.PaintedBlue] = Lit("M_Madeira_Azul", wood, woodN, C(0.36f, 0.52f, 0.66f), 0.25f, grime: 0.85f);
+            Pal[(int)M.HorseWood] = Lit("M_Madeira_Cavalo", wood, woodN, C(1.4f, 1.24f, 1.05f), 0.25f, grime: 0.55f);
 
             var flame = AlphaTex("T_Particula_Chama", TexGen.Flame(128), 128);
             var smoke = AlphaTex("T_Particula_Fumaca", TexGen.Smoke(128), 128);
@@ -263,6 +295,24 @@ namespace Troia.EditorTools
             var tm = new Material(Shader.Find("Universal Render Pipeline/Terrain/Lit")) { name = "M_Terreno" };
             tm.EnableKeyword("_NORMALMAP");
             TerrainMat = SaveAsset(tm, $"{MatDir}/M_Terreno.mat");
+
+            // decals (fuligem, queimado, lama, sangue, rachaduras, cinzas)
+            Decals.Clear();
+            Decals["Fuligem"] = DecalMat("MD_Fuligem", AlphaTex("TD_Fuligem", TexGen.DecalSoot(512), 512));
+            Decals["Queimado"] = DecalMat("MD_Queimado", AlphaTex("TD_Queimado", TexGen.DecalScorch(512), 512));
+            Decals["Lama"] = DecalMat("MD_Lama", AlphaTex("TD_Lama", TexGen.DecalMud(512), 512));
+            Decals["Sangue"] = DecalMat("MD_Sangue", AlphaTex("TD_Sangue", TexGen.DecalBlood(512), 512));
+            Decals["Rachadura"] = DecalMat("MD_Rachadura", AlphaTex("TD_Rachadura", TexGen.DecalCrack(512), 512));
+            Decals["Cinzas"] = DecalMat("MD_Cinzas", AlphaTex("TD_Cinzas", TexGen.DecalAsh(512), 512));
+        }
+
+        static Material DecalMat(string name, Texture2D tex)
+        {
+            var m = new Material(Shader.Find("Shader Graphs/Decal")) { name = name };
+            m.SetTexture("Base_Map", tex);
+            m.SetFloat("Normal_Blend", 0f);
+            m.enableInstancing = true;
+            return SaveAsset(m, $"{MatDir}/{name}.mat");
         }
 
         // ------------------------------------------------------------------ céu
@@ -274,7 +324,7 @@ namespace Troia.EditorTools
             Vector3 mt = Vector3.Cross(Vector3.up, md).normalized;
             Vector3 mb = Vector3.Cross(md, mt);
             const float moonR = 0.03f;
-            Color zenith = C(0.02f, 0.026f, 0.06f), horizon = C(0.1f, 0.1f, 0.15f);
+            Color zenith = C(0.035f, 0.045f, 0.1f), horizon = C(0.16f, 0.15f, 0.22f);
             for (int y = 0; y < H; y++)
             {
                 float v = (y + 0.5f) / H;
@@ -342,7 +392,7 @@ namespace Troia.EditorTools
             sky.SetTexture("_MainTex", tex);
             sky.SetFloat("_Mapping", 1f);
             sky.SetFloat("_ImageType", 0f);
-            sky.SetFloat("_Exposure", 1f);
+            sky.SetFloat("_Exposure", 1.2f);
             sky.SetFloat("_Rotation", 0f);
             sky.DisableKeyword("_MAPPING_6_FRAMES_LAYOUT");
             sky.EnableKeyword("_MAPPING_LATITUDE_LONGITUDE_LAYOUT");
@@ -357,24 +407,31 @@ namespace Troia.EditorTools
             var p = ScriptableObject.CreateInstance<VolumeProfile>();
             AssetDatabase.CreateAsset(p, path);
             var bloom = p.Add<Bloom>();
-            bloom.threshold.Override(0.95f);
-            bloom.intensity.Override(1.1f);
+            bloom.threshold.Override(1.0f);
+            bloom.intensity.Override(0.9f);
             bloom.scatter.Override(0.7f);
             bloom.tint.Override(new Color(1f, 0.82f, 0.7f));
             var tm = p.Add<Tonemapping>();
             tm.mode.Override(TonemappingMode.ACES);
             var ca = p.Add<ColorAdjustments>();
-            ca.postExposure.Override(0.6f);
-            ca.contrast.Override(12f);
-            ca.saturation.Override(-4f);
+            ca.postExposure.Override(0.85f);
+            ca.contrast.Override(18f);
+            ca.saturation.Override(8f);
             var wb = p.Add<WhiteBalance>();
-            wb.temperature.Override(-10f);
+            wb.temperature.Override(-2f);
+            var st = p.Add<SplitToning>();
+            st.shadows.Override(new Color(0.38f, 0.5f, 0.7f));
+            st.highlights.Override(new Color(0.95f, 0.72f, 0.48f));
+            st.balance.Override(-15f);
+            var lgg = p.Add<LiftGammaGain>();
+            lgg.lift.Override(new Vector4(0.97f, 0.99f, 1.06f, 0.0f));
+            lgg.gamma.Override(new Vector4(1f, 1f, 1f, 0.05f));
             var vg = p.Add<Vignette>();
-            vg.intensity.Override(0.3f);
+            vg.intensity.Override(0.22f);
             vg.smoothness.Override(0.45f);
             var fg = p.Add<FilmGrain>();
             fg.type.Override(FilmGrainLookup.Thin1);
-            fg.intensity.Override(0.12f);
+            fg.intensity.Override(0.1f);
             foreach (var c in p.components)
             {
                 c.name = c.GetType().Name;
@@ -550,9 +607,9 @@ namespace Troia.EditorTools
                 switch (size)
                 {
                     case FireSize.Tocha: l.range = 8f; l.intensity = 3f; break;
-                    case FireSize.Pequeno: l.range = 12f; l.intensity = 6f; break;
-                    case FireSize.Medio: l.range = 16f; l.intensity = 9f; break;
-                    default: l.range = 22f; l.intensity = 14f; break;
+                    case FireSize.Pequeno: l.range = 13f; l.intensity = 7f; break;
+                    case FireSize.Medio: l.range = 17f; l.intensity = 10f; l.shadows = LightShadows.Soft; break;
+                    default: l.range = 24f; l.intensity = 16f; l.shadows = LightShadows.Soft; break;
                 }
                 var fl = lg.AddComponent<Troia.FireFlicker>();
                 fl.baseIntensity = l.intensity;

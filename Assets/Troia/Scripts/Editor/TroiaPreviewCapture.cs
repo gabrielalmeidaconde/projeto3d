@@ -65,6 +65,10 @@ namespace Troia.EditorTools
                 S("09_arena6_altar_zeus", new Vector3(6f, 12.5f, 89f), new Vector3(17f, 9f, 106f)),
                 S("10_exercito_grego", new Vector3(20f, 10f, -215f), new Vector3(0f, 5f, -140f)),
                 S("11_vista_da_cidadela", new Vector3(0f, 30f, 120f), new Vector3(0f, 0f, -60f)),
+                S("15_detalhe_chao_agora", new Vector3(-62f, 1.7f, -57f), new Vector3(-62f, 0f, -51f)),
+                S("17_cavalo_lado_iluminado", new Vector3(-68f, 8f, -27f), new Vector3(-55f, 7f, -40f)),
+                S("18_cavalo_cabeca", new Vector3(-55.5f, 13.6f, -55f), new Vector3(-53f, 12.3f, -47.3f), 45f),
+                S("16_detalhe_fachadas_avenida", new Vector3(-1.5f, 1.8f, -62f), new Vector3(-6f, 2.6f, -54f)),
             };
             foreach (var s in shots)
             {

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
 using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -22,6 +23,8 @@ namespace Troia.EditorTools
         static int _houseLights;
         const int MaxHouseLights = 55;
         static readonly List<Vector2> _houses = new List<Vector2>();
+        static Transform _decals;
+        static int _decalCount;
 
         static float Rf(float a, float b) => a + (float)R.NextDouble() * (b - a);
         static Vector3 G(float x, float z, float dy = 0f) => new Vector3(x, TroiaLayout.Height(x, z) + dy, z);
@@ -65,9 +68,12 @@ namespace Troia.EditorTools
                 var fx = Group("--- EFEITOS ---");
                 var gameplay = Group("--- GAMEPLAY ---");
                 var fires = Group("Incendios", fx);
+                _decals = Group("Decals", fx);
+                _decalCount = 0;
 
                 Progress("Iluminação e céu", 0.45f);
                 BuildLighting(env);
+                BuildShaderGlobals(env);
                 Progress("Terreno", 0.5f);
                 BuildTerrain(env);
                 Progress("Muralhas", 0.6f);
@@ -85,6 +91,9 @@ namespace Troia.EditorTools
                 Progress("Casas", 0.72f);
                 PlaceHouses(Group("Casas_Cidade_Baixa", lower), Group("Casas_Cidadela", citadel), fires);
                 Progress("Exterior", 0.8f);
+                ScatterGroundDecals();
+                WallCracks();
+                ScatterDebris(Group("Detritos", lower));
                 BuildExterior(outside, fires);
                 BuildAtmosphere(fx);
                 BuildGameplayMarkers(gameplay);
@@ -97,7 +106,7 @@ namespace Troia.EditorTools
                 EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(TroiaAssets.ScenePath, true) };
                 AssetDatabase.SaveAssets();
                 Debug.Log($"[Troia] Mapa da Fase 1 gerado em {sw.Elapsed.TotalSeconds:F1}s: {_houses.Count} casas, " +
-                          $"{_houseLights} luzes de incêndio. Cena: {TroiaAssets.ScenePath}");
+                          $"{_houseLights} luzes de incêndio, {_decalCount} decals. Cena: {TroiaAssets.ScenePath}");
             }
             finally
             {
@@ -133,6 +142,7 @@ namespace Troia.EditorTools
         static GameObject Prop(string name, Transform parent, float x, float z, float yaw, float scale = 1f, float dy = 0f)
         {
             _props.Add(new Vector2(x, z));
+            if (name == "Braseiro" || name == "Altar_Pequeno") DecalGround("Queimado", x, z, Rf(1.6f, 2.4f));
             var go = (GameObject)PrefabUtility.InstantiatePrefab(TroiaAssets.Props[name], parent);
             go.transform.SetPositionAndRotation(G(x, z, dy), Quaternion.Euler(0f, yaw, 0f));
             if (!Mathf.Approximately(scale, 1f)) go.transform.localScale = Vector3.one * scale;
@@ -143,6 +153,12 @@ namespace Troia.EditorTools
         {
             var go = (GameObject)PrefabUtility.InstantiatePrefab(TroiaAssets.Fires[name], parent);
             go.transform.position = pos;
+            if (_decals != null && !name.StartsWith("Fogo_Tocha") && pos.y - TroiaLayout.Height(pos.x, pos.z) < 2.2f)
+            {
+                float sz = name.StartsWith("Fogo_Grande") ? 6f : name.StartsWith("Fogo_Medio") ? 4f : 2.2f;
+                DecalGround("Queimado", pos.x, pos.z, sz * Rf(0.9f, 1.2f));
+                DecalGround("Cinzas", pos.x + Rf(-1f, 1f), pos.z + Rf(-1f, 1f), sz * 0.6f);
+            }
             if (!Mathf.Approximately(scale, 1f)) go.transform.localScale = Vector3.one * scale;
             return go;
         }
@@ -166,6 +182,166 @@ namespace Troia.EditorTools
             }
         }
 
+
+        // =====================================================================================
+        // Sujeira: parâmetros globais do shader, decals e detritos
+        // =====================================================================================
+        static void BuildShaderGlobals(Transform parent)
+        {
+            const int W = 512, H = 640;
+            var min = new Vector2(-120f, -150f);
+            var size = new Vector2(240f, 300f);
+            const float minY = -10f, rangeY = 30f;
+            var px = new Color[W * H];
+            for (int y = 0; y < H; y++)
+            {
+                float wz = min.y + (y + 0.5f) / H * size.y;
+                for (int x = 0; x < W; x++)
+                {
+                    float wx = min.x + (x + 0.5f) / W * size.x;
+                    float h = Mathf.Clamp01((TroiaLayout.Height(wx, wz) - minY) / rangeY);
+                    px[y * W + x] = new Color(h, h, h, 1f);
+                }
+            }
+            string path = $"{TroiaAssets.TexDir}/T_Altura_Chao.png";
+            TexGen.SavePng(path, px, W, H);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            var ti = (TextureImporter)AssetImporter.GetAtPath(path);
+            ti.sRGBTexture = false;
+            ti.mipmapEnabled = false;
+            ti.wrapMode = TextureWrapMode.Clamp;
+            ti.filterMode = FilterMode.Bilinear;
+            ti.textureCompression = TextureImporterCompression.Uncompressed;
+            ti.SaveAndReimport();
+
+            var go = new GameObject("Sujeira_Global (shader)");
+            go.transform.SetParent(parent, false);
+            var g = go.AddComponent<TroiaShaderGlobals>();
+            g.grimeTexture = TroiaAssets.GrimeTex;
+            g.groundHeightTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            g.groundMin = min;
+            g.groundSize = size;
+            g.groundMinY = minY;
+            g.groundRangeY = rangeY;
+            g.Apply();
+        }
+
+        static void DecalGround(string kind, float x, float z, float size, float fade = 1f)
+        {
+            if (_decals == null) return;
+            var go = new GameObject("Decal_" + kind);
+            go.transform.SetParent(_decals, false);
+            go.transform.SetPositionAndRotation(G(x, z, 1.2f), Quaternion.Euler(90f, Rf(0f, 360f), 0f));
+            var d = go.AddComponent<DecalProjector>();
+            d.material = TroiaAssets.Decals[kind];
+            d.size = new Vector3(size, size, 3f);
+            d.pivot = new Vector3(0f, 0f, 1.5f);
+            d.fadeFactor = fade;
+            d.drawDistance = 90f;
+            _decalCount++;
+        }
+
+        static void DecalWall(string kind, Vector3 facePoint, Vector3 outward, float w, float h, float fade = 1f)
+        {
+            if (_decals == null) return;
+            outward.y = 0f;
+            outward.Normalize();
+            var go = new GameObject("Decal_" + kind);
+            go.transform.SetParent(_decals, false);
+            go.transform.SetPositionAndRotation(facePoint + outward * 0.6f, Quaternion.LookRotation(-outward, Vector3.up));
+            var d = go.AddComponent<DecalProjector>();
+            d.material = TroiaAssets.Decals[kind];
+            d.size = new Vector3(w, h, 1.6f);
+            d.pivot = new Vector3(0f, 0f, 0.8f);
+            d.fadeFactor = fade;
+            d.drawDistance = 90f;
+            _decalCount++;
+        }
+
+        static Vector2 RandomPointIn(Area a)
+        {
+            if (a.IsRect)
+                return a.Center + new Vector2(Rf(-0.5f, 0.5f) * a.Size.x, Rf(-0.5f, 0.5f) * a.Size.y);
+            int i = R.Next(a.Pts.Length - 1);
+            Vector2 p0 = a.Pts[i], p1 = a.Pts[i + 1];
+            Vector2 dir = (p1 - p0).normalized;
+            return Vector2.Lerp(p0, p1, Rf(0f, 1f)) + new Vector2(-dir.y, dir.x) * Rf(-0.45f, 0.45f) * a.Width;
+        }
+
+        static void ScatterGroundDecals()
+        {
+            string[] arenas = { "Agora", "Mercado", "Patio_Portas_Ceias", "Praca_da_Fonte", "Patio_Cidadela", "Patio_Palacio" };
+            foreach (var a in TroiaLayout.Walk)
+            {
+                float area = a.IsRect ? a.Size.x * a.Size.y : a.Width * PolyLength(a.Pts);
+                int mud = Mathf.Clamp(Mathf.RoundToInt(area / 70f), 3, 24);
+                for (int i = 0; i < mud; i++)
+                {
+                    var p = RandomPointIn(a);
+                    DecalGround(R.NextDouble() < 0.75 ? "Lama" : "Cinzas", p.x, p.y, Rf(2f, 5.5f), Rf(0.6f, 1f));
+                }
+                bool isArena = System.Array.IndexOf(arenas, a.Name) >= 0;
+                int blood = isArena ? (a.Name == "Agora" ? 2 : 5) : (a.Paved ? 1 : 0);
+                for (int i = 0; i < blood; i++)
+                {
+                    var p = RandomPointIn(a);
+                    DecalGround("Sangue", p.x, p.y, Rf(1.4f, 3f), Rf(0.75f, 1f));
+                }
+            }
+        }
+
+        static float PolyLength(Vector2[] pts)
+        {
+            float l = 0f;
+            for (int i = 0; i < pts.Length - 1; i++) l += Vector2.Distance(pts[i], pts[i + 1]);
+            return l;
+        }
+
+        /// <summary>Rachaduras e fuligem na face interna da muralha externa.</summary>
+        static void WallCracks()
+        {
+            for (int i = 0; i < 70; i++)
+            {
+                float t = Rf(-80f, 260f) * Mathf.Deg2Rad;
+                var p = new Vector2(TroiaLayout.Rx * Mathf.Cos(t), TroiaLayout.Rz * Mathf.Sin(t));
+                var inward = -new Vector2(p.x / (TroiaLayout.Rx * TroiaLayout.Rx), p.y / (TroiaLayout.Rz * TroiaLayout.Rz)).normalized;
+                Vector3 inw = new Vector3(inward.x, 0f, inward.y);
+                bool high = R.NextDouble() < 0.4;
+                float y = high ? Rf(7f, 10.5f) : Rf(1.5f, 5f);
+                Vector3 face = new Vector3(p.x, 0f, p.y) + inw * (high ? 2.25f : 3.0f) + Vector3.up * y;
+                DecalWall(R.NextDouble() < 0.7 ? "Rachadura" : "Fuligem", face, inw, Rf(2.5f, 4.5f), Rf(2.5f, 4f));
+            }
+        }
+
+        static void ScatterDebris(Transform parent)
+        {
+            int idx = 0;
+            foreach (var a in TroiaLayout.Walk)
+            {
+                float area = a.IsRect ? a.Size.x * a.Size.y : a.Width * PolyLength(a.Pts);
+                int n = Mathf.Clamp(Mathf.RoundToInt(area / 12f), 8, 140);
+                var pts = new List<Vector3>();
+                for (int i = 0; i < n; i++)
+                {
+                    Vector2 p = RandomPointIn(a);
+                    // concentra perto das bordas (onde o lixo se acumula)
+                    if (a.IsRect && R.NextDouble() < 0.6)
+                    {
+                        Vector2 d = p - a.Center;
+                        float k = Rf(0.75f, 0.97f);
+                        if (Mathf.Abs(d.x) / a.Size.x > Mathf.Abs(d.y) / a.Size.y) d.x = Mathf.Sign(d.x) * a.Size.x * 0.5f * k;
+                        else d.y = Mathf.Sign(d.y) * a.Size.y * 0.5f * k;
+                        p = a.Center + d;
+                    }
+                    pts.Add(G(p.x, p.y));
+                }
+                var mesh = TroiaMeshes.Debris(pts, 900 + idx);
+                var go = MeshObj($"Detritos_{a.Name}", parent, mesh, Vector3.zero, Quaternion.identity, Col.None);
+                go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.On;
+                idx++;
+            }
+        }
+
         // =====================================================================================
         // Ambiente
         // =====================================================================================
@@ -176,21 +352,21 @@ namespace Troia.EditorTools
             moonGo.transform.rotation = Quaternion.LookRotation(-TroiaAssets.MoonDir);
             var moon = moonGo.AddComponent<Light>();
             moon.type = LightType.Directional;
-            moon.color = new Color(0.58f, 0.68f, 1f);
-            moon.intensity = 1.6f;
+            moon.color = new Color(0.75f, 0.81f, 1f);
+            moon.intensity = 2.4f;
             moon.shadows = LightShadows.Soft;
-            moon.shadowStrength = 0.85f;
+            moon.shadowStrength = 0.8f;
 
             RenderSettings.sun = moon;
             RenderSettings.skybox = TroiaAssets.SkyMat;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.3f, 0.34f, 0.5f);
-            RenderSettings.ambientEquatorColor = new Color(0.28f, 0.21f, 0.2f);
-            RenderSettings.ambientGroundColor = new Color(0.12f, 0.09f, 0.08f);
+            RenderSettings.ambientSkyColor = new Color(0.42f, 0.47f, 0.66f);
+            RenderSettings.ambientEquatorColor = new Color(0.42f, 0.33f, 0.3f);
+            RenderSettings.ambientGroundColor = new Color(0.18f, 0.14f, 0.12f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
-            RenderSettings.fogDensity = 0.004f;
-            RenderSettings.fogColor = new Color(0.14f, 0.11f, 0.13f);
+            RenderSettings.fogDensity = 0.003f;
+            RenderSettings.fogColor = new Color(0.16f, 0.14f, 0.2f);
             RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
             RenderSettings.reflectionIntensity = 0.45f;
 
@@ -213,21 +389,58 @@ namespace Troia.EditorTools
             ls.autoGenerate = false;
             Lightmapping.lightingSettings = ls;
 
+            ConfigureRenderPipeline();
+        }
+
+        /// <summary>Sombras em alta resolução e SSAO mais marcado no perfil de PC do URP.</summary>
+        static void ConfigureRenderPipeline()
+        {
             var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset");
             if (urp != null)
             {
-                urp.shadowDistance = 110f;
-                urp.shadowCascadeCount = 4;
+                var so = new SerializedObject(urp);
+                void SetF(string prop, float v) { var sp = so.FindProperty(prop); if (sp != null) sp.floatValue = v; }
+                void SetI(string prop, int v) { var sp = so.FindProperty(prop); if (sp != null) sp.intValue = v; }
+                SetF("m_ShadowDistance", 120f);
+                SetI("m_ShadowCascadeCount", 4);
+                SetI("m_MainLightShadowmapResolution", 4096);
+                SetI("m_AdditionalLightsShadowmapResolution", 4096);
+                SetI("m_SoftShadowQuality", 3);
+                so.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(urp);
+            }
+            var rd = AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
+            if (rd != null && !rd.rendererFeatures.Exists(f => f is DecalRendererFeature))
+            {
+                var df = ScriptableObject.CreateInstance<DecalRendererFeature>();
+                df.name = "Decal";
+                AssetDatabase.AddObjectToAsset(df, rd);
+                rd.rendererFeatures.Add(df);
+                typeof(ScriptableRendererData).GetMethod("UpdateMap", BindingFlags.NonPublic | BindingFlags.Instance)?.Invoke(rd, null);
+                rd.SetDirty();
+                EditorUtility.SetDirty(rd);
+                AssetDatabase.SaveAssets();
+            }
+            foreach (var obj in AssetDatabase.LoadAllAssetsAtPath("Assets/Settings/PC_Renderer.asset"))
+            {
+                if (obj == null || obj.GetType().Name != "ScreenSpaceAmbientOcclusion") continue;
+                var so = new SerializedObject(obj);
+                void SetF(string prop, float v) { var sp = so.FindProperty(prop); if (sp != null) sp.floatValue = v; }
+                SetF("m_Settings.Intensity", 1.1f);
+                SetF("m_Settings.Radius", 0.6f);
+                SetF("m_Settings.DirectLightingStrength", 0.35f);
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(obj);
             }
         }
 
-        static TerrainLayer Layer(string name, Texture2D d, Texture2D n, float tile, float smooth = 0f)
+        static TerrainLayer Layer(string name, Texture2D d, Texture2D n, float tile, float smooth, Color tint)
         {
             var l = new TerrainLayer
             {
                 name = name, diffuseTexture = d, normalMapTexture = n, tileSize = new Vector2(tile, tile),
-                smoothness = smooth, metallic = 0f, normalScale = 1f
+                smoothness = smooth, metallic = 0f, normalScale = 1f,
+                diffuseRemapMin = Vector4.zero, diffuseRemapMax = new Vector4(tint.r, tint.g, tint.b, 1f)
             };
             return TroiaAssets.SaveAsset(l, $"{TroiaAssets.TerrainDir}/Camada_{name}.terrainlayer");
         }
@@ -237,8 +450,12 @@ namespace Troia.EditorTools
             const int res = 1025, ar = 1024;
             float size = TroiaLayout.TerrainSize;
             Vector3 tp = TroiaLayout.TerrainPos;
+            // o asset precisa existir ANTES da pintura, senão os splatmaps não são salvos junto
+            string path = $"{TroiaAssets.TerrainDir}/Terreno_Fase1.asset";
+            AssetDatabase.DeleteAsset(path);
             var td = new TerrainData { heightmapResolution = res };
             td.size = new Vector3(size, TroiaLayout.TerrainHeight, size);
+            AssetDatabase.CreateAsset(td, path);
             var h = new float[res, res];
             for (int y = 0; y < res; y++)
             {
@@ -254,10 +471,10 @@ namespace Troia.EditorTools
             td.alphamapResolution = ar;
             td.terrainLayers = new[]
             {
-                Layer("Terra", TroiaAssets.TexEarth, TroiaAssets.TexEarthN, 4f),
-                Layer("Calcamento", TroiaAssets.TexCobble, TroiaAssets.TexCobbleN, 3f, 0.1f),
-                Layer("Grama", TroiaAssets.TexGrass, TroiaAssets.TexGrassN, 5f),
-                Layer("Areia", TroiaAssets.TexSand, TroiaAssets.TexSandN, 6f)
+                Layer("Terra", TroiaAssets.TexEarth, TroiaAssets.TexEarthN, 4f, 0f, new Color(0.92f, 0.86f, 0.8f)),
+                Layer("Calcamento", TroiaAssets.TexCobble, TroiaAssets.TexCobbleN, 4f, 0.05f, new Color(0.76f, 0.69f, 0.6f)),
+                Layer("Grama", TroiaAssets.TexGrass, TroiaAssets.TexGrassN, 5f, 0f, Color.white),
+                Layer("Areia", TroiaAssets.TexSand, TroiaAssets.TexSandN, 6f, 0f, new Color(0.9f, 0.86f, 0.8f))
             };
             var am = new float[ar, ar, 4];
             for (int y = 0; y < ar; y++)
@@ -270,7 +487,10 @@ namespace Troia.EditorTools
                     float w0, w1 = 0f, w2 = 0f, w3 = 0f;
                     if (e < 1.03f)
                     {
-                        w1 = TroiaLayout.PavedWeight(wx, wz);
+                        // calçamento com terra/lama acumulada de forma irregular
+                        float dn = Mathf.PerlinNoise(wx * 0.09f + 17.3f, wz * 0.09f + 5.1f) * 0.65f + Mathf.PerlinNoise(wx * 0.31f + 3.7f, wz * 0.31f + 9.9f) * 0.35f;
+                        float dirtIn = TroiaLayout.Smooth01((dn - 0.42f) / 0.14f) * 0.8f;
+                        w1 = TroiaLayout.PavedWeight(wx, wz) * (1f - dirtIn);
                         w0 = 1f - w1;
                     }
                     else
@@ -293,10 +513,10 @@ namespace Troia.EditorTools
             }
             td.SetAlphamaps(0, 0, am);
             td.baseMapResolution = 1024;
-
-            string path = $"{TroiaAssets.TerrainDir}/Terreno_Fase1.asset";
-            AssetDatabase.DeleteAsset(path);
-            AssetDatabase.CreateAsset(td, path);
+            foreach (var tex in td.alphamapTextures)
+                if (tex != null && !AssetDatabase.Contains(tex)) AssetDatabase.AddObjectToAsset(tex, td);
+            EditorUtility.SetDirty(td);
+            AssetDatabase.SaveAssets();
 
             var go = Terrain.CreateTerrainGameObject(td);
             go.name = "Terreno";
@@ -351,7 +571,12 @@ namespace Troia.EditorTools
         static void BuildAgora(Transform parent)
         {
             var g = Group("Agora_Cavalo_de_Troia", parent);
-            MeshObj("Cavalo_de_Troia", g, TroiaMeshes.Horse(), G(-55f, -40f), Quaternion.Euler(0f, 165f, 0f), Col.Mesh);
+            var horse = MeshObj("Cavalo_de_Troia", g, TroiaMeshes.Horse(), G(-55f, -40f), Quaternion.Euler(0f, 165f, 0f), Col.Mesh);
+            foreach (var lp in new[] { new Vector3(2.4f, 1.28f, 5.8f), new Vector3(-2.4f, 1.28f, 5.8f), new Vector3(2.4f, 1.28f, -5.8f), new Vector3(-2.4f, 1.28f, -5.8f) })
+            {
+                var t = (GameObject)PrefabUtility.InstantiatePrefab(TroiaAssets.Props["Tocha_Luz"], g);
+                t.transform.position = horse.transform.TransformPoint(lp);
+            }
 
             // restos do banquete troiano (a cidade comemorou o "fim" da guerra)
             Prop("Mesa_Banquete", g, -70f, -50f, 90f);
@@ -607,6 +832,9 @@ namespace Troia.EditorTools
             go.transform.SetPositionAndRotation(new Vector3(c.x, TroiaLayout.Height(c.x, c.y), c.y), Quaternion.Euler(0f, yaw, 0f));
             go.transform.localScale = new Vector3(sx, sy, sz);
             _houses.Add(c);
+            Vector3 front = go.transform.forward;
+            if (frontage && R.NextDouble() < 0.18)
+                DecalWall("Rachadura", go.transform.TransformPoint(new Vector3(Rf(-2.5f, 2.5f), Rf(1.2f, 2.6f), 4f)), front, Rf(1.8f, 3f), Rf(1.8f, 3f));
 
             float chance = frontage && area != null ? area.FireChance : 0.035f;
             if (t != HouseType.Queimada && R.NextDouble() >= chance) return;
@@ -618,6 +846,13 @@ namespace Troia.EditorTools
             else fire = frontage ? "Fogo_Grande" : "Fogo_Distante";
             if (fire.EndsWith("_Luz")) _houseLights++;
             Fire(fire, fires, fp);
+            if (t == HouseType.Queimada) DecalGround("Cinzas", c.x, c.y, 6.5f);
+            else if (frontage)
+            {
+                float hh = hp.FireLocal.y * sy;
+                DecalWall("Fuligem", go.transform.TransformPoint(new Vector3(Rf(-1f, 1f), 0f, 4f)) + Vector3.up * hh * 0.55f, front, 6f * sx, hh * 0.95f);
+                DecalWall("Fuligem", go.transform.TransformPoint(new Vector3(Rf(-1f, 1f), 0f, -4f)) + Vector3.up * hh * 0.55f, -front, 6f * sx, hh * 0.95f);
+            }
         }
 
         // =====================================================================================

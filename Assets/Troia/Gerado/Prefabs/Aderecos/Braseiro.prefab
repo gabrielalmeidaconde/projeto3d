@@ -9874,8 +9874,8 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.55, b: 0.24, a: 1}
-  m_Intensity: 6
-  m_Range: 12
+  m_Intensity: 7
+  m_Range: 13
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -9940,10 +9940,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae04e5f9a816c7830a53250f994d8f3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Troia.FireFlicker
-  baseIntensity: 6
-  intensityVariation: 1.8000001
-  baseRange: 12
-  rangeVariation: 0.71999997
+  baseIntensity: 7
+  intensityVariation: 2.1000001
+  baseRange: 13
+  rangeVariation: 0.78
   speed: 7
 --- !u!1 &6794358707682469283
 GameObject:

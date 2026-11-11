@@ -9,7 +9,7 @@ namespace Troia.EditorTools
     {
         Stone, MudBrick, Plaster, PlasterOchre, PlasterRed, PlasterWhite, Terracotta, Straw,
         Wood, WoodDark, WoodPainted, Roof, RoofTile, Cobble, Marble, Bronze, Gold,
-        Cloth, ClothBlue, Dark, Charred, Rope, Foliage, Water,
+        Cloth, ClothBlue, Dark, Charred, Rope, Foliage, Water, WindowLit, PaintedBlue, HorseWood,
         Count
     }
 
@@ -284,6 +284,97 @@ namespace Troia.EditorTools
                 prof[j] = new Vector2(Mathf.Sin(t) * r, ry - Mathf.Cos(t) * ry);
             }
             Lathe(c - Vector3.up * ry, Quaternion.identity, prof, seg, m, false, false);
+        }
+
+        /// <summary>
+        /// Superfície "lofted": anéis elípticos ao longo de uma espinha (centros c, raios r = (lateral, "para cima")).
+        /// O referencial é transportado em paralelo ao longo da curva (sem torção). UV: (em volta, ao longo).
+        /// a0..a1 em graus permite superfícies abertas (ex.: uma manta sobre o lombo).
+        /// </summary>
+        public void Loft(IList<Vector3> c, IList<Vector2> r, int seg, M m, bool capStart = true, bool capEnd = true, float a0 = 0f, float a1 = 360f)
+        {
+            int n = c.Count;
+            if (n < 2) return;
+            float arc = (a1 - a0) * Mathf.Deg2Rad, start = a0 * Mathf.Deg2Rad;
+            bool closed = a1 - a0 >= 359.9f;
+            var tan = new Vector3[n];
+            var side = new Vector3[n];
+            var upv = new Vector3[n];
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 t = c[Mathf.Min(i + 1, n - 1)] - c[Mathf.Max(i - 1, 0)];
+                tan[i] = t.sqrMagnitude > 1e-10f ? t.normalized : (i > 0 ? tan[i - 1] : Vector3.forward);
+                Vector3 u;
+                if (i == 0)
+                {
+                    Vector3 refUp = Mathf.Abs(Vector3.Dot(tan[0], Vector3.up)) > 0.9f ? Vector3.forward : Vector3.up;
+                    u = refUp - Vector3.Dot(refUp, tan[0]) * tan[0];
+                }
+                else
+                {
+                    u = Quaternion.FromToRotation(tan[i - 1], tan[i]) * upv[i - 1];
+                    u -= Vector3.Dot(u, tan[i]) * tan[i];
+                }
+                upv[i] = u.normalized;
+                side[i] = Vector3.Cross(upv[i], tan[i]).normalized;
+            }
+            float s = 1f / UvScale[(int)m];
+            float perim = 0f;
+            for (int i = 0; i < n; i++) perim = Mathf.Max(perim, arc * Mathf.Sqrt((r[i].x * r[i].x + r[i].y * r[i].y) * 0.5f));
+            int rv = seg + 1;
+            int first = _v.Count;
+            float along = 0f;
+            for (int i = 0; i < n; i++)
+            {
+                if (i > 0) along += Vector3.Distance(c[i], c[i - 1]);
+                float rx = Mathf.Max(r[i].x, 1e-4f), ry = Mathf.Max(r[i].y, 1e-4f);
+                for (int j = 0; j <= seg; j++)
+                {
+                    float a = start + arc * j / seg;
+                    float ca = Mathf.Cos(a), sa = Mathf.Sin(a);
+                    Vector3 p = c[i] + side[i] * (ca * r[i].x) + upv[i] * (sa * r[i].y);
+                    Vector3 nn = (side[i] * (ca / rx) + upv[i] * (sa / ry)).normalized;
+                    _v.Add(_m.MultiplyPoint3x4(p));
+                    _n.Add(_m.MultiplyVector(nn).normalized);
+                    _uv.Add(new Vector2((float)j / seg * perim * s, along * s));
+                }
+            }
+            var tr = Tris(m);
+            for (int i = 0; i < n - 1; i++)
+            {
+                for (int j = 0; j < seg; j++)
+                {
+                    int A = first + i * rv + j, B = A + rv, C = B + 1, D = A + 1;
+                    tr.Add(A); tr.Add(D); tr.Add(C);
+                    tr.Add(A); tr.Add(C); tr.Add(B);
+                }
+            }
+            if (!closed) return;
+            if (capStart && r[0].x > 1e-3f) LoftCap(c[0], side[0], upv[0], r[0], seg, -tan[0], m);
+            if (capEnd && r[n - 1].x > 1e-3f) LoftCap(c[n - 1], side[n - 1], upv[n - 1], r[n - 1], seg, tan[n - 1], m);
+        }
+
+        void LoftCap(Vector3 c, Vector3 side, Vector3 up, Vector2 r, int seg, Vector3 outward, M m)
+        {
+            for (int j = 0; j < seg; j++)
+            {
+                float a0 = j * Mathf.PI * 2f / seg, a1 = (j + 1) * Mathf.PI * 2f / seg;
+                Vector3 p0 = c + side * (Mathf.Cos(a0) * r.x) + up * (Mathf.Sin(a0) * r.y);
+                Vector3 p1 = c + side * (Mathf.Cos(a1) * r.x) + up * (Mathf.Sin(a1) * r.y);
+                TriOut(c, p0, p1, outward, m);
+            }
+        }
+
+        /// <summary>Anel (toro) em torno do eixo Y local: raio R, espessura t.</summary>
+        public void Torus(Vector3 center, Quaternion rot, float R, float t, int seg, int segT, M m)
+        {
+            var prof = new Vector2[segT + 1];
+            for (int k = 0; k <= segT; k++)
+            {
+                float th = k * Mathf.PI * 2f / segT;
+                prof[k] = new Vector2(R + t * Mathf.Cos(th), t * Mathf.Sin(th));
+            }
+            Lathe(center, rot, prof, seg, m, false, false);
         }
 
         // ------------------------------------------------------------------ saída

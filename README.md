@@ -28,6 +28,16 @@ corredores de transição.
   entrada/saída, objetivos e checkpoints) e o `NavMesh_Superficie` já gerado.
   As barreiras têm colisor e muralha de fogo desligados; o sistema de ondas deve ligá-los.
 
+### Visual (sujeira, decals, texturas)
+
+- Todos os materiais das construções usam o shader **`Troia/Lit Sujo`** (cópia do Lit do URP 17.3 com
+  sujeira em espaço de mundo: lama na base das paredes, escorridos verticais e variação de tom que quebra a
+  repetição). A quantidade por material fica em `_Parallax` (0–1).
+- Ajuste fino ao vivo no objeto **`Sujeira_Global (shader)`** da cena (força, altura da lama, escorridos, cor).
+- Decals do URP (fuligem, queimado, lama, sangue, cinzas, rachaduras) ficam em `--- EFEITOS --- > Decals`.
+- Texturas principais em 2048 (JPG); se o URP for atualizado, recopie o `Lit.shader` do pacote para
+  `Assets/Troia/Shaders/TroiaLitSujo.shader` mantendo o fragmento `TroiaLitPassFragment`.
+
 ### Explorar o mapa (controle temporário)
 
 Dê Play na cena: `WASD` mover · `Shift` correr · `Espaço` pular · `F` voo livre
@@ -41,4 +51,5 @@ Dê Play na cena: `WASD` mover · `Shift` correr · `Espaço` pular · `F` voo l
   - `TroiaMeshes.cs` — geometria das construções e adereços
   - `TroiaAssets.cs` / `TexGen.cs` — texturas, materiais, céu, fogo e prefabs
   - `MeshBuilder.cs` — utilitário de malhas procedurais
-- `Assets/Troia/Scripts/Runtime/` — `FireFlicker`, `LevelMarker`, `MapPreviewWalker`
+- `Assets/Troia/Scripts/Runtime/` — `FireFlicker`, `LevelMarker`, `MapPreviewWalker`, `TroiaShaderGlobals`
+- `Assets/Troia/Shaders/` — `TroiaLitSujo.shader` e `TroiaGrime.hlsl`
