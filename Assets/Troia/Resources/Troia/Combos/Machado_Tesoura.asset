@@ -19,13 +19,13 @@ MonoBehaviour:
   motion: 4
   input: 1
   damage: 58
-  duration: 1.1
-  hitStart: 0.4
-  hitEnd: 0.62
-  comboOpen: 0.8
-  comboClose: 1.056
-  cooldown: 1
-  minimumRecovery: 0.18
+  duration: 0.9
+  hitStart: 0.28
+  hitEnd: 0.5
+  comboOpen: 0.64
+  comboClose: 0.87
+  cooldown: 0.45
+  minimumRecovery: 0.14
   range: 2.9
   angle: 100
   knockback: 0.45499998

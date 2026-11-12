@@ -4,7 +4,7 @@ namespace Troia
 {
     public static class ArsenalDefaults
     {
-        public const int Version = 3;
+        public const int Version = 4;
         public static void Populate(GameplayConfig c)
         {
             var sword = Weapon("Xifos", "XIFOS", WeaponKind.Sword, new Color(1, .65f, .2f),
@@ -112,6 +112,7 @@ namespace Troia
             axe.airLight.next.next.displayName = "Roda do carrasco"; axe.airLight.next.next.next.displayName = "Condenacao";
             axe.slam.displayName = "Queda do carrasco"; axe.airDash.displayName = "Cacada de ferro";
             c.weapons = new[] { sword, scythe, axe }; c.combatVersion = Version;
+            CombatFlowTuning.Apply(c);
         }
 
         static void Tune(ComboSO move, float damage, float duration, float start, float end, float recovery)

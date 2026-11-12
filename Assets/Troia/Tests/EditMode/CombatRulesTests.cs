@@ -86,10 +86,22 @@ namespace Troia.Tests
             Assert.That(axe.light.duration, Is.GreaterThan(sword.light.duration));
             foreach(var w in c.weapons)
             {
-                Assert.That(w.heavy.cooldown, Is.GreaterThanOrEqualTo(.8f));
+                Assert.That(w.heavy.cooldown, Is.GreaterThanOrEqualTo(.3f));
                 Assert.That(w.heavy.minimumRecovery, Is.GreaterThanOrEqualTo(.1f));
                 Assert.That(w.slam.cooldown, Is.GreaterThan(w.heavy.cooldown));
                 Assert.That(w.projectileDamage, Is.EqualTo(3)); Assert.That(w.projectileCount, Is.EqualTo(2));
+            }
+        }
+        [Test] public void FlowTuningIsIdempotentAndBasicChainsHaveNoExtraCooldown()
+        {
+            var c=Config(); float damage=c.weapons[2].heavy.damage, duration=c.light.duration;
+            CombatFlowTuning.Apply(c); CombatFlowTuning.Apply(c);
+            Assert.That(c.weapons[2].heavy.damage,Is.EqualTo(damage)); Assert.That(c.light.duration,Is.EqualTo(duration));
+            foreach(var weapon in c.weapons)
+            {
+                Assert.That(weapon.light.cooldown,Is.Zero);
+                Assert.That(weapon.heavy.cooldown,Is.Positive);
+                Assert.That(weapon.heavy.hitEnd+weapon.heavy.minimumRecovery,Is.LessThan(weapon.heavy.duration));
             }
         }
         [Test] public void RepeatingOneMoveCannotFarmHighStyle()

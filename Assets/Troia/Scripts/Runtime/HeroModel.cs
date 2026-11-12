@@ -6,10 +6,10 @@ namespace Troia
     // Rounded chibi geometry with a large expressive face and separately animated coat tails.
     public static class HeroModel
     {
-        public static readonly Color Coat = new Color(.62f, .025f, .04f);
+        public static readonly Color Coat = new Color(.28f, .012f, .025f);
         public static readonly Color Leather = new Color(.035f, .028f, .035f);
-        public static readonly Color Silver = new Color(.73f, .77f, .86f);
-        static readonly Color Skin = new Color(.91f, .69f, .54f);
+        public static readonly Color Silver = new Color(.54f, .57f, .65f);
+        static readonly Color Skin = new Color(.70f, .56f, .51f);
         static Shader cartoonShader;
         public static Transform Part(Transform parent, string name, PrimitiveType shape, Vector3 pos, Vector3 size, Color color, float metal = 0)
         {
@@ -79,7 +79,7 @@ namespace Troia
             Part(rig,"Colete",PrimitiveType.Sphere,new Vector3(0,.88f,.13f),new Vector3(.29f,.43f,.15f),Leather);
             for(int side=-1;side<=1;side+=2)
             {
-                var lapel=Part(rig,"Lapela_arredondada",PrimitiveType.Capsule,new Vector3(side*.125f,1.01f,.19f),new Vector3(.105f,.17f,.055f),new Color(.84f,.055f,.085f));
+                var lapel=Part(rig,"Lapela_angulosa",PrimitiveType.Cube,new Vector3(side*.125f,1.01f,.19f),new Vector3(.09f,.32f,.04f),new Color(.45f,.018f,.035f));
                 lapel.localRotation=Quaternion.Euler(0,0,side*-24);
                 Part(rig,"Gola",PrimitiveType.Sphere,new Vector3(side*.14f,1.14f,-.025f),new Vector3(.16f,.18f,.22f),Coat);
                 for(int i=0;i<2;i++) Part(rig,"Botao",PrimitiveType.Sphere,new Vector3(side*.09f,.79f+i*.105f,.216f),Vector3.one*.035f,Silver,.35f);
@@ -87,19 +87,20 @@ namespace Troia
             Part(rig,"Cinto",PrimitiveType.Sphere,new Vector3(0,.65f,0),new Vector3(.48f,.11f,.34f),Leather);
             Part(rig,"Fivela",PrimitiveType.Cube,new Vector3(0,.65f,.185f),new Vector3(.11f,.075f,.035f),Silver,.4f);
             Part(rig,"Pescoco",PrimitiveType.Sphere,new Vector3(0,1.16f,0),new Vector3(.15f,.16f,.15f),Skin);
-            Part(rig,"Cabeca_chibi",PrimitiveType.Sphere,new Vector3(0,1.56f,0),new Vector3(.74f,.77f,.65f),Skin);
+            int firstHeadPart=rig.childCount;
+            Loft(rig,"Rosto_anguloso",Vector3.zero,Skin,new Vector3(1.18f,.14f,.14f),new Vector3(1.31f,.27f,.23f),new Vector3(1.56f,.35f,.29f),new Vector3(1.77f,.30f,.25f),new Vector3(1.90f,.15f,.13f));
             for(int side=-1;side<=1;side+=2)
             {
                 Part(rig,"Orelha",PrimitiveType.Sphere,new Vector3(side*.35f,1.49f,0),new Vector3(.11f,.17f,.1f),Skin);
-                Part(rig,"Olho_branco",PrimitiveType.Sphere,new Vector3(side*.145f,1.51f,.31f),new Vector3(.155f,.195f,.08f),new Color(.96f,.97f,1));
-                Part(rig,"Iris_azul",PrimitiveType.Sphere,new Vector3(side*.137f,1.51f,.35f),new Vector3(.085f,.128f,.028f),new Color(.12f,.43f,.66f));
-                Part(rig,"Pupila",PrimitiveType.Sphere,new Vector3(side*.137f,1.509f,.366f),new Vector3(.043f,.083f,.018f),new Color(.025f,.035f,.065f));
-                Part(rig,"Brilho_olhar",PrimitiveType.Sphere,new Vector3(side*.137f-.015f,1.543f,.379f),new Vector3(.026f,.032f,.012f),Color.white);
+                Part(rig,"Olho_branco",PrimitiveType.Sphere,new Vector3(side*.145f,1.51f,.31f),new Vector3(.15f,.088f,.06f),new Color(.96f,.97f,1));
+                Part(rig,"Iris_azul",PrimitiveType.Sphere,new Vector3(side*.137f,1.51f,.35f),new Vector3(.075f,.066f,.028f),new Color(.58f,.055f,.045f));
+                Part(rig,"Pupila",PrimitiveType.Sphere,new Vector3(side*.137f,1.509f,.366f),new Vector3(.032f,.049f,.018f),new Color(.025f,.035f,.065f));
+                Part(rig,"Brilho_olhar",PrimitiveType.Sphere,new Vector3(side*.137f-.015f,1.525f,.379f),new Vector3(.012f,.014f,.012f),Color.white);
+                Part(rig,"Palpebra",PrimitiveType.Cube,new Vector3(side*.145f,1.547f,.356f),new Vector3(.157f,.026f,.055f),new Color(.025f,.018f,.028f)).localRotation=Quaternion.Euler(0,0,side*12);
                 Part(rig,"Sobrancelha",PrimitiveType.Capsule,new Vector3(side*.145f,1.633f,.315f),new Vector3(.027f,.083f,.025f),new Color(.32f,.33f,.39f)).localRotation=Quaternion.Euler(0,0,side*104);
-                Part(rig,"Bochecha",PrimitiveType.Sphere,new Vector3(side*.24f,1.393f,.24f),new Vector3(.09f,.04f,.016f),new Color(.87f,.46f,.42f));
             }
             Part(rig,"Nariz",PrimitiveType.Sphere,new Vector3(0,1.425f,.35f),new Vector3(.065f,.055f,.065f),Skin);
-            Part(rig,"Sorriso",PrimitiveType.Sphere,new Vector3(.018f,1.342f,.263f),new Vector3(.105f,.025f,.018f),new Color(.28f,.11f,.12f)).localRotation=Quaternion.Euler(0,0,8);
+            Part(rig,"Boca_firme",PrimitiveType.Sphere,new Vector3(.018f,1.342f,.263f),new Vector3(.105f,.025f,.018f),new Color(.28f,.11f,.12f)).localRotation=Quaternion.Euler(0,0,-5);
             Part(rig,"Cabelo_nuca",PrimitiveType.Sphere,new Vector3(0,1.62f,-.11f),new Vector3(.77f,.69f,.57f),Silver);
             Loft(rig,"Cabelo_coroa",new Vector3(0,0,-.035f),Silver,
                 new Vector3(1.65f,.32f,.265f),new Vector3(1.79f,.382f,.32f),
@@ -111,7 +112,7 @@ namespace Troia
                 {
                     float x=side*(.075f+i*.095f), tip=1.64f-i*.06f;
                     var lockRoot=Joint(rig,"Mecha_"+side+"_"+i,new Vector3(x,1.82f,.315f-i*.02f));
-                    Loft(lockRoot,"Mecha_esculpida",Vector3.zero,new Color(.83f,.85f,.9f),
+                    Loft(lockRoot,"Mecha_esculpida",Vector3.zero,new Color(.67f,.69f,.75f),
                         new Vector3(tip-1.82f,.006f,.012f),new Vector3(-.035f,.075f,.065f),new Vector3(.105f,.065f,.055f),new Vector3(.15f,.015f,.015f));
                     lockRoot.localRotation=Quaternion.Euler(-10,0,side*(14+i*4));
                 }
@@ -119,6 +120,14 @@ namespace Troia
                 Loft(sideburn,"Ponta_lateral",Vector3.zero,Silver,new Vector3(-.29f,.005f,.01f),new Vector3(-.05f,.08f,.13f),new Vector3(.12f,.07f,.12f));
                 sideburn.localRotation=Quaternion.Euler(-8,0,side*10);
             }
+            Part(rig,"Cicatriz",PrimitiveType.Cube,new Vector3(-.225f,1.39f,.245f),new Vector3(.018f,.105f,.018f),new Color(.33f,.055f,.065f)).localRotation=Quaternion.Euler(0,0,-24);
+            var head=Joint(rig,"Cabeca_edge",new Vector3(0,1.56f,0));
+            for(int i=rig.childCount-2;i>=firstHeadPart;i--)
+            {
+                var part=rig.GetChild(i); Vector3 position=part.localPosition;
+                part.SetParent(head,false); part.localPosition=position-head.localPosition;
+            }
+            head.localScale=new Vector3(.84f,.9f,.88f);
             rightArm=Arm(rig,1); leftArm=Arm(rig,-1); rightLeg=Leg(rig,1); leftLeg=Leg(rig,-1);
             tails=new Transform[4];
             for(int i=0;i<4;i++)
@@ -134,9 +143,10 @@ namespace Troia
         static Transform Arm(Transform rig,int side)
         {
             var arm=Joint(rig,"Braco_"+side,new Vector3(side*.32f,1.065f,0));
-            Loft(arm,"Manga_fofa",Vector3.zero,Coat,new Vector3(-.29f,.075f,.08f),new Vector3(-.19f,.105f,.11f),new Vector3(-.06f,.12f,.12f),new Vector3(0,.09f,.09f));
-            Part(arm,"Punho",PrimitiveType.Sphere,new Vector3(0,-.285f,0),new Vector3(.18f,.095f,.18f),new Color(.85f,.06f,.08f));
+            Loft(arm,"Manga_couro",Vector3.zero,Coat,new Vector3(-.29f,.075f,.08f),new Vector3(-.19f,.105f,.11f),new Vector3(-.06f,.12f,.12f),new Vector3(0,.09f,.09f));
+            Part(arm,"Punho",PrimitiveType.Sphere,new Vector3(0,-.285f,0),new Vector3(.18f,.095f,.18f),new Color(.38f,.018f,.035f));
             Part(arm,"Luva",PrimitiveType.Sphere,new Vector3(0,-HandLength,0),new Vector3(.18f,.19f,.18f),Leather);
+            Part(arm,"Bracelete",PrimitiveType.Cube,new Vector3(0,-.285f,0),new Vector3(.19f,.055f,.19f),Leather);
             Part(arm,"Botao_manga",PrimitiveType.Sphere,new Vector3(0,-.28f,.09f),Vector3.one*.035f,Silver,.3f); return arm;
         }
         static Transform Leg(Transform rig,int side)

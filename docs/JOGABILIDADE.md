@@ -22,7 +22,7 @@ Checkpoints duram a sessão atual, com bênçãos e tempo preservados após os a
 | Câmera / zoom | Mouse / scroll | Analógico direito |
 | Pular / pulo duplo | Espaço / novamente no ar | A / novamente no ar |
 | Leve | Clique esquerdo ou J | X |
-| Pesado / lançador | Clique direito ou K / segurar 0,35 s | Y / segurar |
+| Pesado / lançador | Clique direito ou K / C ou segurar 0,35 s | Y / segurar |
 | Esquivar e cancelar animação | Ctrl | B |
 | Fixar alvo / próximo alvo | F ou clique do meio / T | LT / pressionar analógico direito |
 | Avançar (espada/foice) / puxar (machado) | E | RB |
@@ -38,8 +38,8 @@ Checkpoints duram a sessão atual, com bênçãos e tempo preservados após os a
 - Cada arma tem leve, pesado, lançador, sequência aérea, queda e aproximação próprios.
 - Trocas durante um golpe aguardam a janela de dano e a recuperação mínima. O próximo leve continua
   na etapa seguinte da nova arma. Selecionar a arma atual cancela uma troca pendente.
-- Estocadas: leve, leve, pausa, leve, leve. No segundo golpe a janela normal abre
-  em 0,371 s; a variação começa em 0,47 s e aceita entrada até 0,65 s.
+- Estocadas: leve, leve, pausa, leve, leve. Na espada, o segundo golpe abre a janela
+  normal em 0,26 s; a variação começa em 0,4 s e aceita entrada até 0,59 s.
 - Lançador: segurar pesado no chão. Pule durante a recuperação para perseguir o alvo.
 - Juggle: leves no ar sustentam jogador e inimigo somente ao acertar. Errar não permite
   voo infinito. Pesado no ar faz queda com dano em área ao aterrissar.
@@ -50,7 +50,8 @@ Checkpoints duram a sessão atual, com bênçãos e tempo preservados após os a
   um projétil já lançado; disparar não interrompe o ataque corpo a corpo.
 - A esquiva cancela o golpe, preserva a próxima etapa por 0,8 s e concede invulnerabilidade
   no início. Tem recarga para impedir invulnerabilidade contínua.
-- Entradas de ataque têm buffer de 0,2 s. Cada alvo recebe dano uma vez por pulso configurado.
+- Entradas fora de um golpe têm buffer de 0,2 s. Durante um golpe, um comando pode aguardar
+  sua próxima janela. Cada alvo recebe dano uma vez por pulso configurado.
   Geometria entre atacante e alvo bloqueia golpes e poderes.
 
 O estilo vai de D a SSS, com nome, cor, barra de progresso e animação no HUD. Repetições
@@ -64,42 +65,44 @@ F2 inicia treino livre: alvos passivos com 5000 de vida, reações completas de 
 timer suspenso, recuperação de vida/favor e os seis deuses liberados no nível 1.
 Reiniciar partida sai do treino e restaura a progressão normal.
 
-## Balanceamento do arsenal (v3)
+## Pesquisa e revisão do combate (v4)
 
-| Papel | Espada | Foice | Machado |
-| --- | --- | --- | --- |
-| Sequência terrestre | 3 cortes precisos | 3 golpes de alcance / giros | 2 talhos de alto impacto |
-| E | Investida, 1,1 s | Avanço de até 18 m, 0,9 s | Puxão de até 14 m, 2,4 s |
-| Complemento | Encadear e lançar | Alcançar e conter grupos | Trazer o alvo e quebrar guarda |
+A pesquisa usou relatos dos próprios desenvolvedores. A PlatinumGames descreve
+encadeamentos que preservam a sequência entre formas e vantagens de alcançar etapas
+posteriores do combo em [Combat Techniques](https://www.platinumgames.com/official-blog/article/14063).
+Em [Enemy Battle Design](https://www.platinumgames.com/official-blog/article/14074),
+discute tempos mínimos para permitir reação mesmo com inimigos rápidos.
+Essas referências orientam a revisão; não significam que o protótipo reproduza esses jogos.
 
-Cada golpe reserva sua recarga ao começar: duração + 0,12 s em leves comuns,
-0,55 s em finalizadores, 0,8 s em pesados, 1,2 s em lançadores e 1,6 s em quedas.
-Após a janela de impacto há recuperação protegida de 0,02 s (leve) ou 0,12 s
-(pesado), chegando a 0,06/0,18 s nos golpes principais do machado, ajustada à velocidade de ataque. Saltar ou esquivar permite defesa,
-mas não apaga esse compromisso ofensivo. Trocar de arma também preserva as recargas.
-Continuar para um golpe diferente permanece possível dentro da janela de combo.
-O pesado básico do machado causa 58 de dano, prepara por 0,4 s e tem duração de
-1,1 s + 1 s de recarga; a espada causa 34, prepara por 0,16 s e dura 0,8 s + 0,8 s.
-Assim o impacto maior exige uma abertura maior. Os dois talhos básicos do machado
-causam 25/42 de dano; a foice distribui dano em arcos mais amplos, com alcance de 4,2 m.
+Aplicações no projeto:
 
-As duas pistolas causam 3 de dano por bala, com intervalo de 0,22 s entre rajadas.
-Depois de três rajadas, esfriam por 0,95 s. Trocas de arma não reiniciam o contador.
-Todas as balas pertencem à categoria de estilo compartilhada `pistols`, evitando
-ganhar variedade apenas trocando a arma corpo a corpo durante disparos idênticos.
-Acertos consecutivos de armas diferentes recebem multiplicador de variedade de 1,4.
+- Uma entrada antecipada aguarda a janela seguinte do golpe atual. Há somente um
+  comando pendente; apertar repetidamente não cria uma fila de ataques automáticos.
+  Aproximação também preserva uma entrada e uma troca; a troca se efetiva após o impacto.
+- A direção do movimento escolhe o alvo de um novo ataque. Foco explícito prevalece.
+  A preparação permite uma aproximação de até 1,1 m, com colisão e linha de visão.
+- Há controle parcial de direção durante os ataques e no ar. Após impacto e recuperação
+  mínima, mover cancela o restante da animação e preserva a rota por 0,8 s.
+- Leves comuns não têm recarga adicional depois da duração. Finalizadores têm 0,12 s,
+  pesados 0,35 s, lançadores 0,55 s e quedas 0,8 s. O pesado principal do machado tem
+  preparação de 0,28 s, duração de 0,9 s e recarga de 0,45 s. Cancelamentos não zeram essas reservas.
+- C executa o lançador diretamente; segurar pesado continua funcionando.
+- Esquivar de um ataque real nos primeiros 0,12 s concede estilo e dez de favor uma
+  vez por esquiva. Isso não consome o escudo de Atena. Apenas esquivar no vazio não pontua.
+- No máximo dois inimigos preparam ataques simultaneamente. Os demais circulam;
+  novos ataques exigem visibilidade. Arcos no chão mostram golpes corpo a corpo e
+  linhas mostram a mira dos arqueiros. O corpo pulsa durante a preparação.
+- Um impacto de grupo não repete áudio e hit stop para cada alvo no mesmo instante.
 
-O puxão move o inimigo pelo CharacterController; exige linha de visão, não causa dano
-nem concede estilo. Capitães e Heitor resistem enquanto a guarda estiver intacta;
-um stagger pesado ou lançamento permite puxá-los. Paredes continuam bloqueando o movimento.
+Espada encadeia golpes rápidos; foice mantém alcance de 4,2 m e controle de grupos;
+machado mantém impacto, quebra de guarda e puxão. Pistolas compartilham sua cadência
+e recuperação entre armas. Estilo continua premiando acertos variados e perdendo
+dois níveis ao sofrer dano. Repetir a mesma ação rende progressivamente menos.
 
-O personagem usa proporções chibi de aproximadamente duas cabeças e meia: cabeça
-grande, olhos azuis com brilho, sorriso, mechas prateadas largas, corpo compacto e
-extremidades arredondadas. O casaco vermelho mantém quatro abas animadas, colete,
-fivelas e luvas, com botinhas curtas. As armas e pistolas foram ajustadas às mãos menores.
-Um shader cartoon próprio usa faixas de luz e preenchimento suave para manter o rosto
-e as cores legíveis no mapa noturno. A animação continua por juntas em código.
-As proporções são visuais; cápsula de colisão, alcance, dano e recargas não foram alterados.
+O visual continua estilizado, com cabeça menor, mandíbula angulosa, olhos estreitos,
+íris vermelhas, cicatriz e cabelo cinza prateado. Blush e grandes brilhos foram removidos.
+Casaco vinho, couro preto, lapelas angulosas e iluminação de maior contraste substituem
+a aparência de boneco fofo. A cápsula física permanece igual.
 
 ## Componentes e ajuste
 

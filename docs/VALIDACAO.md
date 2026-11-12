@@ -1,68 +1,52 @@
-# Validação do combate v3 e da build Windows
+# Validação do combate v4
 
-Revisão visual de 12/11/2026, Unity 6000.3.25f1. Configuração de combate na versão 3.
+12/11/2026, Unity 6000.3.25f1. Configuração persistida na versão 4.
 
 | Verificação | Resultado |
 | --- | --- |
-| Arsenal ativo | Espada, foice e machado; 46 golpes: 16 / 15 / 15 |
-| Edit Mode | 15/15 testes aprovados |
-| Play Mode | 18/18 cenários aprovados |
+| Arsenal ativo | Espada, foice e machado; 46 golpes |
+| Edit Mode | 16/16 aprovados |
+| Play Mode | 27/27 aprovados |
 | Build Windows 64 bits | BuildPipeline concluído com sucesso |
-| Executável com gráficos | Direct3D 12; saída 0 |
-| Diagnóstico funcional | TROIA_SMOKE PASS; andar 1 ativo, dois inimigos, jogador no chão e vida 120 |
-| Diagnóstico visual | TROIA_PRESENTATION PASS; arsenal e HUD em SSS |
+| Executável Direct3D 12 | Saída 0; TROIA_SMOKE e TROIA_PRESENTATION PASS |
+| Combate real renderizado | TROIA_FLOW PASS: 7 acertos, 124,5 de dano, troca para foice |
 
-## Cobertura
+Os 43 testes incluem regressões da progressão pelos 20 andares, física, poderes,
+estilo, armas, projéteis, interface e os seguintes cenários novos:
 
-O herói foi refeito em estilo chibi e recebe um shader cartoon próprio. A inspeção
-do executável inclui a cabeça maior, os olhos, o cabelo, as formas arredondadas e as
-três armas nos pontos de empunhadura ajustados. As regras de combate foram preservadas.
-O diagnóstico aguarda o primeiro andar ativo, inimigos presentes e jogador no chão,
-com limite de 60 segundos, evitando falsos negativos por um atraso fixo sob carga.
+- Entrada antecipada consumida na próxima janela de combo.
+- Finalizador preserva reinício neutro sem inventar a variação com pausa.
+- Movimento escolhe a direção do ataque; preparação fecha pequenas distâncias.
+- Aproximação preserva ataque e troca de arma enfileirados.
+- Movimento cancela a recuperação após a janela protegida.
+- Esquiva perfeita exige ameaça e pontua uma vez, incluindo flechas.
+- Grupos respeitam o máximo de dois inimigos preparando ataques.
+- Migração de balanceamento é idempotente e não multiplica dano.
 
-Os testes verificam os grafos persistidos, janelas válidas, rotas com pausa e pesado,
-pulo duplo, aterrissagem, juggle confirmado e queda. A troca de arma aguarda o impacto
-e a recuperação; saltar, esquivar ou trocar não apaga recargas ofensivas.
+## Executável e inspeção visual
 
-O puxão do machado move o inimigo sem deslocar o jogador, exige visão, respeita paredes,
-não gera estilo sozinho e rejeita blindagem intacta. Quebrar a guarda abre a oportunidade.
-As pistolas convergem no alvo, param em paredes e compartilham três rajadas e a
-recuperação de 0,95 s entre todas as armas. Multihit e duas balas creditam uma ação de estilo.
+Abra `Builds/Windows/Iliada.exe`, mantendo a pasta inteira junto dele. F2 inicia treino
+livre, H mostra os golpes, C lança, E avança ou puxa conforme a arma e Ctrl esquiva.
 
-O cenário adicional verifica que uma entrada expira após os 0,2 s do buffer,
-sem se renovar automaticamente durante uma recuperação mais longa.
+O argumento `-troia-smoke` ativa um diagnóstico que aguarda andar ativo, inimigos e
+jogador no chão, com limite de 60 segundos. A sequência de combate aproxima, encadeia
+leves, troca para foice e usa uma ramificação pesada contra alvos reais de treino.
+`TROIA_FLOW` exige pelo menos três acertos e mais de 40 de dano, antes de qualquer
+fixture de ranking. O código de saída só é zero se os critérios forem satisfeitos.
 
-Há cenários de dano real para verificar o bônus de trocar a arma que acerta e a perda
-de dois níveis ao sofrer dano. Apenas equipar outra arma não pontua. As regressões
-incluem treino, os seis deuses, IA, armadura, movimentação, cura, pausa, lista de golpes,
-progressão pelos 20 andares, checkpoints e chefe.
-
-O pesado básico do machado foi reduzido de 88,4 para 58 durante a calibração desta
-entrega, com preparação de 0,4 s, duração de 1,1 s, recuperação protegida de 0,18 s e
-recarga adicional de 1 s. Os testes foram repetidos após essa calibração.
-
-## Entrega e inspeção visual
-
-Abra `Builds/Windows/Iliada.exe` mantendo a pasta inteira junto dele. Não requer Unity.
-`LEIA-ME.txt` contém os controles; F2 inicia treino livre e H mostra a lista de golpes.
-
-Capturas do executável em `Capturas/`: `personagem-frente.png`, `arma-Xifos.png`,
-`arma-Foice.png`, `arma-Machado.png`, `gameplay-camera.png`, `estilo-SSS.png`,
-`lista-de-golpes.png`, `pausa.png` e `bencaos.png`.
-
-A câmera renderiza o personagem e o HUD reais. Foram inspecionados o casaco, cabelo,
-silhuetas das armas, informações de recuperação e as telas de menus. Os menus ocultam
-o HUD de combate. O diagnóstico só é ativado pelo argumento `-troia-smoke`.
+Capturas em `Capturas/`: `personagem-frente.png`, `combate-fluido.png`, `arma-Xifos.png`,
+`arma-Foice.png`, `arma-Machado.png`, `estilo-SSS.png`, `lista-de-golpes.png`, `pausa.png`
+e `bencaos.png`. O rosto, a paleta escura e as armas são inspecionados nas imagens
+renderizadas do executável, junto do HUD real.
 
 ## Evidências e limites
 
-Relatórios: `Logs/editmode-results.xml`, `Logs/playmode-results.xml`, `Logs/build.log`
-e `Logs/player-smoke.log`. Builds, relatórios e capturas são artefatos locais ignorados pelo Git.
+Relatórios em `Logs/editmode-results.xml`, `Logs/playmode-results.xml`, `Logs/build.log`
+e `Logs/player-smoke.log`. Build, logs e capturas são artefatos locais ignorados pelo Git.
+As fontes da pesquisa e as decisões estão em [JOGABILIDADE.md](JOGABILIDADE.md).
 
-O SSS visual usa acertos sintéticos para verificar o layout. A progressão automatizada
-elimina inimigos diretamente. Isso valida regras e integração, mas a sensação dos
-controles e o balanceamento fino ainda precisam de uma sessão humana de jogo.
-
-O herói, as armas e as animações são procedurais; esta entrega remodela a apresentação
-com malhas próprias, sem importar um personagem licenciado. O mapa continua com o aviso
-do URP de redução de resolução das sombras para acomodar suas muitas luzes.
+A captura SSS usa acertos sintéticos apenas para verificar o layout e é separada do
+teste de dano real. A progressão automatizada elimina inimigos diretamente para
+verificar estados. Os testes não substituem uma sessão humana para julgar sensação
+dos controles, dificuldade e balanceamento fino. Personagens e animações continuam
+procedurais, sem clips de combate de produção.

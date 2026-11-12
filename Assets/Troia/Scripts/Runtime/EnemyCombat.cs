@@ -29,6 +29,8 @@ namespace Troia
         Transform weapon;
         bool launched;
         PlayerCombat puller;
+        LineRenderer warning;
+        MaterialPropertyBlock bodyTint;
 
         void Awake()
         {
@@ -55,7 +57,7 @@ namespace Troia
         void Update()
         {
             if (State == EnemyState.Dead || !target || !target.CanAct) return;
-            float dt = Time.deltaTime; timer -= dt;
+            float dt = Time.deltaTime; timer -= dt; UpdateWarning();
             if (State == EnemyState.Pulled) { TickPull(dt); return; }
             if (State == EnemyState.Airborne || State == EnemyState.Staggered)
             {
@@ -69,7 +71,12 @@ namespace Troia
                 agent.isStopped = false;
                 agent.SetDestination(target.transform.position);
                 float range = kind == EnemyKind.Archer ? 13 : kind == EnemyKind.Hector ? 3 : 2.15f;
-                if (distance < range && HasSight()) BeginWindup();
+                if (distance < range && HasSight() && CanCommitAttack()) BeginWindup();
+                else if (distance < 3.2f && kind != EnemyKind.Archer)
+                {
+                    float phase=Time.time*.55f+GetInstanceID()*2.399963f;
+                    agent.SetDestination(target.transform.position+new Vector3(Mathf.Cos(phase),0,Mathf.Sin(phase))*2.65f);
+                }
                 if ((transform.position - lastPosition).sqrMagnitude < .0025f && distance > range) stuckTime += dt;
                 else stuckTime = 0;
                 lastPosition = transform.position;
@@ -88,6 +95,44 @@ namespace Troia
             if (body) body.transform.localScale = new Vector3(.8f, .9f, .8f) * (State == EnemyState.Windup ? 1.08f : 1);
             if (weapon) weapon.localRotation = Quaternion.Euler(0, State == EnemyState.Windup ? -75 : State == EnemyState.Recovery ? 80 : 0, 0);
         }
+        public bool CanCommitAttack()
+        {
+            int attackers=0;
+            foreach(var enemy in combatants)
+                if(enemy && enemy!=this && enemy.target==target && enemy.State==EnemyState.Windup) attackers++;
+            if(attackers >= 2) return false;
+            if(Camera.main)
+            {
+                Vector3 view=Camera.main.WorldToViewportPoint(transform.position+Vector3.up);
+                if(view.z<=0 || view.x<.02f || view.x>.98f || view.y<.02f || view.y>.98f) return false;
+            }
+            return true;
+        }
+        void UpdateWarning()
+        {
+            if(warning) warning.enabled=State==EnemyState.Windup;
+            if(!body) return;
+            bodyTint ??= new MaterialPropertyBlock();
+            body.GetPropertyBlock(bodyTint);
+            Color baseColor=body.sharedMaterial.color;
+            float pulse=State==EnemyState.Windup ? .35f+.25f*Mathf.Sin(Time.time*22) : 0;
+            bodyTint.SetColor("_BaseColor",Color.Lerp(baseColor,new Color(1,.18f,.055f),pulse)); body.SetPropertyBlock(bodyTint);
+            if(!warning || !warning.enabled) return;
+            if(kind==EnemyKind.Archer)
+            {
+                warning.positionCount=2; warning.SetPosition(0,Vector3.up*1.3f+Vector3.forward*.6f);
+                warning.SetPosition(1,transform.InverseTransformPoint(aim));
+                warning.startWidth=warning.endWidth=.035f; return;
+            }
+            warning.positionCount=25;
+            float radius=kind==EnemyKind.Hector?3.5f:2.5f;
+            for(int i=0;i<warning.positionCount;i++)
+            {
+                float angle=Mathf.Lerp(-65,65,i/(float)(warning.positionCount-1))*Mathf.Deg2Rad;
+                warning.SetPosition(i,new Vector3(Mathf.Sin(angle)*radius,.065f,Mathf.Cos(angle)*radius));
+            }
+            warning.startWidth=warning.endWidth=Mathf.Lerp(.035f,.12f,1-Mathf.Clamp01(timer/windup));
+        }
         bool HasSight()
         {
             Vector3 a = transform.position + Vector3.up * 1.2f, b = target.transform.position + Vector3.up;
@@ -96,6 +141,13 @@ namespace Troia
         }
         void BeginWindup()
         {
+            if(!warning)
+            {
+                warning=new GameObject("Aviso_ataque").AddComponent<LineRenderer>(); warning.transform.SetParent(transform,false);
+                warning.useWorldSpace=false; warning.positionCount=25;
+                var material=new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); material.color=new Color(1,.2f,.06f);
+                warning.sharedMaterial=material; warning.gameObject.AddComponent<OwnedMaterial>().material=material;
+            }
             agent.isStopped = true; Face(target.transform.position); aim = target.transform.position + Vector3.up;
             windup = kind == EnemyKind.Archer ? .95f : kind == EnemyKind.Hector ? .8f : .65f;
             SetState(EnemyState.Windup, windup);
@@ -110,7 +162,7 @@ namespace Troia
             if (kind == EnemyKind.Archer)
             {
                 var go = new GameObject("Flecha"); go.transform.position = transform.position + Vector3.up * 1.3f + transform.forward * .6f;
-                go.AddComponent<EnemyProjectile>().Initialize((aim - go.transform.position).normalized, target, 10 * damageMultiplier);
+                go.AddComponent<EnemyProjectile>().Initialize((aim - go.transform.position).normalized, target, 10 * damageMultiplier, gameObject);
                 return;
             }
             float range = kind == EnemyKind.Hector ? 3.5f : 2.5f;
@@ -181,7 +233,7 @@ namespace Troia
                 SetState(EnemyState.Chasing);
             }
         }
-        void SetState(EnemyState state, float duration = 0) { State = state; timer = duration; }
+        void SetState(EnemyState state, float duration = 0) { State = state; timer = duration; if(warning) warning.enabled=state==EnemyState.Windup; }
         void Die(DamageInfo info)
         {
             SetState(EnemyState.Dead); agent.enabled = false; controller.enabled = false;
@@ -209,10 +261,10 @@ namespace Troia
 
     public class EnemyProjectile : MonoBehaviour
     {
-        Vector3 direction; PlayerCombat target; float damage, lifetime = 4;
-        public void Initialize(Vector3 d, PlayerCombat player, float amount)
+        Vector3 direction; PlayerCombat target; GameObject shooter; float damage, lifetime = 4;
+        public void Initialize(Vector3 d, PlayerCombat player, float amount, GameObject attacker = null)
         {
-            direction = d; target = player; damage = amount;
+            direction = d; target = player; damage = amount; shooter = attacker;
             CombatVisuals.Part(transform, "Ponta", PrimitiveType.Sphere, Vector3.zero, Vector3.one * .14f, Color.yellow);
         }
         void Update()
@@ -225,7 +277,7 @@ namespace Troia
             if ((closest - center).sqrMagnitude < .7f * .7f)
             {
                 if (!Physics.Linecast(transform.position, closest, ~(1 << 2), QueryTriggerInteraction.Ignore))
-                    target.Health.TakeDamage(new DamageInfo { damage = damage, direction = direction, knockback = 2 });
+                    target.Health.TakeDamage(new DamageInfo { source = shooter, damage = damage, direction = direction, knockback = 2, projectile = true });
                 Destroy(gameObject); return;
             }
             if (Physics.Linecast(transform.position, next, ~(1 << 2), QueryTriggerInteraction.Ignore)) { Destroy(gameObject); return; }

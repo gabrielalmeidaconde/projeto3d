@@ -24,7 +24,7 @@ MonoBehaviour:
   hitEnd: 0.31199998
   comboOpen: 0.43199998
   comboClose: 0.61749995
-  cooldown: 1.6
+  cooldown: 0.8
   minimumRecovery: 0.12
   range: 4
   angle: 110

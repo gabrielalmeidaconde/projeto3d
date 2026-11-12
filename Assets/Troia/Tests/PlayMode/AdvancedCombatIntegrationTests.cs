@@ -60,6 +60,86 @@ namespace Troia.Tests
             player.RequestJump(); yield return new WaitForSeconds(.08f); Assert.That(player.JumpsUsed, Is.EqualTo(2));
             yield return new WaitForSeconds(1.7f); Assert.That(player.IsGrounded); Assert.That(player.JumpsUsed, Is.Zero);
         }
+        [UnityTest] public IEnumerator EarlyComboPressIsConsumedAtNextWindow()
+        {
+            player.RequestAttack(AttackInput.Light); yield return new WaitForSeconds(.015f);
+            player.RequestAttack(AttackInput.Light);
+            yield return new WaitForSeconds(player.Weapon.light.comboOpen+.04f);
+            Assert.That(player.CurrentAttack,Is.SameAs(player.Weapon.light.next));
+        }
+        [UnityTest] public IEnumerator FinisherBuffersNeutralRestartWithoutInventingAPauseBranch()
+        {
+            player.SelectWeapon(2); player.RequestAttack(AttackInput.Light);
+            yield return new WaitForSeconds(.02f); player.RequestAttack(AttackInput.Light);
+            yield return new WaitForSeconds(.36f);
+            Assert.That(player.CurrentAttack,Is.SameAs(player.Weapon.light.next));
+            player.RequestAttack(AttackInput.Light); yield return new WaitForSeconds(.75f);
+            Assert.That(player.CurrentAttack,Is.SameAs(player.Weapon.light),"Entrada antecipada nao deve virar combo com pausa so por ficar no buffer");
+        }
+        [UnityTest] public IEnumerator DirectionalIntentSelectsTheEnemyInTheMovementDirection()
+        {
+            var forward=Enemy(); var right=Enemy(); right.transform.position=origin+Vector3.right*2; Physics.SyncTransforms();
+            player.SetMoveInput(Vector2.right,0,false); player.RequestAttack(AttackInput.Light);
+            yield return new WaitForSeconds(.15f);
+            Assert.That(right.Health.Current,Is.LessThan(right.Health.maximum));
+            Assert.That(forward.Health.Current,Is.EqualTo(forward.Health.maximum));
+            Assert.That(Vector3.Dot(player.transform.forward,Vector3.right),Is.GreaterThan(.8f));
+        }
+        [UnityTest] public IEnumerator StartupAssistClosesSmallGapsWithoutTeleporting()
+        {
+            var enemy=Enemy(3.6f); player.RequestAttack(AttackInput.Light);
+            yield return new WaitForSeconds(.21f);
+            Assert.That(enemy.Health.Current,Is.LessThan(enemy.Health.maximum));
+            Assert.That(Vector3.Distance(origin,player.transform.position),Is.InRange(.2f,1.5f));
+        }
+        [UnityTest] public IEnumerator ApproachPreservesAnEarlyAttackAndWeaponChange()
+        {
+            var enemy=Enemy(8); player.Targeting.Lock(enemy);
+            Assert.That(player.RequestApproach(),Is.True);
+            Assert.That(player.SelectWeapon(1),Is.True); Assert.That(player.RequestAttack(AttackInput.Light),Is.True);
+            yield return new WaitForSeconds(.65f);
+            Assert.That(player.WeaponIndex,Is.EqualTo(1));
+            Assert.That(player.CurrentAttack,Is.SameAs(player.Weapon.light.next));
+            Assert.That(enemy.Health.Current,Is.LessThan(enemy.Health.maximum));
+        }
+        [UnityTest] public IEnumerator MovementCancelsRecoveryAndBasicAttackCanRestartWithoutDeadTime()
+        {
+            player.RequestAttack(AttackInput.Light); yield return new WaitForSeconds(.21f);
+            player.SetMoveInput(Vector2.right,0,false); yield return new WaitForSeconds(.1f);
+            Assert.That(player.State,Is.EqualTo(PlayerState.Locomotion)); Assert.That(player.CurrentAttack,Is.Null);
+            Assert.That(player.transform.position.x,Is.GreaterThan(origin.x+.3f));
+            player.SetMoveInput(Vector2.zero,0,false); yield return new WaitForSeconds(.8f);
+            Assert.That(player.RequestAttack(AttackInput.Light),Is.True);
+        }
+        [UnityTest] public IEnumerator PerfectDodgeRequiresARealThreatAndCreditsOnlyOnce()
+        {
+            var enemy=Enemy(); player.RequestDodge(Vector3.right);
+            var damage=new DamageInfo {source=enemy.gameObject,damage=10};
+            Assert.That(player.Health.TakeDamage(damage),Is.False);
+            float score=player.Style.Score; Assert.That(score,Is.Positive); Assert.That(player.PerfectDodgeFlash,Is.Positive);
+            Assert.That(player.Health.TakeDamage(damage),Is.False); Assert.That(player.Style.Score,Is.EqualTo(score));
+            yield return new WaitForSeconds(.4f);
+            Assert.That(player.Health.TakeDamage(damage),Is.True);
+        }
+        [UnityTest] public IEnumerator CrowdLimitsConcurrentAttackWindups()
+        {
+            var a=Enemy(); var b=Enemy(); var c=Enemy();
+            b.transform.position+=Vector3.right*.7f; c.transform.position+=Vector3.left*.7f; Physics.SyncTransforms();
+            a.trainingDummy=b.trainingDummy=c.trainingDummy=false;
+            yield return new WaitForSeconds(.18f);
+            int count=new[]{a,b,c}.Count(e=>e.State==EnemyState.Windup);
+            Assert.That(count,Is.EqualTo(2));
+        }
+        [UnityTest] public IEnumerator PerfectDodgeRecognizesAnArchersProjectile()
+        {
+            var enemy=Enemy(8);
+            var arrow=new GameObject("TestArrow"); owned.Add(arrow);
+            arrow.transform.position=origin+Vector3.up+Vector3.forward*2;
+            arrow.AddComponent<EnemyProjectile>().Initialize(Vector3.back,player,10,enemy.gameObject);
+            player.RequestDodge(Vector3.forward); yield return new WaitForSeconds(.14f);
+            Assert.That(player.Health.Current,Is.EqualTo(player.Health.maximum));
+            Assert.That(player.PerfectDodgeFlash,Is.Positive); Assert.That(player.Style.Score,Is.Positive);
+        }
         [UnityTest] public IEnumerator HeavyCooldownAndRecoverySurviveJumpDodgeAndWeaponSwap()
         {
             var heavy = player.Weapon.heavy;

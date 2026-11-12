@@ -54,7 +54,7 @@ Shader "Troia/Hero Cartoon"
                 half diffuse = saturate(dot(n, sun.direction) * .5h + .5h);
                 half band = .24h + .35h * smoothstep(.3h,.34h,diffuse) + .35h * smoothstep(.7h,.74h,diffuse);
                 // An illustrative soft fill keeps the face and coat readable in a night level.
-                half fill = .54h + .2h * saturate(dot(n, normalize(half3(-.4h,.7h,.6h))));
+                half fill = .4h + .22h * saturate(dot(n, normalize(half3(-.4h,.7h,.6h))));
                 half3 color = _BaseColor.rgb * (fill + sun.color * band * sun.shadowAttenuation * .45h);
                 half3 view = GetWorldSpaceNormalizeViewDir(i.positionWS);
                 half rim = pow(1 - saturate(dot(n, view)), 3);

@@ -17,7 +17,10 @@ namespace Troia.Editor
             {
                 if (existing.combatVersion < ArsenalDefaults.Version || existing.weapons == null || existing.weapons.Length == 0)
                 {
-                    ArsenalDefaults.Populate(existing); SaveArsenal(existing); EditorUtility.SetDirty(existing); AssetDatabase.SaveAssets();
+                    if (existing.combatVersion == 3 && existing.weapons != null && existing.weapons.Length == 3)
+                        CombatFlowTuning.Apply(existing);
+                    else ArsenalDefaults.Populate(existing);
+                    SaveArsenal(existing); EditorUtility.SetDirty(existing); AssetDatabase.SaveAssets();
                 }
                 return;
             }

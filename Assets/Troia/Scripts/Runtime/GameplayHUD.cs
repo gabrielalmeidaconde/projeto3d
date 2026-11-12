@@ -178,7 +178,7 @@ namespace Troia
                 weaponText.text = p.Weapon.displayName; weaponText.color = p.Weapon.color;
                 weaponDetail.text = p.CurrentAttack ? (string.IsNullOrEmpty(p.CurrentAttack.displayName) ? p.CurrentAttack.id : p.CurrentAttack.displayName) :
                     p.Weapon.kind == WeaponKind.Scythe ? "CONTROLE / AVANÇO" : p.Weapon.kind == WeaponKind.Axe ? "IMPACTO / PUXÃO" : "PRECISÃO / ENCADEAMENTO";
-                cooldowns.text = p.PendingWeapon >= 0 ? "TROCA PREPARADA / FINALIZANDO IMPACTO" :
+                cooldowns.text = p.PerfectDodgeFlash > 0 ? "ESQUIVA PERFEITA / +FAVOR" : p.PendingWeapon >= 0 ? "TROCA PREPARADA / FINALIZANDO IMPACTO" :
                     $"E {(p.Weapon.pullsEnemy ? "PUXAR" : "AVANÇAR")} {(p.ApproachCooldown > 0 ? p.ApproachCooldown.ToString("0.0") + "s" : "OK")} / R {(p.ShotCooldown > .3f ? "ESFRIANDO" : "PISTOLAS")}\n" +
                     (p.RecoveryRemaining > 0 ? $"RECUPERAÇÃO {p.RecoveryRemaining:0.0}s" : p.MoveCooldown(p.Weapon.heavy) > 0 ? $"PESADO {p.MoveCooldown(p.Weapon.heavy):0.0}s" : "PESADO PRONTO");
             }
@@ -237,7 +237,7 @@ namespace Troia
             moves.text = "L = LEVE / P = PESADO     |     TROQUE 1 / 2 / 3 DURANTE O COMBO\n\n";
             foreach (var weapon in manager.config.weapons)
                 moves.text += $"{weapon.displayName}\n{weapon.light.command}   /   P P pesado\n{weapon.description}\n\n";
-            moves.text += "SEGURAR P: lançador / ESPAÇO duas vezes: pulo duplo\nE: avanço (espada/foice) ou puxão (machado); blindados exigem quebra de guarda.\nR: pistolas duplas, 3 rajadas e 0,95s para esfriar. F: foco / T: próximo alvo.\nCTRL cancela; recargas persistem. Alterne ACERTOS; repetir não pontua.\nSofrer dano derruba dois níveis de estilo. Pesados e quedas exigem recuperação.";
+            moves.text += "C / SEGURAR P: lançador / ESPAÇO duas vezes: pulo duplo\nE: avanço (espada/foice) ou puxão (machado); blindados exigem quebra de guarda.\nR: pistolas duplas, 3 rajadas e 0,95s para esfriar. F: foco / T: próximo alvo.\nCTRL cancela; recargas persistem. Alterne ACERTOS; repetir não pontua.\nSofrer dano derruba dois níveis de estilo. Pesados e quedas exigem recuperação.";
         }
         RectTransform Panel(Transform parent, string name, Vector2 anchor, Vector2 position, Vector2 size, Color color)
         {

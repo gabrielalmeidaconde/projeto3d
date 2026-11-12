@@ -38,6 +38,23 @@ namespace Troia
                 CaptureCamera("arma-" + player.Weapon.id);
                 yield return new WaitForSecondsRealtime(player.Weapon.light.duration + .05f);
             }
+            // Exercise a real damage chain in the rendered player before using any grade fixtures.
+            float beforeDamage=EnemyCombat.Combatants.Where(e=>e && e.trainingDummy).Sum(e=>e.Health.Current);
+            int beforeHits=player.Style.ChainHits;
+            player.SelectWeapon(0); player.RequestApproach();
+            yield return new WaitForSeconds(.55f);
+            player.RequestAttack(AttackInput.Light); yield return new WaitForSeconds(.04f);
+            player.RequestAttack(AttackInput.Light); yield return new WaitForSeconds(.55f);
+            player.SelectWeapon(1); yield return new WaitForSeconds(.15f);
+            player.RequestApproach(); yield return new WaitForSeconds(.45f);
+            player.RequestAttack(AttackInput.Light); yield return new WaitForSeconds(.04f);
+            player.RequestAttack(AttackInput.Heavy); yield return new WaitForSeconds(.6f);
+            float realDamage=beforeDamage-EnemyCombat.Combatants.Where(e=>e && e.trainingDummy).Sum(e=>e.Health.Current);
+            int realHits=player.Style.ChainHits-beforeHits;
+            bool flowPassed=realDamage>40 && realHits>=3 && player.WeaponIndex==1;
+            passed &= flowPassed;
+            CaptureCamera("combate-fluido");
+            Debug.Log($"TROIA_FLOW {(flowPassed ? "PASS" : "FAIL")} hits={realHits} damage={realDamage:0.0} weapon={player.WeaponIndex}");
             // Grade fixtures exercise every visible rank without relying on random AI timing.
             var hud = gm.GetComponent<GameplayHUD>();
             player.Style.ResetMeter();

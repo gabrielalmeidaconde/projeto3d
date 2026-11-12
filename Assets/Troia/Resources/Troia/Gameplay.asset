@@ -29,7 +29,7 @@ MonoBehaviour:
   launcher: {fileID: 11400000, guid: d481acb751dae134ea2bdb3e4fad01fd, type: 2}
   airLight: {fileID: 11400000, guid: 8c6c694c4007c974da153dc51ed09230, type: 2}
   slam: {fileID: 11400000, guid: 0e30205b026161b4e84ec7bda1276d77, type: 2}
-  combatVersion: 3
+  combatVersion: 4
   weapons:
   - {fileID: 11400000, guid: db876764bc6f6054fb4b766d8eaef54e, type: 2}
   - {fileID: 11400000, guid: 07edb663b29bcee44a3e4d24bdeaa57e, type: 2}

@@ -27,6 +27,7 @@ namespace Troia
         public float AttackTime => attackTime;
         public float ShotCooldown => Mathf.Max(0, shotReady - Time.time);
         public float ApproachCooldown => Weapon && utilityReady.TryGetValue(Weapon.id, out var ready) ? Mathf.Max(0, ready - Time.time) : 0;
+        public float PerfectDodgeFlash => Mathf.Clamp01((perfectDodgeUntil-Time.unscaledTime)/.6f);
         public float RecoveryRemaining => Mathf.Max(0, offenseReady - Time.time);
         public float MoveCooldown(ComboSO move) => move && moveReady.TryGetValue(move, out var ready) ? Mathf.Max(0, ready - Time.time) : 0;
         readonly Dictionary<ComboSO, float> moveReady = new Dictionary<ComboSO, float>();
@@ -43,10 +44,13 @@ namespace Troia
         readonly List<Collider> ghostColliders = new List<Collider>();
         readonly Collider[] overlap = new Collider[96];
         Vector3 velocity, dodgeDirection, moveDirection;
-        EnemyCombat rushTarget;
+        EnemyCombat rushTarget, attackTarget;
+        float assistRemaining, perfectDodgeUntil, lastImpactFeedback = -10;
+        bool perfectDodgeAwarded;
         float yaw, pitch = 16, cameraDistance = 6, stateTime, attackTime, dodgeReady, shotReady;
         float bufferExpiry, heavyPressed = -1, lastGrounded = -10, jumpQueued = -10, graceUntil, ghostUntil;
         float preservedTime, preserveUntil, swapUntil, shake, rushDuration;
+        float bufferedAttackTime;
         int pendingWeapon = -1, pulse, sequence, actionCounter;
         AttackInput? buffered;
         ComboSO preserved, swapContinuation;
@@ -59,9 +63,27 @@ namespace Troia
             Style = GetComponent<StyleMeter>() ?? gameObject.AddComponent<StyleMeter>();
             Favor = GetComponent<DivineFavor>() ?? gameObject.AddComponent<DivineFavor>();
             Targeting = GetComponent<PlayerTargeting>() ?? gameObject.AddComponent<PlayerTargeting>();
-            Health.CanReceive = info => Time.time >= graceUntil && Favor.AllowDamage(info) && !Invulnerable;
+            Health.CanReceive = CanReceiveDamage;
             Health.Damaged += OnDamaged; Health.Died += OnDeath;
             yaw = transform.eulerAngles.y;
+        }
+        bool CanReceiveDamage(DamageInfo info)
+        {
+            if (Time.time < graceUntil) return false;
+            if (!Invulnerable) return Favor.AllowDamage(info);
+            if (!perfectDodgeAwarded && stateTime <= .12f && info.damage > 0 && info.source && info.source.GetComponent<EnemyCombat>())
+            {
+                perfectDodgeAwarded = true; perfectDodgeUntil = Time.unscaledTime + .6f;
+                Style.RegisterHit("defense.perfect", false, "defense", !IsGrounded, false, AllocateActionId(), 0, "ESQUIVA PERFEITA");
+                Favor.Gain(10); presentation?.Impact(false);
+            }
+            return false;
+        }
+        Vector3 AttackIntent()
+        {
+            if (Targeting.IsLocked) return Targeting.LockedTarget.transform.position-transform.position;
+            if (moveDirection.sqrMagnitude > .1f) return moveDirection;
+            return cameraTransform ? Vector3.ProjectOnPlane(cameraTransform.forward,Vector3.up).normalized : transform.forward;
         }
         void Start()
         {
@@ -103,6 +125,11 @@ namespace Troia
             }
             if (buffered.HasValue && Time.time > bufferExpiry) buffered = null;
             if (State == PlayerState.Rushing) { TickRush(dt); return; }
+            if (CurrentAttack && State==PlayerState.Attacking && attackTime >= CurrentAttack.hitEnd+CurrentAttack.minimumRecovery && !buffered.HasValue && moveDirection.sqrMagnitude>.1f)
+            {
+                preserved=CurrentAttack; preservedTime=attackTime; preserveUntil=Time.time+.8f;
+                CurrentAttack=null; SetState(PlayerState.Locomotion);
+            }
 
             Vector3 horizontal = Vector3.zero;
             if (State == PlayerState.Locomotion)
@@ -113,8 +140,20 @@ namespace Troia
                 if (facing.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(facing), 18 * dt);
             }
             else if (State == PlayerState.Dodging) horizontal = dodgeDirection * config.dodgeSpeed;
-            else if (State == PlayerState.Attacking && CurrentAttack)
-                horizontal = transform.forward * (CurrentAttack.slam ? 0 : CurrentAttack.lunge);
+            else if (State == PlayerState.Attacking && CurrentAttack && !CurrentAttack.slam)
+            {
+                horizontal = transform.forward * CurrentAttack.lunge + moveDirection * config.moveSpeed * .28f;
+                if (attackTime < CurrentAttack.hitStart && Targeting.IsValid(attackTarget, CurrentAttack.range+2) && Targeting.HasSight(attackTarget))
+                {
+                    Vector3 delta=Vector3.ProjectOnPlane(attackTarget.transform.position-transform.position,Vector3.up);
+                    if(delta.sqrMagnitude>.01f) transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(delta),900*dt);
+                    float stop=Mathf.Clamp(CurrentAttack.range*.5f,1.05f,1.6f);
+                    float step=Mathf.Min(Mathf.Min(Mathf.Max(0,delta.magnitude-stop),assistRemaining),10*dt);
+                    if(dt>0) horizontal+=delta.normalized*(step/dt);
+                    assistRemaining-=step;
+                }
+            }
+            if(State==PlayerState.Locomotion && !IsGrounded) horizontal*=.8f;
 
             float gravity = State == PlayerState.Attacking && CurrentAttack && CurrentAttack.aerial && !CurrentAttack.slam ? .55f : 1;
             velocity.y -= config.gravity * gravity * dt;
@@ -160,6 +199,7 @@ namespace Troia
             if (g?.dpad.left.wasPressedThisFrame ?? false) SelectWeapon((WeaponIndex + config.weapons.Length - 1) % config.weapons.Length);
             if ((k?.spaceKey.wasPressedThisFrame ?? false) || (g?.buttonSouth.wasPressedThisFrame ?? false)) RequestJump();
             if ((k?.leftCtrlKey.wasPressedThisFrame ?? false) || (g?.buttonEast.wasPressedThisFrame ?? false)) RequestDodge(moveDirection);
+            if (k?.cKey.wasPressedThisFrame ?? false) RequestLauncher();
             if ((k?.eKey.wasPressedThisFrame ?? false) || (g?.rightShoulder.wasPressedThisFrame ?? false)) RequestApproach();
             if ((m?.leftButton.wasPressedThisFrame ?? false) || (k?.jKey.wasPressedThisFrame ?? false) || (g?.buttonWest.wasPressedThisFrame ?? false)) RequestAttack(AttackInput.Light);
             bool press = (m?.rightButton.wasPressedThisFrame ?? false) || (k?.kKey.wasPressedThisFrame ?? false) || (g?.buttonNorth.wasPressedThisFrame ?? false);
@@ -194,7 +234,11 @@ namespace Troia
         }
         public bool RequestAttack(AttackInput input)
         {
-            if (!CanAct || State == PlayerState.Staggered || State == PlayerState.Rushing) return false;
+            if (!CanAct || State == PlayerState.Staggered) return false;
+            if (State == PlayerState.Rushing)
+            {
+                buffered=input; bufferExpiry=Time.time+Mathf.Max(0,rushDuration-stateTime)+1; return true;
+            }
             if (State == PlayerState.Locomotion)
             {
                 if (RecoveryRemaining > 0) { buffered = input; bufferExpiry = Time.time + config.inputBuffer; return false; }
@@ -206,11 +250,17 @@ namespace Troia
                 preserved = swapContinuation = null;
                 BeginAttack(next ? next : BaseAttack(input), continuation); return true;
             }
-            buffered = input; bufferExpiry = Time.time + config.inputBuffer; return true;
+            buffered = input;
+            // A single early press belongs to the current swing, not to a guessed 200 ms window.
+            bufferedAttackTime=attackTime;
+            bool restartAfterFinisher=CurrentAttack && input==AttackInput.Light && !ResolveNext(CurrentAttack,attackTime);
+            float gate=CurrentAttack ? (restartAfterFinisher ? CurrentAttack.duration : CurrentAttack.comboOpen) : 0;
+            float untilOpen=Mathf.Max(0,gate-attackTime)/Favor.AttackSpeed;
+            bufferExpiry=Time.time+Mathf.Max(config.inputBuffer,untilOpen+.12f); return true;
         }
         public bool RequestLauncher()
         {
-            if (!CanAct || !IsGrounded || State == PlayerState.Staggered || State == PlayerState.Rushing) return false;
+            if (!CanAct || !IsGrounded || State == PlayerState.Staggered) return false;
             return RequestAttack(AttackInput.Launcher);
         }
         public bool RequestDodge(Vector3 direction)
@@ -220,14 +270,16 @@ namespace Troia
             CurrentAttack = null; buffered = null; hitWindow = comboWindow = false; rushTarget = null;
             dodgeDirection = Vector3.ProjectOnPlane(direction, Vector3.up);
             dodgeDirection = dodgeDirection.sqrMagnitude > .01f ? dodgeDirection.normalized : transform.forward;
+            perfectDodgeAwarded=false;
             dodgeReady = Time.time + config.dodgeCooldown;
             SetState(PlayerState.Dodging); Events.Dodge(); presentation?.Dodge(); return true;
         }
         public bool SelectWeapon(int index)
         {
             if (!config || config.weapons == null || index < 0 || index >= config.weapons.Length || !CanAct ||
-                State == PlayerState.Staggered || State == PlayerState.Rushing) return false;
+                State == PlayerState.Staggered) return false;
             if (index == WeaponIndex) { bool cancelled = pendingWeapon >= 0; pendingWeapon = -1; return cancelled; }
+            if (State==PlayerState.Rushing) { pendingWeapon=index; return true; }
             if (CurrentAttack && attackTime < CurrentAttack.hitEnd + CurrentAttack.minimumRecovery)
             {
                 pendingWeapon = index; return true; // Commit the active swing before swapping; never erase an upcoming hit.
@@ -276,7 +328,10 @@ namespace Troia
             if (delta.magnitude <= stop + .12f)
             {
                 velocity.y = rushAirborne ? Mathf.Max(velocity.y, 1) : velocity.y;
-                rushTarget = null; BeginAttack(rushAirborne ? Weapon.airDash : Weapon.dash, false); return;
+                var queued=buffered; var dash=rushAirborne ? Weapon.airDash : Weapon.dash;
+                rushTarget = null; BeginAttack(dash, false);
+                if(queued.HasValue) { buffered=queued; bufferedAttackTime=0; bufferExpiry=Time.time+dash.comboOpen/Favor.AttackSpeed+.15f; }
+                return;
             }
             Vector3 motion = delta.normalized * Mathf.Min(config.approachSpeed * dt, delta.magnitude - stop);
             if (!rushAirborne) { velocity.y -= config.gravity * dt; motion.y = velocity.y * dt; }
@@ -333,7 +388,10 @@ namespace Troia
             CurrentAttack = move; attackTime = 0; buffered = null; hitTargets.Clear(); slamLanded = false; pulse = 0; sequence = AllocateActionId();
             ComboDepth = continuation ? ComboDepth + 1 : 1;
             hitWindow = comboWindow = false; SetState(PlayerState.Attacking);
-            var closest = Targeting.FindTarget(transform.forward, Mathf.Max(4.5f, move.range), 70);
+            assistRemaining=1.1f;
+            Vector3 intent=Vector3.ProjectOnPlane(AttackIntent(),Vector3.up);
+            var closest = Targeting.FindTarget(intent, move.range+2, 65); attackTarget=closest;
+            if(!closest && intent.sqrMagnitude>.01f) transform.rotation=Quaternion.LookRotation(intent);
             if (closest)
             {
                 Vector3 d = closest.transform.position - transform.position; d.y = 0;
@@ -378,7 +436,7 @@ namespace Troia
             if (open && attackTime >= move.hitEnd + move.minimumRecovery && buffered.HasValue && Time.time <= bufferExpiry)
             {
                 var input = buffered.Value;
-                var next = input == AttackInput.Light ? ResolveNext(move, attackTime) : input == AttackInput.Heavy ? move.heavyNext : null;
+                var next = input == AttackInput.Light ? ResolveNext(move, bufferedAttackTime) : input == AttackInput.Heavy ? move.heavyNext : null;
                 if (!next && input != AttackInput.Light) next = BaseAttack(input);
                 if (next && MoveCooldown(next) <= 0) { BeginAttack(next, true); return; }
             }
@@ -411,8 +469,8 @@ namespace Troia
             Favor.Gain((info.projectile ? .7f : 2) * Style.Multiplier);
             Events.Hit(info, target);
             CombatVisuals.Burst(target.transform.position + Vector3.up, profile ? profile.color : Color.yellow, .25f);
-            presentation?.Impact(info.heavy);
-            if (hitStop) { shake = info.finisher ? .24f : .12f; GameManager.Instance?.HitStop(info.finisher ? .055f : .03f); }
+            if(Time.unscaledTime-lastImpactFeedback>.035f) presentation?.Impact(info.heavy);
+            if (hitStop && Time.unscaledTime-lastImpactFeedback>.035f) { lastImpactFeedback=Time.unscaledTime; shake = info.finisher ? .24f : .12f; GameManager.Instance?.HitStop(info.finisher ? .055f : .03f); }
         }
         public int AllocateActionId() { if (++actionCounter == int.MaxValue) actionCounter = 1; return actionCounter; }
         public void OpenHitbox() { hitWindow = true; hitTargets.Clear(); }
@@ -438,7 +496,7 @@ namespace Troia
             controller.enabled = false; transform.SetPositionAndRotation(position, rotation); controller.enabled = true;
             heavyPressed = -1; JumpsUsed = ComboDepth = 0; jumpQueued = lastGrounded = -10;
             Health.ResetHealth(config.playerHealth); graceUntil = Time.time + 1; dodgeReady = shotReady = 0;
-            moveReady.Clear(); utilityReady.Clear(); offenseReady = 0; gunBurst = 0; lastShot = -10;
+            moveReady.Clear(); utilityReady.Clear(); offenseReady = perfectDodgeUntil = 0; attackTarget=null; lastImpactFeedback=-10; gunBurst = 0; lastShot = -10;
             WeaponIndex = 0; Targeting.Clear(); presentation?.Equip(Weapon);
             yaw = rotation.eulerAngles.y; SetState(PlayerState.Locomotion);
         }

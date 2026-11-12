@@ -19,13 +19,13 @@ MonoBehaviour:
   motion: 0
   input: 0
   damage: 16
-  duration: 0.7
-  hitStart: 0.175
-  hitEnd: 0.336
-  comboOpen: 0.37099996
-  comboClose: 0.65
-  cooldown: 0.12
-  minimumRecovery: 0.02
+  duration: 0.62
+  hitStart: 0.1
+  hitEnd: 0.22
+  comboOpen: 0.26
+  comboClose: 0.59
+  cooldown: 0
+  minimumRecovery: 0.025
   range: 2.8
   angle: 110
   knockback: 1
@@ -38,4 +38,4 @@ MonoBehaviour:
   next: {fileID: 11400000, guid: 1adbd0c9ecb7590438f2276615e0b8a0, type: 2}
   delayedNext: {fileID: 11400000, guid: 9ad24826f83a8ec409fcd20d9eecd542, type: 2}
   heavyNext: {fileID: 11400000, guid: 59a3cb31e56649240a207a87b51774ba, type: 2}
-  delayedThreshold: 0.47
+  delayedThreshold: 0.4
