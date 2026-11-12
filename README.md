@@ -61,7 +61,8 @@ atingir vários alvos ou dar vários impactos com a mesma ação não multiplica
 Tomar dano derruba dois níveis. Trocar de arma sem acertar não gera estilo.
 Pesados, lançadores e quedas têm recargas próprias; esquiva, salto e troca preservam
 essas recargas e a recuperação ofensiva. O HUD mostra recuperação, pesado e habilidade E.
-O herói usa malhas procedurais com casaco vermelho articulado, cabelo claro e armas modeladas.
+O herói tem visual chibi: cabeça grande, olhos expressivos, cabelo prateado em mechas,
+corpo compacto, casaco vermelho articulado e botinhas arredondadas, com iluminação cartoon.
 
 São 20 andares nas seis arenas. O timer global começa em 180 segundos; acertos variados
 aumentam o estilo e kills recuperam tempo/favor. Bênçãos e checkpoints após 5/10/15;

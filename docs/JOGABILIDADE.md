@@ -93,10 +93,13 @@ O puxão move o inimigo pelo CharacterController; exige linha de visão, não ca
 nem concede estilo. Capitães e Heitor resistem enquanto a guarda estiver intacta;
 um stagger pesado ou lançamento permite puxá-los. Paredes continuam bloqueando o movimento.
 
-O personagem foi remodelado com seções de malha afuniladas, rosto e cabelo prateado,
-casaco vermelho com quatro abas animadas, colete, fivelas, luvas e botas. As armas têm
-lâminas desenhadas, haste, contrapeso e pistolas em duas cores. A apresentação é
-procedural, com inspiração visual no Dante clássico e animação por juntas em código.
+O personagem usa proporções chibi de aproximadamente duas cabeças e meia: cabeça
+grande, olhos azuis com brilho, sorriso, mechas prateadas largas, corpo compacto e
+extremidades arredondadas. O casaco vermelho mantém quatro abas animadas, colete,
+fivelas e luvas, com botinhas curtas. As armas e pistolas foram ajustadas às mãos menores.
+Um shader cartoon próprio usa faixas de luz e preenchimento suave para manter o rosto
+e as cores legíveis no mapa noturno. A animação continua por juntas em código.
+As proporções são visuais; cápsula de colisão, alcance, dano e recargas não foram alterados.
 
 ## Componentes e ajuste
 

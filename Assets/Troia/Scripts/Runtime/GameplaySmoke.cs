@@ -13,7 +13,9 @@ namespace Troia
         {
             var gm = GameManager.Instance;
             gm.player.readInput = false;
-            yield return new WaitForSecondsRealtime(4);
+            float readyDeadline = Time.realtimeSinceStartup + 60;
+            while ((!gm.FloorActive || gm.Alive <= 0 || !gm.player.IsGrounded) && Time.realtimeSinceStartup < readyDeadline)
+                yield return null;
             bool passed = gm.FloorActive && gm.Alive > 0 && gm.player.IsGrounded;
             Directory.CreateDirectory("Capturas");
             CaptureCamera("gameplay-camera");

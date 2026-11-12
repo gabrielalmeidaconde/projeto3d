@@ -1,6 +1,6 @@
 # Validação do combate v3 e da build Windows
 
-11/11/2026, Unity 6000.3.25f1. Configuração persistida na versão 3.
+Revisão visual de 12/11/2026, Unity 6000.3.25f1. Configuração de combate na versão 3.
 
 | Verificação | Resultado |
 | --- | --- |
@@ -13,6 +13,12 @@
 | Diagnóstico visual | TROIA_PRESENTATION PASS; arsenal e HUD em SSS |
 
 ## Cobertura
+
+O herói foi refeito em estilo chibi e recebe um shader cartoon próprio. A inspeção
+do executável inclui a cabeça maior, os olhos, o cabelo, as formas arredondadas e as
+três armas nos pontos de empunhadura ajustados. As regras de combate foram preservadas.
+O diagnóstico aguarda o primeiro andar ativo, inimigos presentes e jogador no chão,
+com limite de 60 segundos, evitando falsos negativos por um atraso fixo sob carga.
 
 Os testes verificam os grafos persistidos, janelas válidas, rotas com pausa e pesado,
 pulo duplo, aterrissagem, juggle confirmado e queda. A troca de arma aguarda o impacto

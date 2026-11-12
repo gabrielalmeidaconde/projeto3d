@@ -30,8 +30,9 @@ namespace Troia
             var fill = Joint(rig, "Luz_personagem", new Vector3(-.7f, 2.1f, 1.1f)).gameObject.AddComponent<Light>();
             fill.type = LightType.Point; fill.color = new Color(1, .83f, .73f);
             fill.intensity = 1.1f; fill.range = 3; fill.shadows = LightShadows.None;
-            rightPistol = HeroModel.Pistol(rightArm, Vector3.down * .56f, false);
-            leftPistol = HeroModel.Pistol(leftArm, Vector3.down * .56f, true);
+            rightPistol = HeroModel.Pistol(rightArm, Vector3.down * HeroModel.HandLength, false);
+            leftPistol = HeroModel.Pistol(leftArm, Vector3.down * HeroModel.HandLength, true);
+            rightPistol.localScale = leftPistol.localScale = Vector3.one * .8f;
             rightPistol.gameObject.SetActive(false); leftPistol.gameObject.SetActive(false);
             player.Events.OnStyleRankChanged += StyleChanged;
             Equip(player.Weapon);
@@ -51,7 +52,8 @@ namespace Troia
         }
         Transform CreateWeapon(Transform arm, WeaponSO profile, out TrailRenderer trail)
         {
-            var root = Joint(arm, profile.displayName, Vector3.down * .56f);
+            var root = Joint(arm, profile.displayName, Vector3.down * HeroModel.HandLength);
+            root.localScale = Vector3.one * .85f;
             float length = profile.kind == WeaponKind.Spear ? 2.4f : profile.kind == WeaponKind.TwinBlades ? .85f : 1.25f;
             Color metal = Color.Lerp(profile.color, Color.white, .6f);
             if (profile.kind == WeaponKind.Scythe || profile.kind == WeaponKind.Axe)
@@ -135,8 +137,8 @@ namespace Troia
                 switch (move.motion)
                 {
                     case AttackMotion.Thrust: pose = Quaternion.Euler(-65 * Mathf.Sin(strike * Mathf.PI), 0, -20); break;
-                    case AttackMotion.Uppercut: pose = Quaternion.Euler(Mathf.Lerp(65, -120, strike), -20, -35); break;
-                    case AttackMotion.Overhead: pose = Quaternion.Euler(Mathf.Lerp(-145, 55, strike), 0, -20); break;
+                    case AttackMotion.Uppercut: pose = Quaternion.Euler(Mathf.Lerp(65, -120, strike), -20, 15); break;
+                    case AttackMotion.Overhead: pose = Quaternion.Euler(Mathf.Lerp(-145, 55, strike), 0, 22); break;
                     case AttackMotion.Spin: spin = strike * 360; pose = Quaternion.Euler(-65, -45, -75); break;
                     default: pose = Quaternion.Euler(-55, Mathf.Lerp(-105, 90, strike), -55); break;
                 }
