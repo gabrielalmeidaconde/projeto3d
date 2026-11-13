@@ -43,3 +43,10 @@ sysinfo.txt
 # SO
 .DS_Store
 Thumbs.db
+
+# Ponte Unity -> Blender (gerado pelo Unity; o Blender lê daqui)
+/Arte/Patroclo/troca/
+*.blend1
+
+# Python
+__pycache__/

@@ -42,7 +42,7 @@ namespace Troia
         public bool elmo = true;
         public bool crista = true;
         public bool capa = true;
-        public PosicaoEscudo escudo = PosicaoEscudo.Costas;
+        public PosicaoEscudo escudo = PosicaoEscudo.Braco;
 
         [Header("Desgaste de batalha")]
         [Tooltip("Lama e poeira subindo dos pés, pó nas frestas da armadura e manchas no tecido e na pele.")]
@@ -59,11 +59,28 @@ namespace Troia
         public NotaEstilo notaDeEstilo = NotaEstilo.D;
         public Bencao bencao = Bencao.Nenhuma;
 
+        public enum CorDaPaleta { Bronze, BronzeEscuro, Ouro, Lamina, Carmesim, CarmesimEscuro, Linho, Couro }
+
+        /// <summary>
+        /// Material com a cor já pintada na textura (peças finalizadas no Blender). O painel não troca a cor:
+        /// multiplica pela razão entre a cor escolhida e a cor padrão, então no padrão a textura sai como foi pintada.
+        /// </summary>
+        [System.Serializable]
+        public class Pintado
+        {
+            public Material material;
+            public CorDaPaleta cor;
+            [Tooltip("Ligado = a textura é neutra e a cor da paleta é aplicada direto (como nos outros materiais).")]
+            public bool direto;
+            public float sujeira = 1f, sangue = 1f;
+        }
+
         [System.Serializable]
         public class Referencias
         {
+            public Pintado[] pintados;
             public Material bronze, bronzeEscuro, ouro, lamina, carmesim, carmesimEscuro, linho, couro, pele, cabelo, emblema, madeira;
-            public GameObject elmo, crista, raboCostas, raboEscudo, capa, escudoCostas, escudoBraco, chamaCrista, cabeloSolto;
+            public GameObject elmo, crista, raboCostas, raboEscudo, capa, capaEscudo, capaBroches, escudoCostas, escudoBraco, chamaCrista, cabeloSolto;
             public Renderer[] gravacoes1, gravacoes2, gravacoes3, crista_r, lamina_r, emblema_r, ombreiras_r, marcas_r;
             public GameObject[] marcasZeus, marcasAres, marcasApolo, marcasHermes, marcasAtena, marcasPoseidon;
             [Tooltip("Peças escondidas quando 'armadura' está desligada.")]
@@ -153,13 +170,26 @@ namespace Troia
             SetWear(refs.bronzeEscuro, 1f, 1f);
             SetWear(refs.ouro, 0.55f, 0.8f);
             SetWear(refs.lamina, 0.45f, 2.2f);
-            SetWear(refs.carmesim, 0.7f, 0.6f);
+            SetWear(refs.carmesim, 0.3f, 0.35f);
             SetWear(refs.carmesimEscuro, 1f, 0.8f);
             SetWear(refs.linho, 1f, 1f);
             SetWear(refs.couro, 1f, 0.8f);
             SetWear(refs.pele, 0.8f, 0.9f);
             SetWear(refs.emblema, 0.8f, 0.8f);
             SetWear(refs.madeira, 1f, 0.6f);
+            if (refs.pintados != null)
+                foreach (var p in refs.pintados)
+                {
+                    if (p == null || p.material == null) continue;
+                    Color c = Paleta(p.cor);
+                    if (!p.direto)
+                    {
+                        Color d = Padrao.Paleta(p.cor);
+                        c = new Color(c.r / Mathf.Max(d.r, 0.01f), c.g / Mathf.Max(d.g, 0.01f), c.b / Mathf.Max(d.b, 0.01f), 1f);
+                    }
+                    SetColor(p.material, c);
+                    SetWear(p.material, p.sujeira, p.sangue);
+                }
 
             bool costas = escudo == PosicaoEscudo.Costas;
             Show(refs.elmo, elmo);
@@ -167,7 +197,11 @@ namespace Troia
             Show(refs.crista, elmo && crista);
             Show(refs.raboEscudo, elmo && crista && costas);
             Show(refs.raboCostas, elmo && crista && !costas);
-            Show(refs.capa, capa);
+            // com o escudo nas costas entra a capa simulada com ele por cima (se o pacote do Blender trouxe essa variante)
+            bool capaPrensada = costas && refs.capaEscudo != null;
+            Show(refs.capa, capa && !capaPrensada);
+            Show(refs.capaEscudo, capa && capaPrensada);
+            Show(refs.capaBroches, capa);
             if (refs.armaduraCorpo != null)
                 foreach (var g in refs.armaduraCorpo) Show(g, armadura);
             if (refs.semArmadura != null)
@@ -204,6 +238,40 @@ namespace Troia
             if (bencao == Bencao.Zeus || bencao == Bencao.Poseidon) blade = mark * 0.06f + blade * 0.25f;
             Emit(refs.lamina_r, blade);
             Emit(refs.ombreiras_r, bencao == Bencao.Ares ? mark * 0.8f : Color.black);
+        }
+
+        Color Paleta(CorDaPaleta c)
+        {
+            switch (c)
+            {
+                case CorDaPaleta.Bronze: return bronze;
+                case CorDaPaleta.BronzeEscuro: return bronzeEscuro;
+                case CorDaPaleta.Ouro: return ouro;
+                case CorDaPaleta.Lamina: return lamina;
+                case CorDaPaleta.Carmesim: return carmesim;
+                case CorDaPaleta.CarmesimEscuro: return carmesimEscuro;
+                case CorDaPaleta.Linho: return linho;
+                default: return couro;
+            }
+        }
+
+        /// <summary>Cores de fábrica da paleta (as que as texturas pintadas assumem).</summary>
+        static class Padrao
+        {
+            public static Color Paleta(CorDaPaleta c)
+            {
+                switch (c)
+                {
+                    case CorDaPaleta.Bronze: return new Color32(0xA2, 0x6A, 0x3A, 0xFF);
+                    case CorDaPaleta.BronzeEscuro: return new Color32(0x5E, 0x3A, 0x1E, 0xFF);
+                    case CorDaPaleta.Ouro: return new Color32(0xF2, 0xC6, 0x5C, 0xFF);
+                    case CorDaPaleta.Lamina: return new Color32(0xD8, 0xAA, 0x5F, 0xFF);
+                    case CorDaPaleta.Carmesim: return new Color32(0xB0, 0x1C, 0x22, 0xFF);
+                    case CorDaPaleta.CarmesimEscuro: return new Color32(0xA2, 0x1E, 0x22, 0xFF);
+                    case CorDaPaleta.Linho: return new Color32(0xD6, 0xC6, 0xA2, 0xFF);
+                    default: return new Color32(0xF2, 0xE6, 0xD9, 0xFF);
+                }
+            }
         }
 
         static Color MarkColor(Bencao b)

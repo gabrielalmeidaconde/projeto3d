@@ -28,7 +28,29 @@ namespace Troia.EditorTools
         public const string ScenePath = Root + "/Patroclo_Vitrine.unity";
 
         static Material[] _pal;
-        static Material _skin, _eyes, _brows, _lashes, _hair;
+        static Material _skin, _eyes, _brows, _lashes, _hair, _capaPano;
+        static bool _capaPintada;
+        static readonly List<PatrocloDesign.Pintado> _pintados = new List<PatrocloDesign.Pintado>();
+
+        /// <summary>Metros por unidade de UV de cada atlas pintado (gravado por Ferramentas/blender/bl_uv.py).</summary>
+        [Serializable] class AtlasInfo { public float bronze = 1.3f, linho = 1.6f; }
+
+        /// <summary>Pano de folha única: no avesso a normal é invertida (senão o lado de dentro fica com a luz do de fora).</summary>
+        static void Pano(Material m, bool pintado = false)
+        {
+            m.SetFloat("_TroiaPano", 1f);
+            m.EnableKeyword("_TROIA_PANO");
+            if (pintado) Pintado(m);
+            EditorUtility.SetDirty(m);
+        }
+
+        /// <summary>Textura pintada por inteiro (UV própria): a sujeira passa a usar a segunda UV, que continua em metros.</summary>
+        static void Pintado(Material m)
+        {
+            m.SetFloat("_TroiaUv2", 1f);
+            m.EnableKeyword("_TROIA_UV2");
+            EditorUtility.SetDirty(m);
+        }
 
         [MenuItem("Troia/Personagem/Gerar Pátroclo", priority = 40)]
         static void BuildMenu()
@@ -40,6 +62,18 @@ namespace Troia.EditorTools
 
         public static void BuildFromCommandLine() => Build();
 
+        /// <summary>
+        /// Gera só as peças procedurais (sem o pacote do Blender) e grava a base para o Blender em Arte/Patroclo/troca.
+        /// É o primeiro passo de Ferramentas/blender/gerar.sh.
+        /// </summary>
+        [MenuItem("Troia/Personagem/Exportar base para o Blender", priority = 41)]
+        public static void ExportBaseFromCommandLine()
+        {
+            PatrocloTroca.Desligado = true;
+            try { Build(); }
+            finally { PatrocloTroca.Desligado = false; }
+        }
+
         public static void Build()
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -48,7 +82,11 @@ namespace Troia.EditorTools
             AssetDatabase.DeleteAsset(MatDir);
             foreach (var p in new[] { TexDir, MatDir, MeshDir }) TroiaAssets.EnsureFolder(p);
             CreateMaterials();
+            // peças refeitas no Blender (capa simulada, crista de crina...) substituem as procedurais de mesmo nome
+            PatrocloTroca.Load();
             var root = BuildCharacter();
+            foreach (string sobra in PatrocloTroca.Unused())
+                Debug.LogWarning($"[Troia] peça '{sobra}' do pacote do Blender não foi usada pelo construtor");
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
             BuildShowroom(prefab);
@@ -61,7 +99,7 @@ namespace Troia.EditorTools
         // =====================================================================================
         enum TexKind { Color, ColorAlpha, Normal, Linear }
 
-        static Texture2D Tex(string path, TexKind kind, int maxSize = 4096)
+        static Texture2D Tex(string path, TexKind kind, int maxSize = 4096, bool recorte = false)
         {
             var ti = (TextureImporter)AssetImporter.GetAtPath(path);
             if (ti == null)
@@ -75,8 +113,10 @@ namespace Troia.EditorTools
             bool transp = kind == TexKind.ColorAlpha;
             if (ti.textureType != type || ti.sRGBTexture != srgb || ti.alphaSource != alpha || ti.alphaIsTransparency != transp ||
                 ti.wrapMode != TextureWrapMode.Repeat || ti.anisoLevel != 16 || ti.maxTextureSize != maxSize ||
-                ti.textureCompression != TextureImporterCompression.CompressedHQ)
+                ti.textureCompression != TextureImporterCompression.CompressedHQ || ti.mipMapsPreserveCoverage != recorte)
             {
+                ti.mipMapsPreserveCoverage = recorte;
+                if (recorte) ti.alphaTestReferenceValue = 0.5f;
                 ti.textureType = type;
                 ti.sRGBTexture = srgb;
                 ti.alphaSource = alpha;
@@ -175,14 +215,70 @@ namespace Troia.EditorTools
 
             var tmp = new GameObject("tmp");
             var d = tmp.AddComponent<PatrocloDesign>();
+            _matByName.Clear();
             _pal = new Material[(int)M.Count];
             _pal[(int)M.PBronze] = Lit("M_Pat_Bronze", brA, brN, brM, d.bronze, 1f, bump: 1f);
             _pal[(int)M.PBronzeDark] = Lit("M_Pat_BronzeEscuro", brA, brN, brM, d.bronzeEscuro, 0.9f, bump: 1f);
             _pal[(int)M.PGold] = Lit("M_Pat_Ouro", brA, brN, brM, d.ouro, 1f, emissive: true, bump: 0.5f);
             _pal[(int)M.PBlade] = Lit("M_Pat_Lamina", brA, brN, brM, d.lamina, 1f, emissive: true, bump: 0.4f);
-            _pal[(int)M.PCrimson] = Lit("M_Pat_Crista", crina, crinaN, null, d.carmesim, 0.32f, emissive: true);
+            // peças refeitas no Blender (Ferramentas/blender): texturas próprias em Texturas/Blender
+            string blDir = TexDir + "/Blender";
+            Texture2D Bl(string n, TexKind k, bool recorte = false) =>
+                File.Exists(Path.Combine(Directory.GetCurrentDirectory(), blDir, n)) ? Tex($"{blDir}/{n}", k, 4096, recorte) : null;
+            // crina em mechas (cartões com alfa, vistos dos dois lados); sem a textura nova, volta a crista lisa
+            var mecha = Bl("crina.png", TexKind.ColorAlpha, true);
+            if (mecha != null)
+                _pal[(int)M.PCrimson] = Lit("M_Pat_Crista", mecha, Bl("crina_normal.png", TexKind.Normal), null, d.carmesim, 0.16f,
+                    emissive: true, alphaClip: true, cutoff: 0.5f, twoSided: true);
+            else
+                _pal[(int)M.PCrimson] = Lit("M_Pat_Crista", crina, crinaN, null, d.carmesim, 0.32f, emissive: true);
             _pal[(int)M.PCrimsonDark] = Lit("M_Pat_Capa", laA, laN, laM, d.carmesimEscuro, 1f);
             _pal[(int)M.PLinen] = Lit("M_Pat_Linho", liA, liN, liM, d.linho, 1f);
+            // capa simulada: uma folha só, vista dos dois lados, com os rasgos desfiados no alfa da textura
+            var capaA = Bl("capa_albedo.png", TexKind.ColorAlpha, true);
+            _capaPano = Lit("M_Pat_CapaPano", capaA != null ? capaA : laA, capaA != null ? Bl("capa_normal.jpg", TexKind.Normal) : laN,
+                capaA != null ? Bl("capa_mascara.png", TexKind.Linear) : laM, capaA != null ? Color.white : d.carmesimEscuro, 1f,
+                alphaClip: capaA != null, cutoff: 0.5f, twoSided: true);
+            _capaPintada = capaA != null;
+            // sem a textura pintada, a lã de sempre repetida no tamanho do molde (1,9 m x 1,38 m)
+            if (capaA == null) _capaPano.SetTextureScale("_BaseMap", new Vector2(3.8f, 2.76f));
+            else
+            {
+                // o fio da lã vem do mapa de detalhe repetido; a textura pintada guarda o desenho e as rugas
+                _capaPano.SetTexture("_DetailNormalMap", laN);
+                _capaPano.SetTextureScale("_DetailAlbedoMap", new Vector2(3.8f, 2.76f));
+                _capaPano.SetFloat("_DetailNormalMapScale", 0.9f);
+                BaseShaderGUI.SetMaterialKeywords(_capaPano, LitGUI.SetMaterialKeywords, null);
+            }
+            Pano(_capaPano, capaA != null);
+            _pintados.Clear();
+            _pintados.Add(new PatrocloDesign.Pintado { material = _capaPano, cor = PatrocloDesign.CorDaPaleta.CarmesimEscuro, direto = capaA == null, sujeira = 0.6f, sangue = 0.8f });
+            // bronze e linho com textura pintada (pintor.py): friso gravado, pátina, estrela do peito...
+            // O grão fino (martelado, trama) entra como mapa de detalhe repetido, na escala de cada atlas.
+            var atlas = new AtlasInfo();
+            string atlasJson = Path.Combine(Directory.GetCurrentDirectory(), Root + "/Fonte/patroclo_atlas.json");
+            if (File.Exists(atlasJson)) JsonUtility.FromJsonOverwrite(File.ReadAllText(atlasJson), atlas);
+            Material Pintura(string nome, string arquivo, Texture2D aFallback, Texture2D nFallback, Texture2D mFallback, Texture2D detalhe,
+                float metrosPorUv, float metrosPorTile, float forcaDetalhe, PatrocloDesign.CorDaPaleta cor, Color corFallback)
+            {
+                var a = Bl(arquivo + "_albedo.jpg", TexKind.Color);
+                var m = Lit(nome, a != null ? a : aFallback, a != null ? Bl(arquivo + "_normal.jpg", TexKind.Normal) : nFallback,
+                    a != null ? Bl(arquivo + "_mascara.png", TexKind.Linear) : mFallback, a != null ? Color.white : corFallback, 1f);
+                if (a != null)
+                {
+                    float rep = metrosPorUv / metrosPorTile;
+                    m.SetTexture("_DetailNormalMap", detalhe);
+                    m.SetTextureScale("_DetailAlbedoMap", new Vector2(rep, rep));
+                    m.SetFloat("_DetailNormalMapScale", forcaDetalhe);
+                    BaseShaderGUI.SetMaterialKeywords(m, LitGUI.SetMaterialKeywords, null);
+                    Pintado(m);
+                }
+                // o bronze pintado já traz pátina nas frestas: leva menos lama por cima, para o desenho gravado aparecer
+                _pintados.Add(new PatrocloDesign.Pintado { material = m, cor = cor, direto = a == null, sujeira = cor == PatrocloDesign.CorDaPaleta.Bronze && a != null ? 0.6f : 1f, sangue = 1f });
+                return m;
+            }
+            Pintura("M_Pat_BronzePintado", "bronze_p", brA, brN, brM, brN, atlas.bronze, 0.5f, 0.55f, PatrocloDesign.CorDaPaleta.Bronze, d.bronze);
+            Pintura("M_Pat_LinhoPintado", "linho_p", liA, liN, liM, liN, atlas.linho, 0.3f, 0.9f, PatrocloDesign.CorDaPaleta.Linho, d.linho);
             _pal[(int)M.PLeather] = Lit("M_Pat_Couro", cuA, cuN, cuM, d.couro, 1f);
             _pal[(int)M.PEmblem] = Lit("M_Pat_Emblema", brA, brN, null, d.emblema, 0.45f, 0.2f, true, 0.5f);
             _pal[(int)M.PWood] = Lit("M_Pat_Madeira", wood, null, null, new Color(0.62f, 0.5f, 0.42f), 0.2f);
@@ -229,15 +325,50 @@ namespace Troia.EditorTools
         static BodyInfo _body;
         static Texture2D _grime;
 
+        /// <summary>Material pelo nome do asset (as peças do Blender guardam o nome do material de cada parte).</summary>
+        static Material MatByName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            if (_matByName.TryGetValue(name, out var m)) return m;
+            m = AssetDatabase.LoadAssetAtPath<Material>($"{MatDir}/{name}.mat");
+            _matByName[name] = m;
+            return m;
+        }
+
+        static readonly Dictionary<string, Material> _matByName = new Dictionary<string, Material>();
+
+        /// <summary>Malha vinda do Blender com este nome, já salva como asset (null se o pacote não tem).</summary>
+        static Mesh FromBlender(string meshName, bool skinned, out Material[] mats)
+        {
+            mats = null;
+            if (!PatrocloTroca.Has(meshName)) return null;
+            if (!PatrocloTroca.TryBuild(meshName, skinned ? _ch : null, MatByName, out var mesh, out mats)) return null;
+            string path = $"{MeshDir}/{meshName}.asset";
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing != null)
+            {
+                // a mesma malha em dois objetos (os dois escudos)
+                Object.DestroyImmediate(mesh);
+                return existing;
+            }
+            AssetDatabase.CreateAsset(mesh, path);
+            return mesh;
+        }
+
         static GameObject Skinned(string name, SkinBuilder sb, Transform parent, bool shadows = true)
         {
-            var mesh = sb.ToMesh("Pat_" + name, _ch.bind, _pal, out var mats);
-            var bw = mesh.boneWeights;
-            var bp = mesh.bindposes;
-            mesh = TroiaAssets.SaveMesh(mesh, $"{MeshDir}/Pat_{name}.asset");
-            mesh.boneWeights = bw;
-            mesh.bindposes = bp;
-            EditorUtility.SetDirty(mesh);
+            var mesh = FromBlender("Pat_" + name, true, out var mats);
+            if (mesh == null)
+            {
+                if (sb == null) return null;
+                mesh = sb.ToMesh("Pat_" + name, _ch.bind, _pal, out mats);
+                var bw = mesh.boneWeights;
+                var bp = mesh.bindposes;
+                mesh = TroiaAssets.SaveMesh(mesh, $"{MeshDir}/Pat_{name}.asset");
+                mesh.boneWeights = bw;
+                mesh.bindposes = bp;
+                EditorUtility.SetDirty(mesh);
+            }
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             var smr = go.AddComponent<SkinnedMeshRenderer>();
@@ -252,9 +383,14 @@ namespace Troia.EditorTools
 
         static GameObject Rigid(string name, Transform parent, Action<MeshBuilder> build, bool shadows = true)
         {
-            var b = new MeshBuilder();
-            build(b);
-            var mesh = TroiaAssets.SaveMesh(b.ToMesh("Pat_" + name, _pal, out var mats), $"{MeshDir}/Pat_{name}.asset");
+            var mesh = FromBlender("Pat_" + name, false, out var mats);
+            if (mesh == null)
+            {
+                if (build == null) return null;
+                var b = new MeshBuilder();
+                build(b);
+                mesh = TroiaAssets.SaveMesh(b.ToMesh("Pat_" + name, _pal, out mats), $"{MeshDir}/Pat_{name}.asset");
+            }
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -266,13 +402,16 @@ namespace Troia.EditorTools
 
         static Renderer Rend(GameObject go) => go.GetComponent<Renderer>();
 
+        static readonly HashSet<string> SemOclusao = new HashSet<string> { "Pat_Crista", "Pat_Rabo_de_Crina_Costas", "Pat_Rabo_de_Crina_Sobre_Escudo" };
+
         /// <summary>Malhas de um objeto (e dos filhos, se pedido) para o assador de oclusão; marcas de bênção ficam de fora.</summary>
         static void AoItems(List<PatrocloAO.Item> list, GameObject go, bool children, float crevice = 0.7f,
             Func<Vector3, float> dirtBoost = null, Func<Vector3, float> stainBoost = null)
         {
             if (go == null) return;
             foreach (var smr in children ? go.GetComponentsInChildren<SkinnedMeshRenderer>(true) : go.GetComponents<SkinnedMeshRenderer>())
-                if (!smr.name.StartsWith("Marca_") && smr.sharedMesh != null)
+                // a crina em mechas (cartões com alfa) não recebe oclusão: um cartão tapa o outro e ela ficaria quase preta
+                if (!smr.name.StartsWith("Marca_") && smr.sharedMesh != null && !(SemOclusao.Contains(smr.sharedMesh.name) && PatrocloTroca.Has(smr.sharedMesh.name)))
                     list.Add(new PatrocloAO.Item(smr.sharedMesh, smr.transform.localToWorldMatrix, crevice, dirtBoost, stainBoost));
             foreach (var mf in children ? go.GetComponentsInChildren<MeshFilter>(true) : go.GetComponents<MeshFilter>())
                 if (!mf.name.StartsWith("Marca_") && mf.sharedMesh != null)
@@ -518,6 +657,9 @@ namespace Troia.EditorTools
             sb = new SkinBuilder();
             fit.Cape(sb, cuir, out _);
             refs.capa = Skinned("Capa", sb, cloth);
+            // só no pacote do Blender: a capa prensada pelo escudo das costas e os broches dos ombros
+            refs.capaEscudo = Skinned("Capa_Escudo", null, cloth);
+            refs.capaBroches = Skinned("Capa_Broches", null, cloth);
 
             // ---------------- epômides (abas de ombro do linotórax) e proteção de bronze no braço do escudo
             sb = new SkinBuilder();
@@ -858,7 +1000,7 @@ namespace Troia.EditorTools
             Func<Vector3, float> capeHem = q => 0.6f * F.Smooth01(0.7f, 0.32f, q.y);
             const float skinCrevice = 0.22f;
             foreach (Transform c in cloth)
-                if (c.name != "Capa") AoItems(aoCore, c.gameObject, false, 0.7f, c.name == "Quiton" ? skirtHem : null);
+                if (!c.name.StartsWith("Capa")) AoItems(aoCore, c.gameObject, false, 0.7f, c.name == "Quiton" ? skirtHem : null);
             AoItems(aoCore, dressedGo, false, skinCrevice);
             AoItems(aoCore, dagger, true);
             PatrocloAO.Bake(aoCore, aoCore);
@@ -867,11 +1009,16 @@ namespace Troia.EditorTools
             var aoOcc = new List<PatrocloAO.Item>(aoCore);
             aoOcc.AddRange(aoHelm);
             PatrocloAO.Bake(aoHelm, aoOcc);
-            var aoCape = new List<PatrocloAO.Item>();
-            AoItems(aoCape, refs.capa, false, 0.7f, capeHem);
-            aoOcc = new List<PatrocloAO.Item>(aoCore);
-            aoOcc.AddRange(aoCape);
-            PatrocloAO.Bake(aoCape, aoOcc);
+            foreach (var capeGo in new[] { refs.capa, refs.capaEscudo })
+            {
+                if (capeGo == null) continue;
+                var aoCape = new List<PatrocloAO.Item>();
+                AoItems(aoCape, capeGo, false, 0.7f, capeHem);
+                if (capeGo == refs.capa) AoItems(aoCape, refs.capaBroches, false);
+                aoOcc = new List<PatrocloAO.Item>(aoCore);
+                aoOcc.AddRange(aoCape);
+                PatrocloAO.Bake(aoCape, aoOcc);
+            }
             // sangue na lâmina: cresce para a ponta (a espada tem a lâmina em +Z, a partir da guarda)
             Func<Vector3, float> bladeBlood = q => 0.95f * F.Smooth01(0.45f, 1.05f, sword.transform.InverseTransformPoint(q).z);
             foreach (var rigid in new[] { sword, refs.escudoCostas, refs.escudoBraco })
@@ -938,7 +1085,11 @@ namespace Troia.EditorTools
             refs.cabelo = _hair;
             refs.emblema = _pal[(int)M.PEmblem];
             refs.madeira = _pal[(int)M.PWood];
+            // materiais com textura pintada por inteiro: o painel tinge pela razão entre a cor escolhida e a padrão
+            refs.pintados = _pintados.ToArray();
             Debug.Log($"[Troia] elmo: centro {h.c}, mão D palma {hr.palm} dedos {hr.fingers}, mão E palma {hl.palm}");
+            // base para o Blender: tem de sair antes de o painel aplicar a pose (tudo ainda em repouso)
+            if (PatrocloTroca.Desligado) PatrocloTroca.ExportBase(_ch, root);
             design.Apply();
             return root;
         }
@@ -1301,7 +1452,7 @@ namespace Troia.EditorTools
             var c = new Vector3(0f, 1.0f, 0f);
             Shot("00_aquecimento", new Vector3(0f, 1.08f, 4.6f), c);
             File.Delete(Path.Combine(dir, "00_aquecimento.png"));
-            d.pose = PosePatroclo.Neutra; d.escudo = PosicaoEscudo.Costas; d.notaDeEstilo = NotaEstilo.D; d.bencao = Bencao.Nenhuma; d.favorDivino = 0f; d.elmo = true;
+            d.pose = PosePatroclo.Neutra; d.escudo = PosicaoEscudo.Braco; d.notaDeEstilo = NotaEstilo.D; d.bencao = Bencao.Nenhuma; d.favorDivino = 0f; d.elmo = true;
             Shot("01_frente", new Vector3(0f, 1.08f, 4.6f), c);
             Shot("02_tres_quartos", new Vector3(2.7f, 1.4f, 3.5f), c);
             Shot("03_costas", new Vector3(-0.5f, 1.3f, -4.5f), c);
@@ -1332,7 +1483,12 @@ namespace Troia.EditorTools
             Shot("17_capa_rasgada", new Vector3(-0.7f, 1.15f, -3.3f), new Vector3(0f, 0.9f, 0f));
             d.escudo = PosicaoEscudo.Costas;
             Shot("18_adaga_e_cintura", new Vector3(1.25f, 1.05f, 0.75f), new Vector3(0.12f, 0.98f, 0.02f), 30f);
+            // variante com o escudo nas costas (a capa prensada por baixo dele e o rabo de crina por cima)
             d.capa = true; d.escudo = PosicaoEscudo.Costas;
+            Shot("19_escudo_nas_costas", new Vector3(-1.9f, 1.3f, -4.1f), c);
+            d.escudo = PosicaoEscudo.Braco;
+            // lado do escudo: a face de bronze gravada, com a formiga, e a capa atrás
+            Shot("20_lado_do_escudo", new Vector3(-3.4f, 1.3f, 2.9f), c);
             d.Apply();
 
             cam.targetTexture = null;

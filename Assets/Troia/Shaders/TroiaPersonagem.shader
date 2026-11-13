@@ -53,6 +53,8 @@ Shader "Troia/Personagem"
         // Blending state
         _Surface("__surface", Float) = 0.0
         _Blend("__blend", Float) = 0.0
+        [Toggle(_TROIA_PANO)] _TroiaPano("Pano de folha única (inverte a normal no avesso)", Float) = 0.0
+        [Toggle(_TROIA_UV2)] _TroiaUv2("Sujeira pela segunda UV (peças com textura pintada)", Float) = 0.0
         _Cull("__cull", Float) = 2.0
         [ToggleUI] _AlphaClip("__clip", Float) = 0.0
         [HideInInspector] _SrcBlend("__src", Float) = 1.0
@@ -121,6 +123,8 @@ Shader "Troia/Personagem"
             // Shader Stages
             #pragma vertex TroiaCharPassVertex
             #pragma fragment TroiaCharPassFragment
+            #pragma shader_feature_local_fragment _TROIA_PANO
+            #pragma shader_feature_local _TROIA_UV2
 
             // -------------------------------------
             // Material Keywords

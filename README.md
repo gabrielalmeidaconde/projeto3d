@@ -90,19 +90,34 @@ animações e verificações em [docs/JOGABILIDADE.md](docs/JOGABILIDADE.md).
   **Troia/Pele**, com espalhamento subsuperficial (luz avermelhada na transição para a sombra e
   translucidez no contorno), que tira o aspecto de cera.
 - **Elmo coríntio** medido no crânio: cobre a cabeça, as orelhas e as bochechas, com olhos amendoados,
-  protetor de nariz e fenda da boca recortados a partir da posição real do rosto, sobrancelhas gravadas
-  em ouro, volutas de ouro nas têmporas e crista alta de crina.
+  protetor de nariz e fenda da boca recortados a partir da posição real do rosto, filete e volutas de ouro
+  nas têmporas. O bronze é trabalhado: sobrancelhas em relevo, palmeta gravada na testa, volutas nas faces e
+  friso de dois filetes com pontos puncionados em toda beira. A **crista** é de crina em mechas (cartões
+  finos com textura de fios e transparência), presa numa régua de bronze com cravos de ouro, mais alta no
+  topo e deitada para trás, e continua num rabo comprido que cai pelas costas.
 - **Traje dos Mirmidões:** corselete de linho (linotórax) cor de osso com barras carmesim, vivo de ouro
   nas costuras e meandro grego de ouro; saiote de escamas de bronze fechado por um cinturão com cravos e
   fivela; epômides (abas de ombro) amarradas no peito com argolas de ouro; disco de bronze abaulado no
   peito com a formiga dos Mirmidões; lâminas de bronze só no braço do escudo; braçadeiras com placa de
   bronze e amarração em ziguezague; cnêmides com nervura central, joelheira e correias com fivela; saia de
-  quíton com pregas e barra carmesim; duas camadas de ptéruges de couro com cravos; faixa carmesim e capa longa.
-- **Camadas sem interseção:** as peças são montadas em camadas que não se cruzam:
+  quíton com pregas e barra carmesim; duas camadas de ptéruges de couro com cravos e faixa carmesim.
+  No linho do peito, uma estrela de dezesseis pontas pintada em carmesim em volta do disco (na Ilíada a
+  couraça que Pátroclo veste é "estrelada"), dente-de-lobo na cintura, filete nas costuras e estrelas pequenas
+  nas abas dos ombros.
+- **Capa de lã simulada:** o pano é simulado no Blender. Um molde em leque (estreito nos ombros, largo na
+  barra) fica preso por dois broches de bronze, franzido em pregas, e cai sobre as costas, a armadura e as
+  pernas até a panturrilha. A textura é pintada no próprio molde: barra tecida com grega em ocre, furos de
+  brasa chamuscados, rasgos compridos, um canto arrancado e a barra desfiada com fios soltos (no alfa da
+  textura). O pano é uma folha só, vista dos dois lados. Com o escudo nas costas entra uma segunda capa,
+  simulada com o escudo por cima.
+- **Escudo:** por padrão vai no braço esquerdo (no painel dá para pôr nas costas). A face de bronze é
+  gravada: anéis, faixa de onda corrida e raios em volta da formiga.
+- **Camadas sem interseção:** as peças procedurais são montadas em camadas que não se cruzam:
   - as barras coloridas são partes complementares da mesma casca (não chapas sobrepostas), e as epômides
     e o cinturão são recortes do próprio corselete afastados dele, então ficam sempre paralelos;
   - escamas, cravos e fivelas são assentados por raios lançados contra a superfície;
-  - saia, ptéruges, faixa e capa usam os pesos da pele mais próxima, então acompanham as pernas nas poses;
+  - saia, ptéruges, faixa e capa usam os pesos da pele mais próxima, então acompanham as pernas nas poses
+    (a capa segue só o tronco e as coxas, não os braços);
   - com a armadura ligada, o corpo usa uma malha sem os polígonos escondidos sob a roupa (a pele não
     tem como vazar pelo tecido); com ela desligada, entram o corpo inteiro e uma saia com o cós justo no quadril;
   - o corselete é rígido: passa em ponte sobre o sulco da coluna e termina numa barra reta, de onde saem as tiras.
@@ -112,26 +127,34 @@ animações e verificações em [docs/JOGABILIDADE.md](docs/JOGABILIDADE.md).
 - **Desgaste de batalha:** o herói aparece no meio da luta, não saído da oficina:
   - sujeira: lama e poeira subindo dos pés (cnêmides, barra da capa e da saia), pó nas frestas da armadura,
     manchas e escorridos no linho e na pele; sangue seco em respingos, mais forte na ponta da lâmina;
-  - rasgos: capa com a barra esfarrapada, fendas, buracos e um canto arrancado; bainha da saia rasgada;
+  - rasgos: capa com a barra esfarrapada, fendas, furos de brasa e um canto arrancado; bainha da saia rasgada;
     uma das pontas da faixa rasgada; tiras de couro de comprimentos desiguais, algumas cortadas;
   - marcas de combate: três cortes de lâmina no linho do corselete, sulcos de golpes no bronze e três
     flechas quebradas cravadas no escudo.
   A sujeira e o sangue são dois controles do painel. Funcionam com máscaras gravadas na cor dos vértices
   (G = sujeira, B = regiões de sangue) e uma textura repetível (`Texturas/Desgaste/sujeira.png`), lidas
-  pelos shaders dos personagens. Os rasgos são recortes na malha do pano (`CapeTear` e `SkirtTear` em
-  `PatrocloFit.cs`).
+  pelos shaders dos personagens. Os rasgos da saia são recortes na malha (`SkirtTear` em `PatrocloFit.cs`);
+  os da capa estão no molde (`Ferramentas/blender/capa_molde.py`), que recorta a malha e pinta o alfa.
 - **Espada:** lâmina em folha de ~1 m (estilo das espadas da Idade do Bronze, ~1,4 m no total), nervura
   com filete de ouro, meandro gravado, guarda em chifres com volutas e empunhadura de duas mãos.
   Na pose Neutra ela descansa no ombro direito.
 - **Adaga de cintura:** no quadril direito, do lado oposto ao da faixa: bainha de couro com boca e
-  ponteira de bronze, presa por uma correia na barra do corselete. O escudo ganhou rebites de ouro em volta.
+  ponteira de bronze, presa por uma correia na barra do corselete. O escudo tem rebites de ouro em volta.
 - **Materiais (4K):** bronze martelado e polido gerado por código (marcas de martelo, riscos de polimento,
   manchas de mão), couro, linho, lã e pedra escaneados do Poly Haven (CC0). Pele em 4K com poros,
   vermelhidão nas extremidades, lábios, veias e mapa de brilho (zona T e lábios brilham, barba é fosca).
-- **Capturas:** 18 vistas em 1600x2000 (frente, costas com e sem capa, perfil, closes, combate, sem armadura,
-  capa rasgada inteira, adaga e cintura), renderizadas em 3200x4000 com MSAA 4x e reduzidas (supersampling).
+- **Texturas pintadas (4K):** elmo, cnêmides, escudo, disco do peito, lâminas do braço, placas das
+  braçadeiras e cinturão dividem um mapa de textura próprio (sem repetição), e o linho do corselete e das
+  abas tem outro. O pintor (`Ferramentas/blender/pintor.py`) conhece a posição 3D, a oclusão, a curvatura e
+  a distância à beira de cada ponto: põe pátina escura nas frestas e nas gravações, metal vivo nas quinas,
+  mossas, cortes e arranhões. O grão fino (martelado, trama) continua vindo da textura repetida, como mapa
+  de detalhe. A capa tem o seu conjunto (`pintor_capa.py`).
+- **Capturas:** 20 vistas em 1600x2000 (frente, costas com e sem capa, perfil, closes, combate, sem armadura,
+  capa inteira, adaga e cintura, escudo nas costas, lado do escudo), renderizadas em 3200x4000 com MSAA 4x
+  e reduzidas (supersampling).
 - **Mexer no design:** selecione `Patroclo` e use o componente **Patroclo Design** no Inspector:
-  - paleta: tinge as texturas;
+  - paleta: tinge as texturas (nas peças com textura pintada, a cor escolhida entra como proporção sobre a
+    cor padrão: no padrão a pintura sai exatamente como foi feita);
   - armadura (desligue para ver o corpo inteiro e a musculatura), elmo, crista, capa, e escudo nas costas ou no braço;
   - desgaste de batalha: sujeira e sangue, de 0 (limpo) a 1;
   - pose: Repouso (A), Neutra, Combate ou Livre;
@@ -139,7 +162,18 @@ animações e verificações em [docs/JOGABILIDADE.md](docs/JOGABILIDADE.md).
 - **Posar à mão:** escolha a pose **Livre** (o painel deixa de mexer nos ossos) e gire os ossos do
   MakeHuman (`upperarm01.R`, `lowerarm01.R`, `upperleg01.L`, `spine03`, `head`...). No repouso todos
   têm rotação zero e eixos iguais aos do mundo: X é a direita do personagem, Y é para cima e Z é para a frente.
-- **Regerar:** menu `Troia > Personagem > Gerar Pátroclo` (recria malhas, materiais e o prefab).
+- **Regerar:** menu `Troia > Personagem > Gerar Pátroclo` (recria malhas, materiais e o prefab, usando as
+  peças do Blender que estiverem em `Fonte/patroclo_blender.*`).
+- **Blender:** a capa, a crista e as texturas pintadas são feitas no Blender 5.x por script, sem janela.
+  - arquivo de arte: `Arte/Patroclo/Patroclo.blend` (esqueleto, todas as peças com pesos e materiais com as
+    texturas do jogo); fica fora de `Assets/` de propósito, para o Unity não tentar importá-lo;
+  - refazer tudo: `Ferramentas/blender/gerar.sh` (Unity exporta as peças procedurais, o Blender simula,
+    abre os mapas de textura e exporta, os pintores geram as texturas, o Unity monta o personagem e tira as
+    capturas); `gerar.sh blender` pula a exportação do Unity e `gerar.sh unity` só remonta no Unity;
+  - mexer à mão: abra o `.blend`, edite a peça, rode `Ferramentas/blender/bl_exportar.py` na aba Scripting
+    e depois `Troia > Personagem > Gerar Pátroclo` no Unity. Só saem as peças com a propriedade
+    `troia_exportar` ligada. Atenção: `gerar.sh` recria o `.blend` do zero e apaga edições manuais;
+  - detalhes em `Ferramentas/blender/LEIAME.md`.
 - **Fontes e ferramentas** (Python 3 com numpy, scipy e Pillow), em `Ferramentas/`. Rode com a pasta
   baixada do MakeHuman (`3dobjs`, `targets`, `rigs`, `pack`):
   - `makehuman/mh_build.py <dl> Assets/.../Fonte/patroclo_mh.json 1.83`: alvos de forma do corpo e do rosto
@@ -163,5 +197,12 @@ animações e verificações em [docs/JOGABILIDADE.md](docs/JOGABILIDADE.md).
   - `TroiaMeshes.cs` — geometria das construções e adereços
   - `TroiaAssets.cs` / `TexGen.cs` — texturas, materiais, céu, fogo e prefabs
   - `MeshBuilder.cs` — utilitário de malhas procedurais
-- `Assets/Troia/Scripts/Runtime/` — `FireFlicker`, `LevelMarker`, `MapPreviewWalker`, `TroiaShaderGlobals`
+- `Assets/Troia/Scripts/Editor/` — gerador do personagem
+  - `PatrocloBuilder.cs` — materiais, montagem das peças, prefab, vitrine e capturas
+  - `PatrocloFit.cs` / `PatrocloArmor.cs` / `PatrocloMeshes.cs` — peças procedurais ajustadas ao corpo
+  - `PatrocloAO.cs` — oclusão e máscaras de desgaste assadas nos vértices
+  - `PatrocloTroca.cs` — ponte com o Blender (exporta a base, lê as peças prontas)
+  - `MakeHumanImporter.cs` — corpo e esqueleto
+- `Assets/Troia/Scripts/Runtime/` — `FireFlicker`, `LevelMarker`, `MapPreviewWalker`, `TroiaShaderGlobals`,
+  `PatrocloDesign` (painel do personagem)
 - `Assets/Troia/Shaders/` — `TroiaLitSujo.shader` e `TroiaGrime.hlsl`

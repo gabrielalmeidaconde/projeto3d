@@ -45,6 +45,7 @@ struct Varyings
 #endif
 
     float3 normalWS                 : TEXCOORD2;
+    float2 uvSujeira                : TEXCOORD4;    // UV em metros para a textura de sujeira
 #if defined(REQUIRES_WORLD_SPACE_TANGENT_INTERPOLATOR)
     half4 tangentWS                : TEXCOORD3;    // xyz: tangent, w: sign
 #endif
@@ -187,6 +188,12 @@ Varyings TroiaCharPassVertex(Attributes input)
     #endif
 
     output.uv = TRANSFORM_TEX(input.texcoord, _BaseMap);
+#if defined(_TROIA_UV2)
+    // peças com textura pintada por inteiro: a primeira UV é o mapa da pintura; a sujeira usa a segunda (em metros)
+    output.uvSujeira = input.staticLightmapUV;
+#else
+    output.uvSujeira = output.uv;
+#endif
 
     // already normalized from normal transform to WS.
     output.normalWS = normalInput.normalWS;
@@ -293,6 +300,9 @@ void TroiaWeather(float2 uv, half4 vc, inout SurfaceData s)
 
 void TroiaCharPassFragment(
     Varyings input
+#if defined(_TROIA_PANO)
+    , FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC
+#endif
     , out half4 outColor : SV_Target0
 #ifdef _WRITE_RENDERING_LAYERS
     , out uint outRenderingLayers : SV_Target1
@@ -315,7 +325,7 @@ void TroiaCharPassFragment(
     SurfaceData surfaceData;
     InitializeStandardLitSurfaceData(input.uv, surfaceData);
 
-    TroiaWeather(input.uv, input.vertexAO, surfaceData);
+    TroiaWeather(input.uvSujeira, input.vertexAO, surfaceData);
 
     // oclusão assada por vértice: escurece a luz ambiente/reflexos e, em parte, a luz direta
     half bakedAO = saturate(input.vertexAO.r);
@@ -328,6 +338,10 @@ void TroiaCharPassFragment(
 
     InputData inputData;
     InitializeInputData(input, surfaceData.normalTS, inputData);
+#if defined(_TROIA_PANO)
+    // pano de folha única visto pelo avesso: a superfície olha para o outro lado
+    inputData.normalWS *= IS_FRONT_VFACE(cullFace, 1.0h, -1.0h);
+#endif
     SETUP_DEBUG_TEXTURE_DATA(inputData, UNDO_TRANSFORM_TEX(input.uv, _BaseMap));
 
 #if defined(_DBUFFER)
