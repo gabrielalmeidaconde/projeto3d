@@ -471,6 +471,58 @@ namespace Troia.EditorTools
             return Rgba(col, a * 0.9f + ember * 0f);
         });
 
+        // ------------------------------------------------------------------ personagem (tons de cinza, tingidos pelo material)
+        /// <summary>Bronze martelado: marcas de martelo, riscos e sujeira leve.</summary>
+        public static void HammeredMetal(float u, float v, out Color c, out float h)
+        {
+            Voronoi(u, v, 22, 401, out float f1, out _, out float id);
+            float n = Fbm(u, v, 8, 8, 4, 402), n2 = Fbm(u, v, 64, 64, 2, 403);
+            float scratch = Smooth(0.86f, 0.93f, Fbm(u, v, 96, 8, 2, 404));
+            float grime = Smooth(0.55f, 0.8f, Fbm(u, v, 4, 4, 4, 405)) * 0.2f;
+            float g = 0.84f + 0.1f * id + 0.06f * n + 0.04f * n2 - scratch * 0.1f - grime;
+            c = new Color(g, g, g, 1f);
+            h = -f1 * f1 * 0.9f + n2 * 0.05f - scratch * 0.06f;
+        }
+
+        public static void LeatherGrain(float u, float v, out Color c, out float h)
+        {
+            Voronoi(u, v, 40, 411, out float f1, out float f2, out _);
+            float crease = 1f - Smooth(0f, 0.08f, f2 - f1);
+            float n = Fbm(u, v, 6, 6, 5, 412), n2 = Fbm(u, v, 48, 48, 2, 413);
+            float worn = Smooth(0.6f, 0.8f, n) * 0.15f;
+            float g = 0.8f + 0.12f * n2 + 0.1f * n - crease * 0.18f + worn;
+            c = new Color(g, g, g, 1f);
+            h = 0.6f - crease * 0.4f + n2 * 0.15f;
+        }
+
+        public static void LinenWeave(float u, float v, out Color c, out float h)
+        {
+            float wx = 0.5f + 0.5f * Mathf.Sin(u * Mathf.PI * 2f * 140f);
+            float wy = 0.5f + 0.5f * Mathf.Sin(v * Mathf.PI * 2f * 140f);
+            float slub = Fbm(u, v, 128, 6, 2, 421);
+            float n = Fbm(u, v, 5, 5, 4, 422);
+            float stain = Smooth(0.6f, 0.82f, Fbm(u, v, 4, 4, 4, 423)) * 0.14f;
+            float g = 0.86f + 0.06f * (wx * wy) + 0.05f * slub + 0.03f * n - stain;
+            c = new Color(g, g, g, 1f);
+            h = wx * wy * 0.5f + slub * 0.2f;
+        }
+
+        public static void SkinPores(float u, float v, out Color c, out float h)
+        {
+            float n = Fbm(u, v, 6, 6, 4, 431), pores = Fbm(u, v, 160, 160, 2, 432);
+            float g = 0.94f + 0.05f * n - 0.03f * Smooth(0.6f, 0.75f, pores);
+            c = new Color(g, g, g, 1f);
+            h = n * 0.3f - Smooth(0.6f, 0.75f, pores) * 0.1f;
+        }
+
+        public static void HairStrands(float u, float v, out Color c, out float h)
+        {
+            float s = Fbm(u, v, 160, 6, 3, 441), s2 = Fbm(u, v, 48, 3, 3, 442);
+            float g = 0.55f + 0.35f * s + 0.15f * s2;
+            c = new Color(g, g, g, 1f);
+            h = s * 0.7f + s2 * 0.3f;
+        }
+
         // ------------------------------------------------------------------ partículas (alfa)
         public static Color[] Flame(int s)
         {

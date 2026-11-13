@@ -1,0 +1,5 @@
+Texturas derivadas de materiais do Poly Haven (polyhaven.com), licença CC0, em 4k:
+couro <- brown_leather; linho <- rough_linen; la <- caban; pedra <- monastery_stone_floor.
+estudio_reflexo.hdr <- HDRI brown_photostudio_02 (2k), usado só nos reflexos da vitrine.
+bronze_* é procedural (Ferramentas/texturas/bronze_martelado.py), sem asset de terceiros.
+Geradas por Ferramentas/texturas/prep_polyhaven.py. O canal A de *_ms.png é 1 - rugosidade.

@@ -10,6 +10,8 @@ namespace Troia.EditorTools
         Stone, MudBrick, Plaster, PlasterOchre, PlasterRed, PlasterWhite, Terracotta, Straw,
         Wood, WoodDark, WoodPainted, Roof, RoofTile, Cobble, Marble, Bronze, Gold,
         Cloth, ClothBlue, Dark, Charred, Rope, Foliage, Water, WindowLit, PaintedBlue, HorseWood,
+        // personagem (Pátroclo)
+        PBronze, PBronzeDark, PGold, PBlade, PCrimson, PCrimsonDark, PLinen, PLeather, PSkin, PHair, PEye, PCut, PEmblem, PWood, PMark,
         Count
     }
 
@@ -21,6 +23,8 @@ namespace Troia.EditorTools
     public class MeshBuilder
     {
         static readonly float[] UvScale = MakeUvScale();
+        /// <summary>Metros por unidade de UV do slot de material.</summary>
+        public static float UvScaleOf(M m) => UvScale[(int)m];
 
         static float[] MakeUvScale()
         {
@@ -37,6 +41,17 @@ namespace Troia.EditorTools
             s[(int)M.Marble] = 3f;
             s[(int)M.Foliage] = 1.5f;
             s[(int)M.Water] = 25f;
+            s[(int)M.PBronze] = s[(int)M.PBronzeDark] = 0.5f;
+            s[(int)M.PGold] = 0.3f;
+            s[(int)M.PBlade] = 0.4f;
+            s[(int)M.PCrimson] = 0.25f;
+            s[(int)M.PCrimsonDark] = 0.5f;
+            s[(int)M.PLinen] = 0.3f;
+            s[(int)M.PLeather] = 0.35f;
+            s[(int)M.PSkin] = 0.3f;
+            s[(int)M.PHair] = 0.12f;
+            s[(int)M.PEye] = s[(int)M.PCut] = s[(int)M.PEmblem] = s[(int)M.PMark] = 0.3f;
+            s[(int)M.PWood] = 0.8f;
             return s;
         }
 
@@ -48,6 +63,11 @@ namespace Troia.EditorTools
         Matrix4x4 _m = Matrix4x4.identity;
 
         public int VertexCount => _v.Count;
+        public IReadOnlyList<Vector3> Vertices => _v;
+        public IReadOnlyList<Vector3> Normals => _n;
+        public IReadOnlyList<Vector2> Uvs => _uv;
+        /// <summary>Triângulos do slot de material (null se não usado).</summary>
+        public List<int> TrianglesOf(M m) => _t[(int)m];
 
         // ------------------------------------------------------------------ transformações
         public void Push(Vector3 pos, Quaternion rot)
@@ -375,6 +395,77 @@ namespace Troia.EditorTools
                 prof[k] = new Vector2(R + t * Mathf.Cos(th), t * Mathf.Sin(th));
             }
             Lathe(center, rot, prof, seg, m, false, false);
+        }
+
+        /// <summary>
+        /// Grade [linha, coluna] com normais dadas (sombreamento suave). As faces são orientadas
+        /// para o lado das normais. UV: (ao longo das colunas, ao longo das linhas) em metros.
+        /// </summary>
+        public void Grid(Vector3[,] p, Vector3[,] nrm, M m, bool swapUv = false)
+        {
+            int R = p.GetLength(0), C = p.GetLength(1);
+            float s = 1f / UvScale[(int)m];
+            int first = _v.Count;
+            for (int r = 0; r < R; r++)
+            {
+                float u = 0f, v = 0f;
+                for (int c = 0; c < C; c++)
+                {
+                    if (c > 0) u += Vector3.Distance(p[r, c], p[r, c - 1]);
+                    _v.Add(_m.MultiplyPoint3x4(p[r, c]));
+                    _n.Add(_m.MultiplyVector(nrm[r, c]).normalized);
+                    v = 0f;
+                    for (int rr = 1; rr <= r; rr++) v += Vector3.Distance(p[rr, c], p[rr - 1, c]);
+                    _uv.Add(swapUv ? new Vector2(v * s, u * s) : new Vector2(u * s, v * s));
+                }
+            }
+            var t = Tris(m);
+            for (int r = 0; r < R - 1; r++)
+                for (int c = 0; c < C - 1; c++)
+                {
+                    int A = first + r * C + c, B = A + 1, D = A + C, E = D + 1;
+                    Vector3 fn = Vector3.Cross(_v[D] - _v[A], _v[E] - _v[A]);
+                    if (Vector3.Dot(fn, _n[A] + _n[E]) >= 0f) { t.Add(A); t.Add(D); t.Add(E); t.Add(A); t.Add(E); t.Add(B); }
+                    else { t.Add(A); t.Add(E); t.Add(D); t.Add(A); t.Add(B); t.Add(E); }
+                }
+        }
+
+        /// <summary>Folha dupla face a partir de uma grade de pontos [linha, coluna] (ex.: capa).</summary>
+        public void Sheet(Vector3[,] p, M front, M back)
+        {
+            int R = p.GetLength(0), C = p.GetLength(1);
+            var nrm = new Vector3[R, C];
+            for (int r = 0; r < R; r++)
+                for (int c = 0; c < C; c++)
+                {
+                    Vector3 du = p[r, Mathf.Min(c + 1, C - 1)] - p[r, Mathf.Max(c - 1, 0)];
+                    Vector3 dv = p[Mathf.Min(r + 1, R - 1), c] - p[Mathf.Max(r - 1, 0), c];
+                    nrm[r, c] = Vector3.Cross(dv, du).normalized;
+                }
+            float w = 0f, hgt = 0f;
+            for (int c = 1; c < C; c++) w += Vector3.Distance(p[0, c], p[0, c - 1]);
+            for (int r = 1; r < R; r++) hgt += Vector3.Distance(p[r, 0], p[r - 1, 0]);
+            for (int side = 0; side < 2; side++)
+            {
+                M m = side == 0 ? front : back;
+                float s = 1f / UvScale[(int)m];
+                int first = _v.Count;
+                for (int r = 0; r < R; r++)
+                    for (int c = 0; c < C; c++)
+                    {
+                        _v.Add(_m.MultiplyPoint3x4(p[r, c]));
+                        _n.Add(_m.MultiplyVector(side == 0 ? nrm[r, c] : -nrm[r, c]).normalized);
+                        _uv.Add(new Vector2((float)c / (C - 1) * w * s, (float)r / (R - 1) * hgt * s));
+                    }
+                var t = Tris(m);
+                for (int r = 0; r < R - 1; r++)
+                    for (int c = 0; c < C - 1; c++)
+                    {
+                        int A = first + r * C + c, B = A + 1, D = A + C, E = D + 1;
+                        if (side == 0) { t.Add(A); t.Add(E); t.Add(B); t.Add(A); t.Add(D); t.Add(E); }
+                        else { t.Add(A); t.Add(B); t.Add(E); t.Add(A); t.Add(E); t.Add(D); }
+                    }
+            }
         }
 
         // ------------------------------------------------------------------ saída

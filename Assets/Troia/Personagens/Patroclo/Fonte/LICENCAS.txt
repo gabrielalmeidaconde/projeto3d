@@ -1,0 +1,9 @@
+Corpo, esqueleto, pesos, olhos, sobrancelhas, cílios, cabelo e pele do Pátroclo vêm do
+MakeHuman (makehumancommunity.org), assets liberados como CC0 (domínio público) em 2020:
+- malha base, targets (macros, corpo, rosto e medidas), esqueleto "default" e pesos:
+  repositório makehumancommunity/makehuman
+- pele young_caucasian_male, eyebrow001, eyelashes01, short04 e olhos high-poly:
+  pacote makehuman_system_assets_cc0
+O JSON foi gerado por Ferramentas/makehuman/mh_build.py (misturas de corpo e rosto, realce
+muscular e subdivisão). O normal map e a difusa final da pele foram gerados por mh_skin.py
+(detalhes procedurais próprios, sem outros assets).
