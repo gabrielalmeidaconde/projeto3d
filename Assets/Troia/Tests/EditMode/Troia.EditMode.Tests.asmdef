@@ -1,0 +1,6 @@
+{
+  "name": "Troia.EditMode.Tests",
+  "references": ["Troia.Runtime"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

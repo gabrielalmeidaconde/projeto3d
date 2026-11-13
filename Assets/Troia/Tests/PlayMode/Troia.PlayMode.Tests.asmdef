@@ -1,0 +1,5 @@
+{
+  "name": "Troia.PlayMode.Tests",
+  "references": ["Troia.Runtime", "Unity.InputSystem"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

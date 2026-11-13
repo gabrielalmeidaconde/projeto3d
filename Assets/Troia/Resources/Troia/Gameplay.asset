@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 583a985c328b21a4b9c8ae942664d630, type: 3}
+  m_Name: Gameplay
+  m_EditorClassIdentifier: Troia.Runtime:Troia:GameplayConfig
+  startingTime: 180
+  secondsPerKill: 3
+  inputBuffer: 0.2
+  moveSpeed: 5.5
+  sprintSpeed: 8.5
+  jumpSpeed: 9
+  gravity: 25
+  dodgeSpeed: 14
+  dodgeDuration: 0.32
+  dodgeCooldown: 0.55
+  heavyHold: 0.35
+  playerHealth: 120
+  light: {fileID: 11400000, guid: d639dc941af2a9e41b9b35c7e672e8f6, type: 2}
+  heavy: {fileID: 11400000, guid: 4a06288b80bd1364c8f856ab331c0d52, type: 2}
+  launcher: {fileID: 11400000, guid: d481acb751dae134ea2bdb3e4fad01fd, type: 2}
+  airLight: {fileID: 11400000, guid: 8c6c694c4007c974da153dc51ed09230, type: 2}
+  slam: {fileID: 11400000, guid: 0e30205b026161b4e84ec7bda1276d77, type: 2}
+  combatVersion: 4
+  weapons:
+  - {fileID: 11400000, guid: db876764bc6f6054fb4b766d8eaef54e, type: 2}
+  - {fileID: 11400000, guid: 07edb663b29bcee44a3e4d24bdeaa57e, type: 2}
+  - {fileID: 11400000, guid: 06004ba7d52477c438123c716ca193fb, type: 2}
+  doubleJumpSpeed: 8.5
+  approachSpeed: 26
+  approachRange: 18
+  approachCooldown: 0.75
+  lockRange: 24
+  floors:
+  - {fileID: 11400000, guid: 2cb5e74ba14693c45ae17cb69b89b4fe, type: 2}
+  - {fileID: 11400000, guid: 68ca288b9d8510a42865c85783b4a6ed, type: 2}
+  - {fileID: 11400000, guid: 0edac2891d4290345b1beb1c36a05f08, type: 2}
+  - {fileID: 11400000, guid: a5a4c3886b3de0f43bd340c15d71275a, type: 2}
+  - {fileID: 11400000, guid: 16287775cf549a9418ecc4652bb7a4fa, type: 2}
+  - {fileID: 11400000, guid: 0b9035bf09db3434fa3fcb38046fa89b, type: 2}
+  - {fileID: 11400000, guid: 26629c1a0599b2b468519f1d54400ce3, type: 2}
+  - {fileID: 11400000, guid: da38b2b6adc66c645a4713dbccfecfc5, type: 2}
+  - {fileID: 11400000, guid: fe2d9ba95655e3e4792b33eb0899bca0, type: 2}
+  - {fileID: 11400000, guid: 9229d55914551344687846a43c09cbe1, type: 2}
+  - {fileID: 11400000, guid: 9e9396a4e42a9574f8d2bbd092fdfc16, type: 2}
+  - {fileID: 11400000, guid: 10533ae0baab46e41aadee3eb95775e2, type: 2}
+  - {fileID: 11400000, guid: 5739ed2997dea6b488f6b707fc71bd54, type: 2}
+  - {fileID: 11400000, guid: a82028900c3a07f4a879b5857191611a, type: 2}
+  - {fileID: 11400000, guid: 90ebd7e730dcd534bbf9d0fab7c031cb, type: 2}
+  - {fileID: 11400000, guid: b1bcecb4e521e1b439d5651f45e76001, type: 2}
+  - {fileID: 11400000, guid: 751a8e34f74797149adef5b7f9a6a132, type: 2}
+  - {fileID: 11400000, guid: 50288552443ee8645be0bd5c2d028f85, type: 2}
+  - {fileID: 11400000, guid: 93c26305ef5143449bc8280a4d01f4b1, type: 2}
+  - {fileID: 11400000, guid: a801726785a45ad4ba3991c05856af53, type: 2}
+  blessings:
+  - {fileID: 11400000, guid: bff4481df5047ff469c3dcb9a3bddf6c, type: 2}
+  - {fileID: 11400000, guid: f823fd9db1bfdcb449d6ac5152816a25, type: 2}
+  - {fileID: 11400000, guid: 3f2e8cd223dd6c44395b985fe78d3f8f, type: 2}
+  - {fileID: 11400000, guid: 287c33b6be044024b80910b891a2a8c2, type: 2}
+  - {fileID: 11400000, guid: c1953aac3a6b80d4382c99e8d50e1463, type: 2}
+  - {fileID: 11400000, guid: d983455c83f55584faa0ce1233f6ff90, type: 2}

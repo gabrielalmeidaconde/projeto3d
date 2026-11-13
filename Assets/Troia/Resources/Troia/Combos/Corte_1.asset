@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Corte_1
+  m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
+  id: Corte_1
+  animationState: Corte_1
+  displayName: Corte de abertura
+  command: L L L / L P / L L (pausa) L L
+  motion: 0
+  input: 0
+  damage: 14
+  duration: 0.38
+  hitStart: 0.085
+  hitEnd: 0.16
+  comboOpen: 0.19
+  comboClose: 0.36
+  cooldown: 0
+  minimumRecovery: 0.02
+  range: 2.8
+  angle: 110
+  knockback: 1
+  launch: 0
+  lunge: 1
+  aerial: 0
+  finisher: 0
+  slam: 0
+  hitCount: 1
+  next: {fileID: 11400000, guid: 14e5a5b496f015042b0eb23cd2f0e541, type: 2}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: a685d439be356c44193cf3253cb9f189, type: 2}
+  delayedThreshold: 0.43

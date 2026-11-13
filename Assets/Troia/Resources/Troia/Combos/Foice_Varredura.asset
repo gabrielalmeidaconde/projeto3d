@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Foice_Varredura
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Foice_Varredura
+  animationState: Foice_Varredura
+  displayName: Varredura circular
+  command:
+  motion: 2
+  input: 0
+  damage: 13.6
+  duration: 0.693
+  hitStart: 0.15246
+  hitEnd: 0.3465
+  comboOpen: 0.36650002
+  comboClose: 0.65835
+  cooldown: 0
+  minimumRecovery: 0.02
+  range: 4.2
+  angle: 300
+  knockback: 0.65
+  launch: 0
+  lunge: 0.6
+  aerial: 0
+  finisher: 0
+  slam: 0
+  hitCount: 2
+  next: {fileID: 11400000, guid: e5c7c85a3469e034fa87ab5623667d08, type: 2}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 0}
+  delayedThreshold: 0.4515

@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Machado_Corte2
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Machado_Corte2
+  animationState: Machado_Corte2
+  displayName: Veredito
+  command:
+  motion: 0
+  input: 0
+  damage: 42
+  duration: 0.72
+  hitStart: 0.26
+  hitEnd: 0.39
+  comboOpen: 0.45
+  comboClose: 0.69
+  cooldown: 0.12
+  minimumRecovery: 0.06
+  range: 2.9
+  angle: 100
+  knockback: 0.45499998
+  launch: 0
+  lunge: 0.6
+  aerial: 0
+  finisher: 1
+  slam: 0
+  hitCount: 1
+  next: {fileID: 0}
+  delayedNext: {fileID: 11400000, guid: 754ddb68bf185514f9f37490c083df49, type: 2}
+  heavyNext: {fileID: 11400000, guid: 7a8947c60e8bc7546829bbf74ce0ab71, type: 2}
+  delayedThreshold: 0.55

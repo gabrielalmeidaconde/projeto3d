@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ab7af37f9f75f4ba61412dcd4578bd, type: 3}
+  m_Name: Dory
+  m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
+  id: Dory
+  displayName: DORY / LANCA
+  description: Alcance e controle. Estocadas longas, varreduras e arremesso pesado.
+  kind: 1
+  color: {r: 0.18, g: 0.82, b: 1, a: 1}
+  light: {fileID: 11400000, guid: 4cd3a41defdd5064bab68713ac3a7c30, type: 2}
+  heavy: {fileID: 11400000, guid: dcdc5beb1b17ff9458f8e49f9fb48107, type: 2}
+  launcher: {fileID: 11400000, guid: 5676a0bfce45a41439fbc81ec70efdd9, type: 2}
+  airLight: {fileID: 11400000, guid: 655c43aa29b47be4a903794ef74f4235, type: 2}
+  slam: {fileID: 11400000, guid: 7ef86ae854a180849a62edf90f29ce2d, type: 2}
+  dash: {fileID: 11400000, guid: 78407c34d1181474f857e9a1b507bbff, type: 2}
+  airDash: {fileID: 11400000, guid: 5c37b67db1fd7244b9d35044fd452ff5, type: 2}
+  projectileDamage: 24
+  projectileSpeed: 38
+  projectileRange: 28
+  fireInterval: 0.65
+  projectileCount: 1
+  heavyProjectile: 1

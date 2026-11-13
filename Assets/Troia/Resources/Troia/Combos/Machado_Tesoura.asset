@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Machado_Tesoura
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Machado_Tesoura
+  animationState: Machado_Tesoura
+  displayName: Quebra de muralha
+  command:
+  motion: 4
+  input: 1
+  damage: 58
+  duration: 0.9
+  hitStart: 0.28
+  hitEnd: 0.5
+  comboOpen: 0.64
+  comboClose: 0.87
+  cooldown: 0.45
+  minimumRecovery: 0.14
+  range: 2.9
+  angle: 100
+  knockback: 0.45499998
+  launch: 0
+  lunge: 0.6
+  aerial: 0
+  finisher: 0
+  slam: 0
+  hitCount: 1
+  next: {fileID: 0}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: 82099116a76f20548bfda93a40bb6fd5, type: 2}
+  delayedThreshold: 0.731

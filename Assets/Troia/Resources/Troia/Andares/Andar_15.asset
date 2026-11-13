@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d369ee6472a29bd40ace1fda40d9bcfe, type: 3}
+  m_Name: Andar_15
+  m_EditorClassIdentifier: Troia.Runtime:Troia:WaveSO
+  floor: 15
+  arena: 5
+  enemies:
+  - kind: 0
+    count: 5
+  - kind: 1
+    count: 2
+  - kind: 2
+    count: 1
+  healthMultiplier: 1.35
+  damageMultiplier: 1.35
+  spawnPoints:

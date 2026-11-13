@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Machado_CruzFinal
+  m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
+  id: Machado_CruzFinal
+  animationState: Machado_CruzFinal
+  displayName: Cruz final
+  command:
+  motion: 1
+  input: 0
+  damage: 47.600002
+  duration: 0.816
+  hitStart: 0.17952001
+  hitEnd: 0.408
+  comboOpen: 0.428
+  comboClose: 0.77519995
+  cooldown: 0.12
+  minimumRecovery: 0.02
+  range: 2.9
+  angle: 100
+  knockback: 3.5
+  launch: 0
+  lunge: 1.8
+  aerial: 0
+  finisher: 1
+  slam: 0
+  hitCount: 1
+  next: {fileID: 0}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 0}
+  delayedThreshold: 0.731

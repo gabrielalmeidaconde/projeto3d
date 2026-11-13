@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa029f4e75b43c44a89b2c8124b8ac5, type: 3}
+  m_Name: Corte_3
+  m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
+  id: Corte_3
+  animationState: Corte_3
+  displayName: Sentenca
+  command:
+  motion: 0
+  input: 0
+  damage: 25
+  duration: 0.52
+  hitStart: 0.14
+  hitEnd: 0.27
+  comboOpen: 0.32
+  comboClose: 0.49
+  cooldown: 0.12
+  minimumRecovery: 0.04
+  range: 2.8
+  angle: 110
+  knockback: 7
+  launch: 0
+  lunge: 1
+  aerial: 0
+  finisher: 1
+  slam: 0
+  hitCount: 1
+  next: {fileID: 0}
+  delayedNext: {fileID: 0}
+  heavyNext: {fileID: 0}
+  delayedThreshold: 0.43

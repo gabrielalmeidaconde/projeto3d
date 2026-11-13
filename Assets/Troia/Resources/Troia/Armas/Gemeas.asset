@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ab7af37f9f75f4ba61412dcd4578bd, type: 3}
+  m_Name: Gemeas
+  m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
+  id: Gemeas
+  displayName: LAMINAS GEMEAS
+  description: Velocidade e juggle. Quatro cortes, multiplos impactos e facas em
+    dupla.
+  kind: 2
+  color: {r: 0.85, g: 0.3, b: 1, a: 1}
+  light: {fileID: 11400000, guid: 273c1786c8fb1474eb7e79e291892d7a, type: 2}
+  heavy: {fileID: 11400000, guid: b787ecf4bb8d75b4e91d61d61d03573c, type: 2}
+  launcher: {fileID: 11400000, guid: c4e1caf23f1ef564dba3dc0bae45b1e1, type: 2}
+  airLight: {fileID: 11400000, guid: 26ab4dd4d79b55d45872136701ff5dae, type: 2}
+  slam: {fileID: 11400000, guid: d29648594240b5841905ae75c9547f19, type: 2}
+  dash: {fileID: 11400000, guid: 0d86d4004ea73e84e8f20988460c2dcb, type: 2}
+  airDash: {fileID: 11400000, guid: 8a2cd732ec0604e4882581e6e7b28ed0, type: 2}
+  projectileDamage: 5
+  projectileSpeed: 32
+  projectileRange: 28
+  fireInterval: 0.22
+  projectileCount: 2
+  heavyProjectile: 0
