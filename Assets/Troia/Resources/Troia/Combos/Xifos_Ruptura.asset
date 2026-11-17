@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Xifos_Ruptura
   animationState: Xifos_Ruptura
   displayName: Ruptura
-  command:
+  command: 
   motion: 4
   input: 1
   damage: 26

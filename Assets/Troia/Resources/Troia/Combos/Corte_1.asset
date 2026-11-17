@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Corte_1
   animationState: Corte_1
   displayName: Corte de abertura
-  command: L L L / L P / L L (pausa) L L
+  command: L L L   /   L P   /   L L P
   motion: 0
   input: 0
   damage: 14

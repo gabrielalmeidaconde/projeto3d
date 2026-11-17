@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Xifos_Execucao
   animationState: Xifos_Execucao
   displayName: Execucao
-  command:
+  command: 
   motion: 4
   input: 1
   damage: 40

@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Queda
   animationState: Queda
   displayName: Juizo do ceu
-  command:
+  command: 
   motion: 4
   input: 1
   damage: 40

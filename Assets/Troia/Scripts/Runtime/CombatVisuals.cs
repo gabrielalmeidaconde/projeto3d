@@ -26,6 +26,35 @@ namespace Troia
             Part(pivot, "Guarda", PrimitiveType.Cube, Vector3.zero, new Vector3(.4f, .12f, .13f), new Color(.7f, .45f, .12f));
             return pivot;
         }
+        /// <summary>Faíscas esticadas na direção do golpe, com um clarão curto.</summary>
+        /// <summary>Desenha uma faísca apagada no começo da fase, para o shader não compilar no meio do primeiro golpe.</summary>
+        public static void Prewarm(Vector3 position)
+        {
+            Spark(position, Vector3.up, Color.black, false, true); Burst(position, Color.black, .05f);
+        }
+        public static void Spark(Vector3 position, Vector3 direction, Color color, bool heavy, bool silent = false)
+        {
+            var root = new GameObject("Faiscas") { layer = 2 }; root.transform.position = position;
+            if (direction.sqrMagnitude > .01f) root.transform.rotation = Quaternion.LookRotation(direction + Vector3.up * .25f);
+            var ps = root.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main; main.startLifetime = new ParticleSystem.MinMaxCurve(.12f, heavy ? .4f : .26f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(heavy ? 6 : 4, heavy ? 16 : 10); main.startSize = new ParticleSystem.MinMaxCurve(.025f, heavy ? .07f : .045f);
+            Color quente = Color.Lerp(color, new Color(1, .9f, .6f), .6f);
+            main.startColor = quente; main.loop = false; main.duration = .3f; main.gravityModifier = 1.6f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            var emission = ps.emission; emission.rateOverTime = 0;
+            var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = heavy ? 42 : 30; shape.radius = .05f;
+            var renderer = root.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Stretch; renderer.lengthScale = 1; renderer.velocityScale = .07f;
+            var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); material.color = quente * 2.2f;
+            renderer.sharedMaterial = material; root.AddComponent<OwnedMaterial>().material = material;
+            var light = root.AddComponent<Light>(); light.type = LightType.Point; light.color = quente; light.range = heavy ? 6 : 3.5f;
+            light.intensity = silent ? 0 : heavy ? 9 : 4; light.shadows = LightShadows.None;
+            if (silent) { material.color = new Color(0, 0, 0, .01f); main.startColor = new Color(0, 0, 0, .01f); }
+            root.AddComponent<Clarao>();
+            ps.Play(); ps.Emit(heavy ? 34 : 16); Object.Destroy(root, .7f);
+        }
         public static void Burst(Vector3 position, Color color, float radius = .35f)
         {
             var root = new GameObject("Impacto"); root.transform.position = position;
@@ -41,6 +70,12 @@ namespace Troia
             root.AddComponent<OwnedMaterial>().material = material;
             ps.Play(); ps.Emit(18); Object.Destroy(root, .6f);
         }
+    }
+    public class Clarao : MonoBehaviour
+    {
+        Light luz; float inicial;
+        void Awake() { luz = GetComponent<Light>(); inicial = luz ? luz.intensity : 0; }
+        void Update() { if (luz) luz.intensity = Mathf.MoveTowards(luz.intensity, 0, inicial * Time.unscaledDeltaTime / .1f); }
     }
     public class OwnedMaterial : MonoBehaviour
     {

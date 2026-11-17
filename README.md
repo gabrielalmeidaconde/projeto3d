@@ -45,11 +45,11 @@ combate; também funciona após regerar o mapa.
 
 - **WASD** mover, **Shift** correr, **Espaço** pular (novamente no ar: pulo duplo), **Ctrl** esquivar/cancelar golpe.
 - **Mouse** câmera, **Scroll** zoom, **clique esquerdo/J** leve, **clique direito/K** pesado.
-- **1/2/3** trocam entre espada, foice e machado, inclusive durante sequências.
-- **F/clique do meio** fixa alvo, **T** troca alvo, **E** avança com espada/foice ou puxa com machado.
-- **R** dispara pistolas duplas; três rajadas exigem 0,95 s de recuperação compartilhada.
+- **1/2/3** trocam entre espada, lança e escudo, inclusive durante sequências.
+- **F/clique do meio** fixa alvo, **T** troca alvo, **E** avança com espada/lança ou puxa com o arpão (escudo).
+- **R** arremessa dardos; três arremessos exigem 0,95 s de recuperação compartilhada.
 - Segure pesado para lançar; pule e pressione **E** para perseguir, ou pesado no ar para cair em área.
-- **LLL** (machado: **LL**), **LP**, **PP** e **LL (pausa) LL** têm rotas próprias por arma.
+- Combos: **L L L** (escudo: **L L**); **L P** e **L L P** fecham com finalizadores diferentes; **P P**. Não há ramos por pausa.
 - **Q** poder divino, **Tab** trocar deus, **Esc** pausa, **H** lista de golpes, **F2** treino livre.
 - Controle: analógico esquerdo mover, direito câmera, **A** pulo, **B** esquiva,
   **X/Y** leve/pesado, **LT** foco, **RB** aproximação, **RT** projéteis,
@@ -66,8 +66,27 @@ na preparação e cancelamento da recuperação para andar. Ataque e troca podem
 enfileirados durante E. **C** executa o lançador diretamente. Esquivas no instante
 de um ataque real geram estilo e favor; os inimigos sinalizam golpes e limitam
 preparações simultâneas a dois atacantes.
-O herói usa uma estilização mais sombria: rosto anguloso, olhos estreitos vermelhos,
-cicatriz, cabelo cinza prateado, casaco vinho e couro preto, com proporções compactas.
+O herói do jogo é o **Pátroclo** (prefab em `Assets/Troia/Personagens/Patroclo`), ligado por
+`Resources/Troia/Heroi.asset` (menu `Troia > Personagem > Usar Pátroclo como herói do jogo`).
+
+**Animação.** O esqueleto dele tem um Avatar humanoide (`Patroclo_Avatar.asset`, gerado por
+`Troia > Personagem > Gerar Avatar humanoide`) e toca clipes humanoides por retargeting:
+
+- clipes em `Assets/Troia/Personagens/Animacoes/` — Universal Animation Library 1 e 2 (Quaternius) e
+  KayKit Character Animations (Kay Lousberg), ambos **CC0**; as licenças estão ao lado dos arquivos;
+- `Troia > Personagem > Importar bibliotecas de animação` configura os FBX; `Montar biblioteca de animação`
+  grava `Resources/Troia/Animacoes.asset` com a tabela **golpe → trecho de clipe** (início, impacto, fim),
+  que fica em `PatrocloClipes.cs` — é ali que se troca a coreografia de um golpe;
+- `PatrocloTocador` toca os clipes com o tempo do jogo: o impacto do clipe cai em `hitStart` do golpe e a
+  pose congela junto na parada do acerto;
+- `PanoDinamico` dá física por ossos à capa e ao rabo de crina (pendem, arrastam no ar, giram com o corpo);
+- parado e fora de combate, a espada descansa no ombro (IK por cima do clipe).
+
+Sem `Animacoes.asset` o herói volta à animação por fórmula (`PatrocloAnimador`); sem `Heroi.asset`, ao boneco
+provisório (`HeroModel`).
+
+Para conferir os golpes sem jogar: `Ferramentas/pranchas.sh` gera pranchas de pose em `Capturas/Golpes`, e o
+teste explícito `PatrocloCapturas` joga no treino e salva imagens da câmera do jogo em `Capturas/Jogo`.
 
 São 20 andares nas seis arenas. O timer global começa em 180 segundos; acertos variados
 aumentam o estilo e kills recuperam tempo/favor. Bênçãos e checkpoints após 5/10/15;

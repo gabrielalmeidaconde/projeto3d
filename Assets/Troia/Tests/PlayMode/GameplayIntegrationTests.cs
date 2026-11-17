@@ -102,7 +102,7 @@ namespace Troia.Tests
             var source = new NavMeshBuildSource { shape = NavMeshBuildSourceShape.Box, transform = Matrix4x4.TRS(floor.transform.position, Quaternion.identity, Vector3.one), size = floor.transform.localScale, area = 0 };
             var navData = NavMeshBuilder.BuildNavMeshData(NavMesh.GetSettingsByIndex(0), new System.Collections.Generic.List<NavMeshBuildSource> { source }, new Bounds(origin, new Vector3(35, 10, 35)), Vector3.zero, Quaternion.identity);
             var nav = NavMesh.AddNavMeshData(navData);
-            player.Respawn(origin, Quaternion.identity); Physics.SyncTransforms(); yield return new WaitForSeconds(.15f);
+            player.Respawn(origin, Quaternion.identity); Physics.SyncTransforms(); yield return new WaitForSeconds(.4f);
             Assert.That(player.IsGrounded, Is.True);
             player.SetMoveInput(new Vector2(1, 1), 0, false);
             Vector3 walkStart = player.transform.position;

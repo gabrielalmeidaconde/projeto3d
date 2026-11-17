@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ab7af37f9f75f4ba61412dcd4578bd, type: 3}
+  m_Name: Lanca
+  m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
+  id: Lanca
+  displayName: LANCA / DORY
+  description: Alcance e controle. Estocadas da falange, varreduras com a haste e
+    avanco ao alvo.
+  kind: 1
+  color: {r: 0.18, g: 0.82, b: 1, a: 1}
+  light: {fileID: 11400000, guid: 80def90d61ed207938fdd08c30e462a8, type: 2}
+  heavy: {fileID: 11400000, guid: 18f63a8313d17ff3fb5a467d5be8b27a, type: 2}
+  launcher: {fileID: 11400000, guid: 8cd831376d9086e948fc1f7b840b9f3b, type: 2}
+  airLight: {fileID: 11400000, guid: 2a879e6cb32ed48a7a584ca1cd55ad4e, type: 2}
+  slam: {fileID: 11400000, guid: df9c91ac72863054e93dab0793af19bc, type: 2}
+  dash: {fileID: 11400000, guid: 37f8ccb81e23441069ac77ad6e7ca586, type: 2}
+  airDash: {fileID: 11400000, guid: 8eae73bf5bc2c07b2bb77741090561ad, type: 2}
+  projectileDamage: 6
+  projectileSpeed: 42
+  projectileRange: 28
+  fireInterval: 0.22
+  projectileCount: 1
+  heavyProjectile: 0
+  utilityRange: 18
+  utilityCooldown: 0.9
+  pullsEnemy: 0

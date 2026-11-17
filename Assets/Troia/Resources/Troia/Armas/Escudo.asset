@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ab7af37f9f75f4ba61412dcd4578bd, type: 3}
+  m_Name: Escudo
+  m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
+  id: Escudo
+  displayName: ESCUDO / ASPIS
+  description: Impacto e quebra de guarda. O arpao puxa o alvo; a borda do escudo
+    finaliza.
+  kind: 5
+  color: {r: 0.95, g: 0.28, b: 0.1, a: 1}
+  light: {fileID: 11400000, guid: 2a400626ff775f709a2d3c6c90c7de8e, type: 2}
+  heavy: {fileID: 11400000, guid: 84ddc0f320ea06c2c8c6c4fe656543ae, type: 2}
+  launcher: {fileID: 11400000, guid: 0eda9f7bbe9cdeed5980dcfa5de6355e, type: 2}
+  airLight: {fileID: 11400000, guid: 0e8403331b828fe7d9822aa2426da02e, type: 2}
+  slam: {fileID: 11400000, guid: 407eeefdf4066cde7a0c0721b8ee528e, type: 2}
+  dash: {fileID: 11400000, guid: e77f2aa825fc3da3f923cbf0e9a23a44, type: 2}
+  airDash: {fileID: 11400000, guid: c3e9af85ba1bbfce8884f01ef2f96d81, type: 2}
+  projectileDamage: 6
+  projectileSpeed: 42
+  projectileRange: 28
+  fireInterval: 0.22
+  projectileCount: 1
+  heavyProjectile: 0
+  utilityRange: 14
+  utilityCooldown: 2.4
+  pullsEnemy: 1

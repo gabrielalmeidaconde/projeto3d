@@ -15,8 +15,9 @@ namespace Troia
         {
             owner = player; weapon = profile; direction = aim.normalized; sequence = action;
             transform.rotation = Quaternion.LookRotation(direction);
-            CombatVisuals.Part(transform, "Projetil", PrimitiveType.Cube,
-                Vector3.zero, new Vector3(.045f, .045f, .45f), new Color(1, .85f, .5f));
+            var dardo = PatrocloArmas.Lanca("Dardo", 1.15f, .5f, .011f, .17f);
+            dardo.transform.SetParent(transform, false);
+            foreach (var t in dardo.GetComponentsInChildren<Transform>()) t.gameObject.layer = 2;
         }
         void Update()
         {
@@ -39,8 +40,8 @@ namespace Troia
                 {
                     var info = new DamageInfo { source = owner.gameObject, damage = weapon.projectileDamage * owner.Favor.DamageMultiplier,
                         direction = direction, knockback = weapon.heavyProjectile ? 2 : .2f, stagger = .09f, projectile = true,
-                        heavy = weapon.heavyProjectile, moveId = "pistols.volley", sequence = sequence };
-                    if (health.TakeDamage(info)) owner.ConfirmHit(info, health, weapon, "Pistolas duplas", false);
+                        heavy = weapon.heavyProjectile, moveId = "dardos.volley", sequence = sequence };
+                    if (health.TakeDamage(info)) owner.ConfirmHit(info, health, weapon, "Dardo", false);
                 }
                 CombatVisuals.Burst(hits[nearest].point, weapon.color, .15f); Destroy(gameObject); return;
             }

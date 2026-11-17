@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Aereo_2
   animationState: Aereo_2
   displayName: Reverso celeste
-  command:
+  command: 
   motion: 0
   input: 0
   damage: 15

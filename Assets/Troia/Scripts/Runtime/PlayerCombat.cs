@@ -25,6 +25,9 @@ namespace Troia
         public int JumpsUsed { get; private set; }
         public int ComboDepth { get; private set; }
         public float AttackTime => attackTime;
+        public float StateTime => stateTime;
+        public float VerticalSpeed => velocity.y;
+        public Vector3 DodgeDirection => dodgeDirection;
         public float ShotCooldown => Mathf.Max(0, shotReady - Time.time);
         public float ApproachCooldown => Weapon && utilityReady.TryGetValue(Weapon.id, out var ready) ? Mathf.Max(0, ready - Time.time) : 0;
         public float PerfectDodgeFlash => Mathf.Clamp01((perfectDodgeUntil-Time.unscaledTime)/.6f);
@@ -43,7 +46,7 @@ namespace Troia
         readonly HashSet<Health> hitTargets = new HashSet<Health>();
         readonly List<Collider> ghostColliders = new List<Collider>();
         readonly Collider[] overlap = new Collider[96];
-        Vector3 velocity, dodgeDirection, moveDirection;
+        Vector3 velocity, dodgeDirection, moveDirection, planar;
         EnemyCombat rushTarget, attackTarget;
         float assistRemaining, perfectDodgeUntil, lastImpactFeedback = -10;
         bool perfectDodgeAwarded;
@@ -54,6 +57,7 @@ namespace Troia
         int pendingWeapon = -1, pulse, sequence, actionCounter;
         AttackInput? buffered;
         ComboSO preserved, swapContinuation;
+        Camera viewCamera; float baseFov = 60, punch;
         bool hitWindow, comboWindow, heavyConsumed, slamLanded, sprinting, rushAirborne;
 
         void Awake()
@@ -134,7 +138,10 @@ namespace Troia
             Vector3 horizontal = Vector3.zero;
             if (State == PlayerState.Locomotion)
             {
-                horizontal = moveDirection * (sprinting ? config.sprintSpeed : config.moveSpeed);
+                // arranca e freia em vez de trocar de velocidade num quadro só
+                Vector3 desejada = moveDirection * (sprinting ? config.sprintSpeed : config.moveSpeed);
+                planar = Vector3.MoveTowards(planar, desejada, (desejada.sqrMagnitude > .01f ? 95 : 80) * dt);
+                horizontal = planar;
                 Vector3 facing = Targeting.IsLocked ? Targeting.LockedTarget.transform.position - transform.position : moveDirection;
                 facing.y = 0;
                 if (facing.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(facing), 18 * dt);
@@ -142,7 +149,9 @@ namespace Troia
             else if (State == PlayerState.Dodging) horizontal = dodgeDirection * config.dodgeSpeed;
             else if (State == PlayerState.Attacking && CurrentAttack && !CurrentAttack.slam)
             {
-                horizontal = transform.forward * CurrentAttack.lunge + moveDirection * config.moveSpeed * .28f;
+                // o passo do golpe acontece antes do impacto e para: mesma distância de um golpe encadeado, sem deslizar na recuperação
+                float passo = attackTime < CurrentAttack.hitEnd ? CurrentAttack.comboOpen / Mathf.Max(.05f, CurrentAttack.hitEnd) : 0;
+                horizontal = transform.forward * CurrentAttack.lunge * passo + moveDirection * config.moveSpeed * .28f;
                 if (attackTime < CurrentAttack.hitStart && Targeting.IsValid(attackTarget, CurrentAttack.range+2) && Targeting.HasSight(attackTarget))
                 {
                     Vector3 delta=Vector3.ProjectOnPlane(attackTarget.transform.position-transform.position,Vector3.up);
@@ -153,6 +162,7 @@ namespace Troia
                     assistRemaining-=step;
                 }
             }
+            if (State != PlayerState.Locomotion) planar = Vector3.ProjectOnPlane(horizontal, Vector3.up);
             if(State==PlayerState.Locomotion && !IsGrounded) horizontal*=.8f;
 
             float gravity = State == PlayerState.Attacking && CurrentAttack && CurrentAttack.aerial && !CurrentAttack.slam ? .55f : 1;
@@ -465,12 +475,20 @@ namespace Troia
         }
         public void ConfirmHit(DamageInfo info, Health target, WeaponSO profile, string title, bool hitStop)
         {
-            Style.RegisterHit(info.moveId, info.finisher, info.projectile ? "pistols" : profile ? profile.id : "", info.aerial, info.projectile, info.sequence, info.damage, title);
+            Style.RegisterHit(info.moveId, info.finisher, info.projectile ? "dardos" : profile ? profile.id : "", info.aerial, info.projectile, info.sequence, info.damage, title);
             Favor.Gain((info.projectile ? .7f : 2) * Style.Multiplier);
             Events.Hit(info, target);
             CombatVisuals.Burst(target.transform.position + Vector3.up, profile ? profile.color : Color.yellow, .25f);
+            CombatVisuals.Spark(target.transform.position + Vector3.up * 1.1f, info.direction, profile ? profile.color : Color.yellow, info.heavy || info.finisher);
             if(Time.unscaledTime-lastImpactFeedback>.035f) presentation?.Impact(info.heavy);
-            if (hitStop && Time.unscaledTime-lastImpactFeedback>.035f) { lastImpactFeedback=Time.unscaledTime; shake = info.finisher ? .24f : .12f; GameManager.Instance?.HitStop(info.finisher ? .055f : .03f); }
+            if (hitStop && Time.unscaledTime-lastImpactFeedback>.035f)
+            {
+                // peso do golpe: leve trava pouco; pesado e finalizador seguram o quadro e empurram a câmera
+                lastImpactFeedback=Time.unscaledTime;
+                shake = Mathf.Max(shake, info.finisher ? .34f : info.heavy ? .22f : .12f);
+                punch = Mathf.Max(punch, info.finisher ? 1f : info.heavy ? .55f : .15f);
+                GameManager.Instance?.HitStop(info.finisher ? .1f : info.heavy ? .065f : .04f);
+            }
         }
         public int AllocateActionId() { if (++actionCounter == int.MaxValue) actionCounter = 1; return actionCounter; }
         public void OpenHitbox() { hitWindow = true; hitTargets.Clear(); }
@@ -492,7 +510,7 @@ namespace Troia
         void OnDeath(DamageInfo info) { CancelAttack(); SetState(PlayerState.Dead); GameManager.Instance?.EndRun(false); }
         public void Respawn(Vector3 position, Quaternion rotation)
         {
-            EndGhost(); CancelAttack(); moveDirection = velocity = Vector3.zero; rushTarget = null;
+            EndGhost(); CancelAttack(); moveDirection = velocity = planar = Vector3.zero; rushTarget = null;
             controller.enabled = false; transform.SetPositionAndRotation(position, rotation); controller.enabled = true;
             heavyPressed = -1; JumpsUsed = ComboDepth = 0; jumpQueued = lastGrounded = -10;
             Health.ResetHealth(config.playerHealth); graceUntil = Time.time + 1; dodgeReady = shotReady = 0;
@@ -518,7 +536,10 @@ namespace Troia
             if (Physics.SphereCast(pivot, .23f, backward, out var hit, distance, ~(1 << 2), QueryTriggerInteraction.Ignore)) distance = Mathf.Max(.4f, hit.distance - .1f);
             shake = Mathf.MoveTowards(shake, 0, Time.unscaledDeltaTime);
             cameraTransform.SetPositionAndRotation(pivot + backward * distance + Random.insideUnitSphere * shake * .15f, rotation);
+            if (!viewCamera) { viewCamera = cameraTransform.GetComponent<Camera>(); if (viewCamera) baseFov = viewCamera.fieldOfView; }
+            punch = Mathf.MoveTowards(punch, 0, Time.unscaledDeltaTime * 4.5f);
+            if (viewCamera) viewCamera.fieldOfView = baseFov - punch * punch * 5f;
         }
-        void OnDestroy() { EndGhost(); if (Health) { Health.Damaged -= OnDamaged; Health.Died -= OnDeath; } }
+        void OnDestroy() { if (viewCamera) viewCamera.fieldOfView = baseFov; EndGhost(); if (Health) { Health.Damaged -= OnDamaged; Health.Died -= OnDeath; } }
     }
 }

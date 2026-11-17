@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Pesado
   animationState: Pesado
   displayName: Quebra-guarda
-  command:
+  command: 
   motion: 4
   input: 1
   damage: 34

@@ -31,6 +31,7 @@ namespace Troia
         PlayerCombat puller;
         LineRenderer warning;
         MaterialPropertyBlock bodyTint;
+        float flash;
 
         void Awake()
         {
@@ -93,6 +94,7 @@ namespace Troia
             }
             else if (State == EnemyState.Recovery && timer <= 0) SetState(EnemyState.Chasing);
             if (body) body.transform.localScale = new Vector3(.8f, .9f, .8f) * (State == EnemyState.Windup ? 1.08f : 1);
+            
             if (weapon) weapon.localRotation = Quaternion.Euler(0, State == EnemyState.Windup ? -75 : State == EnemyState.Recovery ? 80 : 0, 0);
         }
         public bool CanCommitAttack()
@@ -116,7 +118,11 @@ namespace Troia
             body.GetPropertyBlock(bodyTint);
             Color baseColor=body.sharedMaterial.color;
             float pulse=State==EnemyState.Windup ? .35f+.25f*Mathf.Sin(Time.time*22) : 0;
-            bodyTint.SetColor("_BaseColor",Color.Lerp(baseColor,new Color(1,.18f,.055f),pulse)); body.SetPropertyBlock(bodyTint);
+            // clarão branco e amassada rápida quando apanha
+            flash=Mathf.Max(0,flash-Time.unscaledDeltaTime);
+            float apanhou=Mathf.Clamp01(flash/.08f)*.65f;
+            bodyTint.SetColor("_BaseColor",Color.Lerp(Color.Lerp(baseColor,new Color(1,.18f,.055f),pulse),new Color(1,.93f,.8f),apanhou)); body.SetPropertyBlock(bodyTint);
+            body.transform.localScale=new Vector3(.8f*(1+.22f*apanhou),.9f*(1-.18f*apanhou),.8f*(1+.22f*apanhou));
             if(!warning || !warning.enabled) return;
             if(kind==EnemyKind.Archer)
             {
@@ -174,6 +180,7 @@ namespace Troia
         void React(DamageInfo info)
         {
             if (Health.IsDead) return;
+            flash = info.heavy || info.finisher ? .12f : .08f;
             // Armor resists light stagger, but damage still applies.
             if (Armored && State != EnemyState.Airborne && !info.heavy && !info.aerial && info.launch <= 0 && !info.divine) return;
             if (State == EnemyState.Airborne && info.projectile)

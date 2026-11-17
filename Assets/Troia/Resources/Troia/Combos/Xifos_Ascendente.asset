@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Xifos_Ascendente
   animationState: Xifos_Ascendente
   displayName: Ruptura ascendente
-  command:
+  command: 
   motion: 3
   input: 1
   damage: 23

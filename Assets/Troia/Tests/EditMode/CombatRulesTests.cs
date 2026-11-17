@@ -26,15 +26,16 @@ namespace Troia.Tests
             var c = Config(); var second = PlayerCombat.ResolveNext(c.light, c.light.comboOpen);
             Assert.That(second, Is.SameAs(c.light.next));
             Assert.That(PlayerCombat.ResolveNext(second, second.comboOpen), Is.SameAs(second.next));
-            Assert.That(PlayerCombat.ResolveNext(second, second.delayedThreshold + .01f), Is.SameAs(second.delayedNext));
-            Assert.That(second.next.finisher, Is.True); Assert.That(second.delayedNext.next.finisher, Is.True);
+            // combos simples: esperar não muda o golpe seguinte
+            Assert.That(second.delayedNext, Is.Null);
+            Assert.That(PlayerCombat.ResolveNext(second, second.duration), Is.SameAs(second.next));
+            Assert.That(second.next.finisher, Is.True); Assert.That(second.heavyNext, Is.Not.Null);
         }
         [Test] public void SavedConfigRetainsComboLinksAcrossEditorReload()
         {
             var config = Resources.Load<GameplayConfig>("Troia/Gameplay");
             Assert.That(config, Is.Not.Null); Assert.That(config.light.next, Is.Not.Null);
             Assert.That(config.light.next.next.finisher, Is.True);
-            Assert.That(config.light.next.delayedNext.next.finisher, Is.True);
             Assert.That(config.airLight.next.next.aerial, Is.True);
             Assert.That(config.combatVersion, Is.EqualTo(ArsenalDefaults.Version));
             Assert.That(config.weapons.Length, Is.EqualTo(3));
@@ -47,7 +48,7 @@ namespace Troia.Tests
             {
                 Assert.That(ids.Add(weapon.id), Is.True);
                 Assert.That(weapon.light.heavyNext, Is.Not.Null, weapon.name);
-                Assert.That(weapon.light.next.delayedNext, Is.Not.Null, weapon.name);
+                Assert.That(weapon.light.next.delayedNext, Is.Null, weapon.name);
                 Assert.That(weapon.launcher.launch, Is.GreaterThan(0));
                 Assert.That(weapon.slam.slam && weapon.slam.aerial, Is.True);
                 Assert.That(weapon.airDash.aerial, Is.True);
@@ -64,10 +65,10 @@ namespace Troia.Tests
                     pending.Enqueue(move.next); pending.Enqueue(move.delayedNext); pending.Enqueue(move.heavyNext);
                 }
             }
-            Assert.That(all.Count, Is.GreaterThanOrEqualTo(40));
+            Assert.That(all.Count, Is.GreaterThanOrEqualTo(35));
             Assert.That(c.weapons[1].light.range, Is.GreaterThan(c.weapons[0].light.range));
             Assert.That(c.weapons[2].light.next.finisher, Is.True);
-            Assert.That(c.weapons[2].projectileCount, Is.EqualTo(2));
+            Assert.That(c.weapons[2].projectileCount, Is.EqualTo(1));
         }
         [Test] public void WeaponSwitchContinuesAtNextStepAndWrapsAfterFinisher()
         {
@@ -79,7 +80,7 @@ namespace Troia.Tests
         [Test] public void ArsenalBalancesReachImpactRecoveryAndSharedPistols()
         {
             var c=Config(); var sword=c.weapons[0]; var scythe=c.weapons[1]; var axe=c.weapons[2];
-            Assert.That(scythe.kind, Is.EqualTo(WeaponKind.Scythe)); Assert.That(axe.kind, Is.EqualTo(WeaponKind.Axe));
+            Assert.That(scythe.kind, Is.EqualTo(WeaponKind.Spear)); Assert.That(axe.kind, Is.EqualTo(WeaponKind.Shield));
             Assert.That(axe.pullsEnemy, Is.True); Assert.That(scythe.pullsEnemy, Is.False);
             Assert.That(axe.utilityCooldown, Is.GreaterThan(scythe.utilityCooldown));
             Assert.That(axe.heavy.damage, Is.GreaterThan(sword.heavy.damage));
@@ -89,7 +90,7 @@ namespace Troia.Tests
                 Assert.That(w.heavy.cooldown, Is.GreaterThanOrEqualTo(.3f));
                 Assert.That(w.heavy.minimumRecovery, Is.GreaterThanOrEqualTo(.1f));
                 Assert.That(w.slam.cooldown, Is.GreaterThan(w.heavy.cooldown));
-                Assert.That(w.projectileDamage, Is.EqualTo(3)); Assert.That(w.projectileCount, Is.EqualTo(2));
+                Assert.That(w.projectileDamage, Is.EqualTo(6)); Assert.That(w.projectileCount, Is.EqualTo(1));
             }
         }
         [Test] public void FlowTuningIsIdempotentAndBasicChainsHaveNoExtraCooldown()
@@ -133,7 +134,7 @@ namespace Troia.Tests
                 Assert.That(move.comboClose, Is.LessThanOrEqualTo(move.duration), move.name);
                 pending.Enqueue(move.next); pending.Enqueue(move.delayedNext);
             }
-            Assert.That(visited.Count, Is.EqualTo(11));
+            Assert.That(visited.Count, Is.EqualTo(9));
         }
         [Test] public void TwentyFloorsContainCaptainAndHectorAndMatchMapArenas()
         {

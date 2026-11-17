@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Xifos_Cacada
   animationState: Xifos_Cacada
   displayName: Cacada aerea
-  command:
+  command: 
   motion: 1
   input: 0
   damage: 18

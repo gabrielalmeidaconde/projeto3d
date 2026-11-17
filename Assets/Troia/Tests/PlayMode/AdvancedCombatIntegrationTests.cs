@@ -275,9 +275,9 @@ namespace Troia.Tests
             float hp = enemy.Health.Current;
             Assert.That(player.RequestShoot(), Is.True); player.SelectWeapon(1);
             yield return new WaitForSeconds(.8f);
-            Assert.That(hp - enemy.Health.Current, Is.EqualTo(6).Within(.1f), "As duas pistolas acertam o alvo distante e mantem o dano da arma original");
-            Assert.That(player.Style.ChainHits, Is.EqualTo(2));
-            Assert.That(player.Style.Score, Is.EqualTo(15 * .35f).Within(.1f), "Duas pistolas pertencem a uma unica acao de estilo");
+            Assert.That(hp - enemy.Health.Current, Is.EqualTo(6).Within(.1f), "O dardo acerta o alvo distante e mantem o dano da arma original");
+            Assert.That(player.Style.ChainHits, Is.EqualTo(1));
+            Assert.That(player.Style.Score, Is.EqualTo(15 * .35f).Within(.1f), "Um dardo vale uma unica acao de estilo");
         }
         [UnityTest] public IEnumerator DivineAreaCreditsOneActionAcrossMultipleEnemies()
         {

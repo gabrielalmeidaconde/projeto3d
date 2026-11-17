@@ -60,7 +60,7 @@ namespace Troia
             shade.GetComponent<Image>().raycastTarget = true; modalBackdrop = shade.gameObject; modalBackdrop.SetActive(false);
             BuildModals();
             var footer = Panel(gameplayRoot, "Atalhos", new Vector2(.5f, 0), new Vector2(-420, 40), new Vector2(840, 26), new Color(.025f, .035f, .055f, .86f));
-            Label(footer, "WASD mover   ESPACO pulo duplo   CTRL esquiva   E avanco/puxao   R pistolas   F foco   1/2/3 armas   H golpes   F2 treino", 12, Color.white, new Rect(10, 4, 820, 22), TextAnchor.MiddleCenter);
+            Label(footer, "WASD mover   ESPACO pulo duplo   CTRL esquiva   E avanco/arpao   R dardos   F foco   1/2/3 armas   H golpes   F2 treino", 12, Color.white, new Rect(10, 4, 820, 22), TextAnchor.MiddleCenter);
             var marker = Panel(gameplayRoot, "Alvo", Vector2.zero, Vector2.zero, new Vector2(110, 80), Color.clear);
             targetMarker = marker; targetMarker.pivot = new Vector2(.5f, .5f);
             Label(marker, "[    ]", 36, Gold, new Rect(0, 0, 110, 48), TextAnchor.MiddleCenter);
@@ -177,9 +177,9 @@ namespace Troia
             {
                 weaponText.text = p.Weapon.displayName; weaponText.color = p.Weapon.color;
                 weaponDetail.text = p.CurrentAttack ? (string.IsNullOrEmpty(p.CurrentAttack.displayName) ? p.CurrentAttack.id : p.CurrentAttack.displayName) :
-                    p.Weapon.kind == WeaponKind.Scythe ? "CONTROLE / AVANÇO" : p.Weapon.kind == WeaponKind.Axe ? "IMPACTO / PUXÃO" : "PRECISÃO / ENCADEAMENTO";
+                    p.Weapon.kind == WeaponKind.Spear ? "CONTROLE / AVANÇO" : p.Weapon.kind == WeaponKind.Shield ? "IMPACTO / ARPÃO" : "PRECISÃO / ENCADEAMENTO";
                 cooldowns.text = p.PerfectDodgeFlash > 0 ? "ESQUIVA PERFEITA / +FAVOR" : p.PendingWeapon >= 0 ? "TROCA PREPARADA / FINALIZANDO IMPACTO" :
-                    $"E {(p.Weapon.pullsEnemy ? "PUXAR" : "AVANÇAR")} {(p.ApproachCooldown > 0 ? p.ApproachCooldown.ToString("0.0") + "s" : "OK")} / R {(p.ShotCooldown > .3f ? "ESFRIANDO" : "PISTOLAS")}\n" +
+                    $"E {(p.Weapon.pullsEnemy ? "ARPÃO" : "AVANÇAR")} {(p.ApproachCooldown > 0 ? p.ApproachCooldown.ToString("0.0") + "s" : "OK")} / R {(p.ShotCooldown > .3f ? "ESFRIANDO" : "DARDOS")}\n" +
                     (p.RecoveryRemaining > 0 ? $"RECUPERAÇÃO {p.RecoveryRemaining:0.0}s" : p.MoveCooldown(p.Weapon.heavy) > 0 ? $"PESADO {p.MoveCooldown(p.Weapon.heavy):0.0}s" : "PESADO PRONTO");
             }
             if (previousState != manager.State) { if (manager.State != RunState.Paused) showMoves = false; RefreshModals(); previousState = manager.State; }
@@ -236,8 +236,8 @@ namespace Troia
         {
             moves.text = "L = LEVE / P = PESADO     |     TROQUE 1 / 2 / 3 DURANTE O COMBO\n\n";
             foreach (var weapon in manager.config.weapons)
-                moves.text += $"{weapon.displayName}\n{weapon.light.command}   /   P P pesado\n{weapon.description}\n\n";
-            moves.text += "C / SEGURAR P: lançador / ESPAÇO duas vezes: pulo duplo\nE: avanço (espada/foice) ou puxão (machado); blindados exigem quebra de guarda.\nR: pistolas duplas, 3 rajadas e 0,95s para esfriar. F: foco / T: próximo alvo.\nCTRL cancela; recargas persistem. Alterne ACERTOS; repetir não pontua.\nSofrer dano derruba dois níveis de estilo. Pesados e quedas exigem recuperação.";
+                moves.text += $"{weapon.displayName}\n{weapon.light.command}   /   P P\n{weapon.description}\n\n";
+            moves.text += "C / SEGURAR P: lançador / ESPAÇO duas vezes: pulo duplo\nE: avanço (espada/lança) ou arpão (escudo); blindados exigem quebra de guarda.\nR: dardos, 3 arremessos e 0,95s para esfriar. F: foco / T: próximo alvo.\nCTRL cancela; recargas persistem. Alterne ACERTOS; repetir não pontua.\nSofrer dano derruba dois níveis de estilo. Pesados e quedas exigem recuperação.";
         }
         RectTransform Panel(Transform parent, string name, Vector2 anchor, Vector2 position, Vector2 size, Color color)
         {

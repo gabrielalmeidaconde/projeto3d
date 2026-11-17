@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Aereo_1
   animationState: Aereo_1
   displayName: Corte celeste
-  command:
+  command: 
   motion: 0
   input: 0
   damage: 13

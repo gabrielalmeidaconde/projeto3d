@@ -1,0 +1,423 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f95e64dd44852311ebc072c0cd49aeb6, type: 3}
+  m_Name: Animacoes
+  m_EditorClassIdentifier: Troia.Runtime::Troia.PatrocloAnimacoesSO
+  avatar: {fileID: 9000000, guid: ac06efc7cc308ec2f8d6d88540442a76, type: 2}
+  golpes:
+  - id: Corte_1
+    clip: {fileID: 3625414872004886998, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.25
+    fim: 0.43
+    estocada: 0
+    giro: 0
+  - id: Corte_2
+    clip: {fileID: -1662512729948635066, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.27
+    fim: 0.53
+    estocada: 0
+    giro: 0
+  - id: Corte_3
+    clip: {fileID: 543990450412311274, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.22
+    impacto: 0.65
+    fim: 1.25
+    estocada: 0
+    giro: 0
+  - id: Xifos_Ruptura
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.5
+    impacto: 1.85
+    fim: 2.3
+    estocada: 0
+    giro: 0
+  - id: Xifos_Ascendente
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.85
+    impacto: 1.18
+    fim: 1.55
+    estocada: 0
+    giro: 0
+  - id: Pesado
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.08
+    impacto: 0.46
+    fim: 0.9
+    estocada: 0
+    giro: 0
+  - id: Xifos_Execucao
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 2.25
+    impacto: 2.6
+    fim: 3.3
+    estocada: 0
+    giro: 0
+  - id: Lancador
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.85
+    impacto: 1.18
+    fim: 1.55
+    estocada: 0
+    giro: 0
+  - id: Aereo_1
+    clip: {fileID: 3625414872004886998, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.25
+    fim: 0.43
+    estocada: 0
+    giro: 0
+  - id: Aereo_2
+    clip: {fileID: -1662512729948635066, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.27
+    fim: 0.53
+    estocada: 0
+    giro: 0
+  - id: Aereo_3
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.5
+    impacto: 1.85
+    fim: 2.3
+    estocada: 0
+    giro: 0
+  - id: Queda
+    clip: {fileID: 4995259511414573042, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0.35
+    impacto: 0.56
+    fim: 1.2
+    estocada: 0
+    giro: 0
+  - id: Xifos_Investida
+    clip: {fileID: 5177481599410670366, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.29
+    impacto: 0.33
+    fim: 1
+    estocada: 0
+    giro: 0
+  - id: Xifos_Cacada
+    clip: {fileID: 5177481599410670366, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.29
+    impacto: 0.33
+    fim: 1
+    estocada: 0
+    giro: 0
+  - id: Lanca_Estocada1
+    clip: {fileID: -929289162156707164, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0.12
+    impacto: 0.38
+    fim: 0.95
+    estocada: 1
+    giro: 0
+  - id: Lanca_Estocada2
+    clip: {fileID: -1662512729948635066, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.27
+    fim: 0.53
+    estocada: 0
+    giro: 0
+  - id: Lanca_Estocada3
+    clip: {fileID: 5177481599410670366, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.29
+    impacto: 0.33
+    fim: 1
+    estocada: 1
+    giro: 29.301447
+  - id: Lanca_Varredura
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.5
+    impacto: 1.85
+    fim: 2.3
+    estocada: 0
+    giro: 0
+  - id: Lanca_Repique
+    clip: {fileID: 5177481599410670366, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.29
+    impacto: 0.33
+    fim: 1
+    estocada: 1
+    giro: 29.301447
+  - id: Lanca_Giro
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.5
+    impacto: 1.85
+    fim: 2.3
+    estocada: 0
+    giro: 0
+  - id: Lanca_Ceifa
+    clip: {fileID: 543990450412311274, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.22
+    impacto: 0.65
+    fim: 1.25
+    estocada: 0
+    giro: 0
+  - id: Lanca_Icaro
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.85
+    impacto: 1.18
+    fim: 1.55
+    estocada: 0
+    giro: 0
+  - id: Lanca_Alavanca
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.85
+    impacto: 1.18
+    fim: 1.55
+    estocada: 0
+    giro: 0
+  - id: Lanca_Aereo1
+    clip: {fileID: -929289162156707164, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0.12
+    impacto: 0.38
+    fim: 0.95
+    estocada: 2
+    giro: 0
+  - id: Lanca_Aereo2
+    clip: {fileID: -1662512729948635066, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.27
+    fim: 0.53
+    estocada: 0
+    giro: 0
+  - id: Lanca_Aereo3
+    clip: {fileID: 8990922676025542795, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.5
+    impacto: 1.85
+    fim: 2.3
+    estocada: 0
+    giro: 0
+  - id: Lanca_Meteoro
+    clip: {fileID: 4995259511414573042, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0.35
+    impacto: 0.56
+    fim: 1.2
+    estocada: 0
+    giro: 0
+  - id: Lanca_Falange
+    clip: {fileID: 5177481599410670366, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.29
+    impacto: 0.33
+    fim: 1
+    estocada: 1
+    giro: 29.301447
+  - id: Lanca_Perseguicao
+    clip: {fileID: 5177481599410670366, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.29
+    impacto: 0.33
+    fim: 1
+    estocada: 2
+    giro: 29.301447
+  - id: Escudo_Corte1
+    clip: {fileID: 5908653059402285821, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.25
+    fim: 0.43
+    estocada: 0
+    giro: 0
+  - id: Escudo_Corte2
+    clip: {fileID: 872582139231937337, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.27
+    fim: 0.53
+    estocada: 0
+    giro: 0
+  - id: Escudo_Rajada
+    clip: {fileID: 2622305266167319483, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.5
+    impacto: 1.85
+    fim: 2.3
+    estocada: 0
+    giro: 0
+  - id: Escudo_CruzFinal
+    clip: {fileID: 872582139231937337, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.27
+    fim: 0.53
+    estocada: 0
+    giro: 0
+  - id: Escudo_Tesoura
+    clip: {fileID: 4422042881024832256, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0.1
+    impacto: 0.32
+    fim: 0.85
+    estocada: 0
+    giro: 0
+  - id: Escudo_Furacao
+    clip: {fileID: 5377200324999185665, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.22
+    impacto: 0.65
+    fim: 1.25
+    estocada: 0
+    giro: 0
+  - id: Escudo_Rasante
+    clip: {fileID: 2622305266167319483, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.5
+    impacto: 1.85
+    fim: 2.3
+    estocada: 0
+    giro: 0
+  - id: Escudo_Espiral
+    clip: {fileID: 2622305266167319483, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.85
+    impacto: 1.18
+    fim: 1.55
+    estocada: 0
+    giro: 0
+  - id: Escudo_Aereo1
+    clip: {fileID: 5908653059402285821, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.25
+    fim: 0.43
+    estocada: 0
+    giro: 0
+  - id: Escudo_Aereo2
+    clip: {fileID: 872582139231937337, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.27
+    fim: 0.53
+    estocada: 0
+    giro: 0
+  - id: Escudo_Aereo3
+    clip: {fileID: 5908653059402285821, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.25
+    fim: 0.43
+    estocada: 0
+    giro: 0
+  - id: Escudo_Aereo4
+    clip: {fileID: 2622305266167319483, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.5
+    impacto: 1.85
+    fim: 2.3
+    estocada: 0
+    giro: 0
+  - id: Escudo_Chuva
+    clip: {fileID: 4995259511414573042, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0.35
+    impacto: 0.56
+    fim: 1.2
+    estocada: 0
+    giro: 0
+  - id: Escudo_Relampago
+    clip: {fileID: 8716492398999915444, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.1
+    impacto: 0.6
+    fim: 1.05
+    estocada: 0
+    giro: 0
+  - id: Escudo_Borboleta
+    clip: {fileID: 8716492398999915444, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.1
+    impacto: 0.6
+    fim: 1.05
+    estocada: 0
+    giro: 0
+  movimentos:
+  - id: parado
+    clip: {fileID: 7994627924475153551, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 2.5000002
+    estocada: 0
+    giro: 0
+  - id: guarda
+    clip: {fileID: 8324860437086164814, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 1.6666667
+    estocada: 0
+    giro: 0
+  - id: andar
+    clip: {fileID: -7003542030617561338, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 1.3333334
+    estocada: 0
+    giro: 0
+  - id: correr
+    clip: {fileID: -8815886378510225334, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 0.9333334
+    estocada: 0
+    giro: 0
+  - id: disparar
+    clip: {fileID: -4950333804767787469, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 0.6666667
+    estocada: 0
+    giro: 0
+  - id: pulo
+    clip: {fileID: -1862932125039169580, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0.45
+    impacto: 0
+    fim: 1.1
+    estocada: 0
+    giro: 0
+  - id: no_ar
+    clip: {fileID: -3659967873887649963, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 2.5000002
+    estocada: 0
+    giro: 0
+  - id: pouso
+    clip: {fileID: 4832780573735333345, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 0.5
+    estocada: 0
+    giro: 0
+  - id: pulo_duplo
+    clip: {fileID: -3620764259951660000, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.15
+    impacto: 0
+    fim: 0.9
+    estocada: 0
+    giro: 0
+  - id: esquiva
+    clip: {fileID: 3031411921458128146, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0.12
+    impacto: 0
+    fim: 0.95
+    estocada: 0
+    giro: 0
+  - id: dano
+    clip: {fileID: -245273357908900549, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 0.33
+    estocada: 0
+    giro: 0
+  - id: morte
+    clip: {fileID: 3532616527226485280, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 2.4
+    estocada: 0
+    giro: 0
+  - id: arremesso
+    clip: {fileID: -7816163768055700239, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.12
+    impacto: 0
+    fim: 0.75
+    estocada: 0
+    giro: 0
+  - id: investida
+    clip: {fileID: -4950333804767787469, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+    inicio: 0
+    impacto: 0
+    fim: 0.6666667
+    estocada: 0
+    giro: 0

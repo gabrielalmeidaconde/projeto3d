@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Estocada_1
   animationState: Estocada_1
   displayName: Estocadas
-  command:
+  command: 
   motion: 1
   input: 0
   damage: 13

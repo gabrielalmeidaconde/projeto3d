@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Lancador
   animationState: Lancador
   displayName: Ascensao
-  command:
+  command: 
   motion: 3
   input: 1
   damage: 22

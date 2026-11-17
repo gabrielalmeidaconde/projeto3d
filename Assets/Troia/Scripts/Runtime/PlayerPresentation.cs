@@ -15,6 +15,22 @@ namespace Troia
         LineRenderer hook;
         float hookTime;
         Vector3 previousPosition;
+        // Pátroclo: modelo do herói com animação procedural sobre o esqueleto dele
+        PatrocloAnimador animador;
+        PatrocloDesign design;
+        Transform espada, lanca, maoGancho;
+        RastroDeArma rastro;
+        float arremesso, cambalhota, combateAte, chaoAte, sincroniza, pouso, curva, rumoAnterior;
+        bool estavaNoChao = true;
+        PatrocloAnimacoesSO biblioteca;
+        PatrocloTocador tocador;
+        PanoDinamico capaViva, raboVivo;
+        Transform modeloPatroclo, peito;
+        float fasePassos, relogioAnim, ombro, giroModelo, estocadaPeso, estocadaSolta;
+        bool estocadaAlta;
+        public bool UsaClipes => tocador;
+        public bool UsaPatroclo => animador;
+        public PatrocloAnimador Animador => animador;
 
         public void Initialize(PlayerCombat combat)
         {
@@ -24,6 +40,8 @@ namespace Troia
             {
                 var old = transform.Find(name); if (old) old.gameObject.SetActive(false);
             }
+            var prefab = HeroiSO.Prefab;
+            if (prefab && prefab.GetComponent<PatrocloDesign>()) { IniciarPatroclo(prefab); return; }
             rig = Joint(transform, "Guerreiro", Vector3.zero);
             HeroModel.Body(rig, out rightArm, out leftArm, out rightLeg, out leftLeg, out coatTails);
             // Soft character fill keeps the dark leather and red coat readable in the night scene.
@@ -37,12 +55,200 @@ namespace Troia
             player.Events.OnStyleRankChanged += StyleChanged;
             Equip(player.Weapon);
         }
+        void IniciarPatroclo(GameObject prefab)
+        {
+            var go = Instantiate(prefab, transform); go.name = "Patroclo";
+            go.transform.localPosition = Vector3.zero; go.transform.localRotation = Quaternion.identity;
+            design = go.GetComponent<PatrocloDesign>(); design.escudo = PosicaoEscudo.Braco;
+            animador = go.AddComponent<PatrocloAnimador>(); animador.Preparar(design);
+            var r = animador.Rig;
+            modeloPatroclo = go.transform; peito = r.Osso("spine01");
+            // clipes humanoides (corpo inteiro) quando a biblioteca existe; senão fica a animação por fórmula
+            biblioteca = PatrocloAnimacoesSO.Carregar();
+            if (biblioteca) { tocador = go.AddComponent<PatrocloTocador>(); tocador.Preparar(biblioteca.avatar); }
+            var esqueleto = new System.Collections.Generic.Dictionary<string, Transform>();
+            foreach (var osso in design.refs.ossos) if (osso) esqueleto[osso.name] = osso;
+            if (design.refs.capa) capaViva = PanoDinamico.Criar(design.refs.capa.GetComponent<SkinnedMeshRenderer>(), esqueleto, PanoDinamico.ParaCapa());
+            if (design.refs.raboCostas) raboVivo = PanoDinamico.Criar(design.refs.raboCostas.GetComponent<SkinnedMeshRenderer>(), esqueleto, PanoDinamico.ParaRabo());
+            PatrocloArmas.Madeira = design.refs.madeira; PatrocloArmas.Bronze = design.refs.lamina;
+            espada = r.espada; maoGancho = r.pulsoE;
+            lanca = PatrocloArmas.Lanca("Lanca", 2.3f, .95f, .017f, .36f).transform;
+            lanca.SetParent(r.pulsoD, false); lanca.localPosition = r.espadaPos; lanca.localRotation = r.espadaLocal;
+            foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 2;
+            foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true)) smr.updateWhenOffscreen = true;
+            rastro = gameObject.AddComponent<RastroDeArma>();
+            var fill = Joint(transform, "Luz_personagem", new Vector3(-.7f, 2.1f, 1.1f)).gameObject.AddComponent<Light>();
+            fill.type = LightType.Point; fill.color = new Color(1, .86f, .74f);
+            fill.intensity = 1.4f; fill.range = 3.2f; fill.shadows = LightShadows.None;
+            // a câmera fica atrás do herói: uma segunda luz suave nas costas mantém capa, escudo e elmo legíveis à noite
+            var costas = Joint(transform, "Luz_costas", new Vector3(.8f, 2.3f, -1.7f)).gameObject.AddComponent<Light>();
+            costas.type = LightType.Point; costas.color = new Color(1, .8f, .66f);
+            costas.intensity = 1.6f; costas.range = 3.6f; costas.shadows = LightShadows.None;
+            player.Events.OnStyleRankChanged += StyleChanged;
+            Equip(player.Weapon);
+            CombatVisuals.Prewarm(transform.position + Vector3.up * 1.2f); rastro.Aquecer(transform.position + Vector3.up * 1.2f);
+        }
+        /// <summary>Escolhe os clipes do quadro a partir do estado do combate e avalia a pose.</summary>
+        void Animar(in PatrocloAnimador.Estado e, float dt)
+        {
+            relogioAnim += dt;
+            float transicao = .12f, alvoGiro = 0;
+            PatrocloAnimacoesSO.Trecho T(string id) => biblioteca.Movimento(id);
+            void Trecho(string id, float k) { var t = T(id); if (t != null) tocador.Pedir(id, t.clip, Mathf.Lerp(t.inicio, t.fim, Mathf.Clamp01(k))); }
+            void Laco(string id, float tempo, float peso = 1) { var t = T(id); if (t != null && peso > 0) tocador.Pedir(id, t.clip, tempo, peso); }
+            var golpe = e.golpe ? biblioteca.Golpe(e.golpe.id) : null;
+            if (e.golpe && golpe == null) golpe = biblioteca.Golpe(e.arma == WeaponKind.Spear ? "Lanca_Estocada1" : e.arma == WeaponKind.Shield ? "Escudo_Corte1" : "Corte_1");
+            float querOmbro = 0;
+            if (e.estado == PlayerState.Dead) { Trecho("morte", e.tempoEstado / 1.6f); transicao = .1f; }
+            else if (e.estado == PlayerState.Staggered) { Trecho("dano", e.tempoEstado / .3f); transicao = .05f; }
+            else if (e.estado == PlayerState.Dodging)
+            {
+                // rolamento na direção da esquiva: o corpo vira para onde rola
+                Trecho("esquiva", e.tempoEstado / Mathf.Max(.1f, player.config.dodgeDuration)); transicao = .05f;
+                if (e.esquivaLocal.sqrMagnitude > .01f) alvoGiro = Mathf.Atan2(e.esquivaLocal.x, e.esquivaLocal.z) * Mathf.Rad2Deg;
+            }
+            else if (e.estado == PlayerState.Rushing) { Laco("investida", relogioAnim * 1.25f); transicao = .08f; }
+            else if (golpe != null)
+            {
+                tocador.Pedir(e.golpe.id, golpe.clip, golpe.Tempo(e.golpe, e.tempoGolpe)); transicao = .07f;
+                alvoGiro = -golpe.giro;      // o bote do clipe passa a sair na direção em que o herói olha
+            }
+            else if (!e.noChao)
+            {
+                if (e.cambalhota > 0) { Trecho("pulo_duplo", 1 - e.cambalhota); transicao = .06f; }
+                else if (e.velY > 2f) Trecho("pulo", 1 - Mathf.Clamp01(e.velY / 9f));
+                else Laco("no_ar", relogioAnim);
+            }
+            else
+            {
+                float v = e.velocidade;
+                float lanca = e.arremesso > 0 ? Mathf.Clamp01(e.arremesso * 3) : 0;
+                var andar = T("andar"); var correr = T("correr"); var disparar = T("disparar");
+                float pParado = 1 - Mathf.InverseLerp(.3f, 1.6f, v);
+                float pAndar = Mathf.Min(Mathf.InverseLerp(.3f, 1.6f, v), 1 - Mathf.InverseLerp(1.8f, 4.6f, v));
+                float pCorrer = Mathf.Min(Mathf.InverseLerp(1.8f, 4.6f, v), 1 - Mathf.InverseLerp(5.8f, 8f, v));
+                float pDisparar = Mathf.InverseLerp(5.8f, 8f, v);
+                // passadas sincronizadas: uma fase só, cada clipe no ponto equivalente do seu ciclo
+                float ciclo = pAndar * (andar?.clip.length ?? 1) + pCorrer * (correr?.clip.length ?? 1) + pDisparar * (disparar?.clip.length ?? 1);
+                float cadencia = pAndar * 1f + pCorrer * 1.05f + pDisparar * 1.1f;
+                if (ciclo > .01f) fasePassos = Mathf.Repeat(fasePassos + dt * cadencia / ciclo * (pAndar + pCorrer + pDisparar), 1);
+                float resto = 1 - lanca;
+                Laco(e.emCombate ? "guarda" : "parado", relogioAnim, pParado * resto);
+                if (andar != null) Laco("andar", fasePassos * andar.clip.length, pAndar * resto);
+                if (correr != null) Laco("correr", fasePassos * correr.clip.length, pCorrer * resto);
+                if (disparar != null) Laco("disparar", fasePassos * disparar.clip.length, pDisparar * resto);
+                if (lanca > 0) { var t = T("arremesso"); if (t != null) tocador.Pedir("arremesso", t.clip, Mathf.Lerp(t.inicio, t.fim, 1 - e.arremesso), lanca); transicao = .06f; }
+                // assinatura dele: parado e fora de combate, a espada grande descansa no ombro
+                if (!e.emCombate && e.arma != WeaponKind.Spear && lanca <= 0) querOmbro = 1 - Mathf.InverseLerp(2.5f, 4.5f, v);
+            }
+            tocador.Avaliar(dt, transicao);
+            giroModelo = Mathf.MoveTowardsAngle(giroModelo, alvoGiro, 1400 * dt);
+            modeloPatroclo.localRotation = Quaternion.Euler(0, giroModelo, 0);
+            if (e.arma != WeaponKind.Spear) estocadaPeso = 0;
+            else Estocada(e.golpe, e.tempoGolpe, golpe != null && golpe.estocada > 0, golpe != null && golpe.estocada == 2, dt);
+            ombro = Mathf.MoveTowards(ombro, querOmbro, dt / .3f);
+            if (ombro > 0 && peito)
+                animador.Rig.BracoDireito(peito.TransformPoint(new Vector3(.27f, -.02f, .255f)), peito.TransformDirection(new Vector3(1, -.55f, -.15f)),
+                    peito.TransformDirection(new Vector3(.1f, .7f, -.7f)), Mathf.SmoothStep(0, 1, ombro));
+        }
+        /// <summary>
+        /// Estocada de lança por cima do clipe: o corpo dá o passo e o giro; o braço recolhe e solta a haste em linha
+        /// reta para a frente (baixa, saindo do quadril, ou alta, por cima do escudo, como um hoplita). O braço continua
+        /// guiado até o golpe acabar e só então devolve a lança à guarda, para a haste não rodar no ar na recuperação.
+        /// </summary>
+        void Estocada(ComboSO m, float t, bool ativa, bool alta, float dt)
+        {
+            if (ativa)
+            {
+                float hs = Mathf.Max(.02f, m.hitStart), he = Mathf.Max(hs + .02f, m.hitEnd);
+                float solta = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(hs * .45f, hs, t));
+                float volta = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(he + .04f, Mathf.Min(m.duration, he + .3f), t));
+                estocadaAlta = alta; estocadaSolta = solta * (1 - volta);
+                estocadaPeso = Mathf.MoveTowards(estocadaPeso, 1, dt / Mathf.Max(.03f, hs * .5f));
+            }
+            else
+            {
+                estocadaPeso = Mathf.MoveTowards(estocadaPeso, 0, dt / .22f);
+                estocadaSolta = Mathf.MoveTowards(estocadaSolta, 0, dt / .15f);
+            }
+            if (estocadaPeso <= 0) return;
+            var ombroD = animador.Rig.Osso("upperarm01.R"); if (!ombroD) return;
+            Vector3 s = ombroD.position, f = transform.forward, r = transform.right, u = Vector3.up;
+            // a mão fica sempre do lado direito do corpo, longe do rosto: baixa sai do quadril; a alta (só no ar) sai do ombro
+            Vector3 recolhida = estocadaAlta ? s + r * .22f + u * .1f - f * .15f : s + r * .16f - u * .4f - f * .2f;
+            Vector3 estendida = estocadaAlta ? s + r * .14f - u * .04f + f * .55f : s + r * .12f - u * .22f + f * .54f;
+            Vector3 mira = estocadaAlta ? (f - u * .1f).normalized : (f + u * .03f).normalized;
+            Vector3 polo = estocadaAlta ? r * .8f + u * .5f - f * .3f : r * .6f - u * .5f - f * .6f;
+            animador.Rig.BracoDireito(Vector3.Lerp(recolhida, estendida, estocadaSolta), polo, mira, Mathf.SmoothStep(0, 1, estocadaPeso));
+        }
+        void EquiparPatroclo(WeaponSO profile)
+        {
+            bool comLanca = profile.kind == WeaponKind.Spear;
+            if (espada) espada.gameObject.SetActive(!comLanca);
+            if (lanca) lanca.gameObject.SetActive(comLanca);
+            rastro.Limpar(); rastro.cor = profile.color * .5f;
+            if (profile.kind == WeaponKind.Shield && animador.Rig.escudoBraco)
+            { rastro.arma = animador.Rig.escudoBraco; rastro.eixo = Vector3.up; rastro.inicio = -.46f; rastro.fim = .46f; }
+            else if (comLanca) { rastro.arma = lanca; rastro.eixo = Vector3.forward; rastro.inicio = .55f; rastro.fim = 1.35f; }
+            else { rastro.arma = espada; rastro.eixo = Vector3.forward; rastro.inicio = .22f; rastro.fim = 1.3f; }
+        }
+        void AtualizarPatroclo()
+        {
+            float dt = Time.deltaTime;
+            Vector3 plano = Vector3.ProjectOnPlane(transform.position - previousPosition, Vector3.up);
+            float speed = dt > 0 ? plano.magnitude / dt : 0;
+            previousPosition = transform.position;
+            if (player.IsGrounded) chaoAte = Time.time + .1f;
+            var move = player.CurrentAttack;
+            if (move) combateAte = Time.time + 3.5f;
+            else if (Time.time > combateAte - 3)
+                foreach (var enemy in EnemyCombat.Combatants)
+                    if (enemy && (enemy.transform.position - transform.position).sqrMagnitude < 100) { combateAte = Time.time + 3.5f; break; }
+            bool noChao = Time.time < chaoAte;
+            if (noChao && !estavaNoChao) pouso = 1;
+            estavaNoChao = noChao; pouso = Mathf.Max(0, pouso - dt / .22f);
+            float rumo = transform.eulerAngles.y;
+            if (dt > 0) curva = Mathf.Lerp(curva, Mathf.DeltaAngle(rumoAnterior, rumo) / dt, 1 - Mathf.Exp(-12 * dt));
+            rumoAnterior = rumo;
+            arremesso = Mathf.Max(0, arremesso - dt / .3f); cambalhota = Mathf.Max(0, cambalhota - dt / .36f);
+            var e = new PatrocloAnimador.Estado
+            {
+                velocidade = Mathf.Min(speed, 12), direcaoLocal = speed > .05f ? transform.InverseTransformDirection(plano.normalized) : Vector3.forward,
+                noChao = Time.time < chaoAte, velY = player.VerticalSpeed, estado = player.State, tempoEstado = player.StateTime,
+                golpe = move, tempoGolpe = player.AttackTime, profundidade = player.ComboDepth,
+                arma = player.Weapon ? player.Weapon.kind : WeaponKind.Sword, arremesso = arremesso, cambalhota = cambalhota,
+                esquivaLocal = transform.InverseTransformDirection(player.DodgeDirection), emCombate = Time.time < combateAte,
+                pouso = pouso, curva = curva
+            };
+            if (tocador) Animar(e, dt); else animador.Avaliar(e, dt);
+            float chao = e.noChao ? transform.position.y : float.NegativeInfinity;
+            if (capaViva) { capaViva.chao = chao; capaViva.Passo(dt); }
+            if (raboVivo) raboVivo.Passo(dt);
+            bool comLanca = e.arma == WeaponKind.Spear;
+            if (espada) espada.gameObject.SetActive(!comLanca && !(arremesso > .3f && !move));
+            rastro.emitindo = move && player.AttackTime >= move.hitStart * .4f && player.AttackTime <= move.hitEnd + .06f;
+            rastro.Passo(dt);
+            hookTime -= dt;
+            if (hook) { hook.enabled = hookTime > 0 && hookTarget; if (hook.enabled) { hook.SetPosition(0, maoGancho.position); hook.SetPosition(1, hookTarget.position + Vector3.up); } }
+            // o painel de design já sabe mostrar favor, nota de estilo e bênção no corpo do herói
+            sincroniza -= Time.unscaledDeltaTime;
+            if (sincroniza > 0) return;
+            sincroniza = .12f;
+            float favor = Mathf.Round(player.Favor.Amount / 5f) / 20f;
+            var nota = (NotaEstilo)Mathf.Clamp(player.Style.Rank, 0, 6);
+            var bencao = player.Favor.Level(player.Favor.Selected) > 0 ? (Bencao)((int)player.Favor.Selected + 1) : Bencao.Nenhuma;
+            if (!Mathf.Approximately(design.favorDivino, favor) || design.notaDeEstilo != nota || design.bencao != bencao)
+            {
+                design.favorDivino = favor; design.notaDeEstilo = nota; design.bencao = bencao; design.Apply();
+            }
+        }
         static Transform Joint(Transform parent, string name, Vector3 position)
         {
             var joint = new GameObject(name).transform; joint.SetParent(parent, false); joint.localPosition = position; return joint;
         }
         public void Equip(WeaponSO profile)
         {
+            if (animador) { if (profile) EquiparPatroclo(profile); return; }
             if (!rig || !profile) return;
             if (rightWeapon) { rightWeapon.gameObject.SetActive(false); Destroy(rightWeapon.gameObject); }
             if (leftWeapon) { leftWeapon.gameObject.SetActive(false); Destroy(leftWeapon.gameObject); }
@@ -90,13 +296,13 @@ namespace Troia
         }
         public void Attack() { if (player.Weapon) audioFeedback.Swing(player.Weapon.kind); }
         public void Impact(bool heavy) => audioFeedback?.Impact(heavy);
-        public void Shoot() { shootPose = .18f; audioFeedback?.Shoot(); }
+        public void Shoot() { shootPose = .18f; arremesso = 1; combateAte = Time.time + 3.5f; audioFeedback?.Shoot(); }
         public void Pull(Transform target)
         {
             hookTarget=target; hookTime=.6f;
             if (!hook)
             {
-                hook=new GameObject("Corrente_do_machado").AddComponent<LineRenderer>(); hook.transform.SetParent(transform,false);
+                hook=new GameObject("Corda_do_arpao").AddComponent<LineRenderer>(); hook.transform.SetParent(transform,false);
                 hook.positionCount=2; hook.startWidth=.035f; hook.endWidth=.02f;
                 var material=new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); material.color=new Color(.8f,.55f,.3f);
                 hook.sharedMaterial=material; hook.gameObject.AddComponent<OwnedMaterial>().material=material;
@@ -105,7 +311,7 @@ namespace Troia
         public void Dodge() => audioFeedback?.Dodge();
         public void Jump(bool twice)
         {
-            if (!twice) return; flip = .32f;
+            if (!twice) return; flip = .32f; cambalhota = 1;
             CombatVisuals.Burst(transform.position + Vector3.up * .2f, player.Weapon ? player.Weapon.color : Color.cyan, .45f);
         }
         void StyleChanged(int rank)
@@ -114,6 +320,7 @@ namespace Troia
         }
         void LateUpdate()
         {
+            if (animador && player) { AtualizarPatroclo(); return; }
             if (!rig || !player) return;
             float dt = Time.deltaTime;
             float speed = dt > 0 ? Vector3.ProjectOnPlane(transform.position - previousPosition, Vector3.up).magnitude / dt : 0;
