@@ -193,7 +193,7 @@ namespace Troia
             Vector3 point = player.cameraTransform.GetComponent<Camera>().WorldToViewportPoint(target.transform.position + Vector3.up * 1.3f);
             targetMarker.gameObject.SetActive(point.z > 0 && point.x > 0 && point.x < 1 && point.y > 0 && point.y < 1);
             targetMarker.anchoredPosition = new Vector2(point.x * root.rect.width, point.y * root.rect.height);
-            targetName.text = target.kind == EnemyKind.Hector ? "HEITOR" : target.kind == EnemyKind.Captain ? "CAPITÃO" : target.kind == EnemyKind.Archer ? "ARQUEIRO" : "SOLDADO";
+            targetName.text = target.Data ? target.Data.displayName : target.kind.ToString().ToUpper();
             SetBar(targetBar, target.Health.Current / target.Health.maximum);
         }
         public void ShowMoveList()

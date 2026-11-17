@@ -18,6 +18,7 @@ namespace Troia
         public float lockRange = 24;
         public WaveSO[] floors;
         public BlessingSO[] blessings;
+        public EnemySO[] enemyTypes;
     }
 
 }
