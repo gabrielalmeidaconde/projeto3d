@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afe475255af1e4147804e99bd11a5328, type: 3}
+  m_Name: Soldado
+  m_EditorClassIdentifier: Troia.Runtime::Troia.EnemySO
+  kind: 0
+  displayName: SOLDADO
+  maxHealth: 55
+  moveSpeed: 3.4
+  stoppingDistance: 1.65
+  circleRadius: 2.65
+  attackRange: 2.15
+  hitReach: 2.5
+  hitArc: 65
+  damage: 10
+  knockback: 4
+  windup: 0.65
+  recovery: 1.1
+  ranged: 0
+  projectileSpeed: 16
+  armored: 0
+  look: 0
+  scale: 1
+  tunic: {r: 0.55, g: 0.25, b: 0.18, a: 1}
+  armor: {r: 0.62, g: 0.45, b: 0.2, a: 1}
+  accent: {r: 0.6, g: 0.08, b: 0.08, a: 1}

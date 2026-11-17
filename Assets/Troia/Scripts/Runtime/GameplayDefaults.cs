@@ -52,6 +52,7 @@ namespace Troia
                 var b = ScriptableObject.CreateInstance<BlessingSO>(); b.name = titles[i]; b.god = (God)i;
                 b.title = titles[i]; b.description = descriptions[i]; c.blessings[i] = b;
             }
+            c.enemyTypes = EnemyDefaults.CreateAll();
             ArsenalDefaults.Populate(c);
             return c;
         }

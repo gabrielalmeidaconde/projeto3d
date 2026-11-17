@@ -15,6 +15,11 @@ namespace Troia.Editor
             var existing = AssetDatabase.LoadAssetAtPath<GameplayConfig>(Root + "/Gameplay.asset");
             if (existing)
             {
+                if (existing.enemyTypes == null || existing.enemyTypes.Length == 0)
+                {
+                    existing.enemyTypes = EnemyDefaults.CreateAll(); SaveEnemies(existing);
+                    EditorUtility.SetDirty(existing); AssetDatabase.SaveAssets();
+                }
                 if (existing.combatVersion < ArsenalDefaults.Version || existing.weapons == null || existing.weapons.Length == 0)
                 {
                     if (existing.combatVersion == 3 && existing.weapons != null && existing.weapons.Length == 3)
@@ -29,11 +34,24 @@ namespace Troia.Editor
             var config = GameplayDefaults.Create();
             var visited = new HashSet<ComboSO>();
             foreach (var combo in new[] { config.light, config.heavy, config.launcher, config.airLight, config.slam }) SaveCombo(combo, visited);
-            SaveArsenal(config);
+            SaveArsenal(config); SaveEnemies(config);
             foreach (var floor in config.floors) AssetDatabase.CreateAsset(floor, Root + "/Andares/" + floor.name + ".asset");
             foreach (var blessing in config.blessings) AssetDatabase.CreateAsset(blessing, Root + "/Bencaos/" + blessing.name + ".asset");
             AssetDatabase.CreateAsset(config, Root + "/Gameplay.asset"); AssetDatabase.SaveAssets();
             Debug.Log("Gameplay: arsenal, combos, 20 andares e 6 bencaos criados.");
+        }
+        static void SaveEnemies(GameplayConfig config)
+        {
+            Directory.CreateDirectory(Root + "/Inimigos"); AssetDatabase.Refresh();
+            for (int i = 0; i < config.enemyTypes.Length; i++)
+            {
+                var enemy = config.enemyTypes[i];
+                string path = Root + "/Inimigos/" + enemy.name + ".asset";
+                var prior = AssetDatabase.LoadAssetAtPath<EnemySO>(path);
+                if (prior) { Object.DestroyImmediate(enemy); config.enemyTypes[i] = prior; }
+                else AssetDatabase.CreateAsset(enemy, path);
+            }
+            Debug.Log("Gameplay: inimigos salvos em " + Root + "/Inimigos.");
         }
         static void SaveCombo(ComboSO combo, HashSet<ComboSO> visited)
         {

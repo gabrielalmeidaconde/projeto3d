@@ -17,20 +17,21 @@ namespace Troia
         public PlayerCombat target;
         public bool trainingDummy;
         public float damageMultiplier = 1;
+        public EnemySO Data { get; private set; }
         public Health Health { get; private set; }
         public EnemyState State { get; private set; }
-        public bool Armored => kind == EnemyKind.Captain || kind == EnemyKind.Hector;
+        public bool Armored => Data && Data.armored;
+        public float StateTime => timer;
+        public float WindupDuration => windup;
         NavMeshAgent agent;
         CharacterController controller;
         Vector3 velocity, aim;
         float timer, windup, groundY, stuckTime;
         Vector3 lastPosition;
-        Renderer body;
-        Transform weapon;
         bool launched;
         PlayerCombat puller;
         LineRenderer warning;
-        MaterialPropertyBlock bodyTint;
+        EnemyPresentation presentation;
 
         void Awake()
         {
@@ -42,15 +43,15 @@ namespace Troia
             agent.acceleration = 20; agent.stoppingDistance = 1.65f;
             Health.Damaged += React; Health.Died += Die;
         }
-        public void Initialize(EnemyKind type, PlayerCombat player, float healthMultiplier, float attackMultiplier)
+        public void Initialize(EnemyKind type, PlayerCombat player, float healthMultiplier, float attackMultiplier) =>
+            Initialize(EnemySO.Get(type), player, healthMultiplier, attackMultiplier);
+        public void Initialize(EnemySO data, PlayerCombat player, float healthMultiplier, float attackMultiplier)
         {
-            kind = type; target = player; damageMultiplier = attackMultiplier;
-            Health.ResetHealth((kind == EnemyKind.Hector ? 650 : kind == EnemyKind.Captain ? 220 : kind == EnemyKind.Archer ? 38 : 55) * healthMultiplier);
-            Color color = kind == EnemyKind.Hector ? new Color(.65f, .1f, .18f) : Armored ? new Color(.55f, .45f, .15f) : kind == EnemyKind.Archer ? new Color(.2f, .5f, .3f) : new Color(.55f, .25f, .18f);
-            body = CombatVisuals.Part(transform, "Corpo", PrimitiveType.Capsule, Vector3.up * .9f, new Vector3(.8f, .9f, .8f), color).GetComponent<Renderer>();
-            weapon = CombatVisuals.Weapon(transform, new Color(.6f, .6f, .65f));
-            if (Armored) CombatVisuals.Part(transform, "Elmo", PrimitiveType.Cube, Vector3.up * 1.85f, new Vector3(.5f, .25f, .5f), Color.yellow);
-            if (kind == EnemyKind.Archer) agent.stoppingDistance = 9;
+            Data = data; kind = data.kind; target = player; damageMultiplier = attackMultiplier;
+            Health.ResetHealth(data.maxHealth * healthMultiplier);
+            agent.speed = data.moveSpeed; agent.stoppingDistance = data.stoppingDistance;
+            presentation = GetComponent<EnemyPresentation>() ?? gameObject.AddComponent<EnemyPresentation>();
+            presentation.Initialize(this);
             groundY = transform.position.y; lastPosition = transform.position;
             SetState(EnemyState.Chasing);
         }
@@ -70,12 +71,12 @@ namespace Troia
             {
                 agent.isStopped = false;
                 agent.SetDestination(target.transform.position);
-                float range = kind == EnemyKind.Archer ? 13 : kind == EnemyKind.Hector ? 3 : 2.15f;
+                float range = Data.attackRange;
                 if (distance < range && HasSight() && CanCommitAttack()) BeginWindup();
-                else if (distance < 3.2f && kind != EnemyKind.Archer)
+                else if (Data.circleRadius > 0 && distance < Data.circleRadius + .55f)
                 {
                     float phase=Time.time*.55f+GetInstanceID()*2.399963f;
-                    agent.SetDestination(target.transform.position+new Vector3(Mathf.Cos(phase),0,Mathf.Sin(phase))*2.65f);
+                    agent.SetDestination(target.transform.position+new Vector3(Mathf.Cos(phase),0,Mathf.Sin(phase))*Data.circleRadius);
                 }
                 if ((transform.position - lastPosition).sqrMagnitude < .0025f && distance > range) stuckTime += dt;
                 else stuckTime = 0;
@@ -88,12 +89,10 @@ namespace Troia
                 if (timer > windup * .35f) Face(target.transform.position);
                 if (timer <= 0)
                 {
-                    Attack(); SetState(EnemyState.Recovery, Armored ? .85f : 1.1f);
+                    Attack(); SetState(EnemyState.Recovery, Data.recovery);
                 }
             }
             else if (State == EnemyState.Recovery && timer <= 0) SetState(EnemyState.Chasing);
-            if (body) body.transform.localScale = new Vector3(.8f, .9f, .8f) * (State == EnemyState.Windup ? 1.08f : 1);
-            if (weapon) weapon.localRotation = Quaternion.Euler(0, State == EnemyState.Windup ? -75 : State == EnemyState.Recovery ? 80 : 0, 0);
         }
         public bool CanCommitAttack()
         {
@@ -111,24 +110,18 @@ namespace Troia
         void UpdateWarning()
         {
             if(warning) warning.enabled=State==EnemyState.Windup;
-            if(!body) return;
-            bodyTint ??= new MaterialPropertyBlock();
-            body.GetPropertyBlock(bodyTint);
-            Color baseColor=body.sharedMaterial.color;
-            float pulse=State==EnemyState.Windup ? .35f+.25f*Mathf.Sin(Time.time*22) : 0;
-            bodyTint.SetColor("_BaseColor",Color.Lerp(baseColor,new Color(1,.18f,.055f),pulse)); body.SetPropertyBlock(bodyTint);
             if(!warning || !warning.enabled) return;
-            if(kind==EnemyKind.Archer)
+            if(Data.ranged)
             {
                 warning.positionCount=2; warning.SetPosition(0,Vector3.up*1.3f+Vector3.forward*.6f);
                 warning.SetPosition(1,transform.InverseTransformPoint(aim));
                 warning.startWidth=warning.endWidth=.035f; return;
             }
             warning.positionCount=25;
-            float radius=kind==EnemyKind.Hector?3.5f:2.5f;
+            float radius=Data.hitReach;
             for(int i=0;i<warning.positionCount;i++)
             {
-                float angle=Mathf.Lerp(-65,65,i/(float)(warning.positionCount-1))*Mathf.Deg2Rad;
+                float angle=Mathf.Lerp(-Data.hitArc,Data.hitArc,i/(float)(warning.positionCount-1))*Mathf.Deg2Rad;
                 warning.SetPosition(i,new Vector3(Mathf.Sin(angle)*radius,.065f,Mathf.Cos(angle)*radius));
             }
             warning.startWidth=warning.endWidth=Mathf.Lerp(.035f,.12f,1-Mathf.Clamp01(timer/windup));
@@ -149,7 +142,7 @@ namespace Troia
                 warning.sharedMaterial=material; warning.gameObject.AddComponent<OwnedMaterial>().material=material;
             }
             agent.isStopped = true; Face(target.transform.position); aim = target.transform.position + Vector3.up;
-            windup = kind == EnemyKind.Archer ? .95f : kind == EnemyKind.Hector ? .8f : .65f;
+            windup = Data.windup;
             SetState(EnemyState.Windup, windup);
         }
         void Face(Vector3 point)
@@ -159,16 +152,16 @@ namespace Troia
         }
         void Attack()
         {
-            if (kind == EnemyKind.Archer)
+            if (presentation) presentation.Strike();
+            if (Data.ranged)
             {
                 var go = new GameObject("Flecha"); go.transform.position = transform.position + Vector3.up * 1.3f + transform.forward * .6f;
-                go.AddComponent<EnemyProjectile>().Initialize((aim - go.transform.position).normalized, target, 10 * damageMultiplier, gameObject);
+                go.AddComponent<EnemyProjectile>().Initialize((aim - go.transform.position).normalized, target, Data.damage * damageMultiplier, gameObject, Data.projectileSpeed);
                 return;
             }
-            float range = kind == EnemyKind.Hector ? 3.5f : 2.5f;
             Vector3 d = target.transform.position - transform.position;
-            if (d.magnitude <= range && Vector3.Angle(transform.forward, d) < 65 && HasSight())
-                target.Health.TakeDamage(new DamageInfo { source = gameObject, damage = (kind == EnemyKind.Hector ? 24 : Armored ? 18 : 10) * damageMultiplier, direction = d.normalized, knockback = 4, heavy = Armored });
+            if (d.magnitude <= Data.hitReach && Vector3.Angle(transform.forward, d) < Data.hitArc && HasSight())
+                target.Health.TakeDamage(new DamageInfo { source = gameObject, damage = Data.damage * damageMultiplier, direction = d.normalized, knockback = Data.knockback, heavy = Armored });
             CombatVisuals.Burst(transform.position + transform.forward * 1.3f + Vector3.up, Color.red, .25f);
         }
         void React(DamageInfo info)
@@ -244,12 +237,12 @@ namespace Troia
         void OnGUI()
         {
             if (!Health || Health.IsDead || !Camera.main) return;
-            Vector3 p = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * 2.25f);
+            Vector3 p = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * (2.25f * (Data ? Data.scale : 1)));
             if (p.z <= 0 || p.x < 0 || p.x > Screen.width || p.y < 0 || p.y > Screen.height) return;
             GUI.color = State == EnemyState.Windup ? Color.red : Color.white;
             GUI.Box(new Rect(p.x - 32, Screen.height - p.y, 64, 8), "");
             GUI.DrawTexture(new Rect(p.x - 30, Screen.height - p.y + 2, 60 * Health.Current / Health.maximum, 4), Texture2D.whiteTexture);
-            if (Armored) GUI.Label(new Rect(p.x - 50, Screen.height - p.y - 23, 140, 24), kind == EnemyKind.Hector ? "HEITOR" : "CAPITAO");
+            if (Armored) GUI.Label(new Rect(p.x - 50, Screen.height - p.y - 23, 140, 24), Data.displayName);
             GUI.color = Color.white;
         }
         void OnDestroy()
@@ -261,16 +254,18 @@ namespace Troia
 
     public class EnemyProjectile : MonoBehaviour
     {
-        Vector3 direction; PlayerCombat target; GameObject shooter; float damage, lifetime = 4;
-        public void Initialize(Vector3 d, PlayerCombat player, float amount, GameObject attacker = null)
+        Vector3 direction; PlayerCombat target; GameObject shooter; float damage, speed = 16, lifetime = 4;
+        public void Initialize(Vector3 d, PlayerCombat player, float amount, GameObject attacker = null, float velocity = 16)
         {
-            direction = d; target = player; damage = amount; shooter = attacker;
-            CombatVisuals.Part(transform, "Ponta", PrimitiveType.Sphere, Vector3.zero, Vector3.one * .14f, Color.yellow);
+            direction = d; target = player; damage = amount; shooter = attacker; speed = velocity;
+            transform.rotation = Quaternion.LookRotation(d);
+            CombatVisuals.Part(transform, "Haste", PrimitiveType.Cylinder, Vector3.zero, new Vector3(.03f, .35f, .03f), new Color(.45f, .3f, .15f)).localRotation = Quaternion.Euler(90, 0, 0);
+            CombatVisuals.Part(transform, "Ponta", PrimitiveType.Sphere, Vector3.forward * .36f, new Vector3(.07f, .07f, .14f), new Color(.8f, .6f, .25f));
         }
         void Update()
         {
             if (!target || !target.CanAct) return;
-            float step = 16 * Time.deltaTime; Vector3 next = transform.position + direction * step;
+            float step = speed * Time.deltaTime; Vector3 next = transform.position + direction * step;
             // Segment test against the player capsule also catches fast arrows between frames.
             Vector3 center = target.transform.position + Vector3.up;
             Vector3 closest = transform.position + direction * Mathf.Clamp(Vector3.Dot(center - transform.position, direction), 0, step);
