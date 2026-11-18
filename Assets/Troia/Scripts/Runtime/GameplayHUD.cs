@@ -7,7 +7,7 @@ using UnityEngine.InputSystem.UI;
 namespace Troia
 {
     // Screen-space camera Canvas renders with the game camera, including off-screen QA captures.
-    public class GameplayHUD : MonoBehaviour
+    public partial class GameplayHUD : MonoBehaviour
     {
         public Canvas Canvas { get; private set; }
         public string DisplayedRank => rank ? rank.text : "";
@@ -135,6 +135,7 @@ namespace Troia
             moves = Label(list, "", 16, Color.white, new Rect(32, 80, 876, 350));
             Button(list, "VOLTAR  [H]", new Rect(290, 466, 360, 42), () => { showMoves = false; RefreshModals(); });
             moveList.SetActive(false);
+            BuildEndScreen();
         }
         void Update()
         {
@@ -183,6 +184,7 @@ namespace Troia
                     (p.RecoveryRemaining > 0 ? $"RECUPERAÇÃO {p.RecoveryRemaining:0.0}s" : p.MoveCooldown(p.Weapon.heavy) > 0 ? $"PESADO {p.MoveCooldown(p.Weapon.heavy):0.0}s" : "PESADO PRONTO");
             }
             if (previousState != manager.State) { if (manager.State != RunState.Paused) showMoves = false; RefreshModals(); previousState = manager.State; }
+            UpdateEndScreen();
             UpdateTarget(p);
         }
         void UpdateTarget(PlayerCombat player)
@@ -211,7 +213,11 @@ namespace Troia
             bool pause = manager.State == RunState.Paused || manager.State == RunState.Won || manager.State == RunState.Lost;
             gameplayRoot.gameObject.SetActive(!pause && manager.State != RunState.ChoosingBlessing);
             modalBackdrop.SetActive(pause || manager.State == RunState.ChoosingBlessing);
-            pausePanel.SetActive(pause && !showMoves); moveList.SetActive(showMoves && manager.State == RunState.Paused);
+            bool ended = manager.State == RunState.Won || manager.State == RunState.Lost;
+            pausePanel.SetActive(manager.State == RunState.Paused && !showMoves);
+            moveList.SetActive(showMoves && manager.State == RunState.Paused);
+            if (ended && !creditsPanel.activeSelf) { endPanel.SetActive(true); ShowEnd(); }
+            else if (!ended) { endPanel.SetActive(false); creditsPanel.SetActive(false); }
             if (choicePanel.activeSelf)
             {
                 for (int i = 0; i < manager.Choices.Length; i++)

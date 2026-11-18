@@ -34,6 +34,8 @@ namespace Troia
         public bool armored;
         [Header("Visual")]
         public EnemyLook look = EnemyLook.Soldier;
+        [Tooltip("Corpo humanoide (o Mannequin da Quaternius em UAL1_Standard.fbx). Vazio = modelo chibi.")]
+        public GameObject corpo;
         [Range(.7f, 1.6f)] public float scale = 1;
         public Color tunic = new Color(.55f, .25f, .18f);
         public Color armor = new Color(.62f, .45f, .2f);
@@ -74,12 +76,12 @@ namespace Troia
                     break;
                 case EnemyKind.Captain:
                     e.name = "Capitao"; e.displayName = "CAPITÃO"; e.look = EnemyLook.Captain; e.armored = true;
-                    e.maxHealth = 220; e.damage = 18; e.recovery = .85f; e.scale = 1.12f;
+                    e.maxHealth = 220; e.damage = 18; e.recovery = .85f; e.scale = 1.04f;
                     e.tunic = new Color(.5f, .12f, .1f); e.armor = new Color(.72f, .55f, .2f); e.accent = new Color(.85f, .1f, .08f);
                     break;
                 case EnemyKind.Hector:
                     e.name = "Heitor"; e.displayName = "HEITOR"; e.look = EnemyLook.Hector; e.armored = true;
-                    e.maxHealth = 650; e.damage = 24; e.attackRange = 3; e.hitReach = 3.5f; e.windup = .8f; e.recovery = .85f; e.scale = 1.3f;
+                    e.maxHealth = 650; e.damage = 24; e.attackRange = 3; e.hitReach = 3.5f; e.windup = .8f; e.recovery = .85f; e.scale = 1.12f;
                     e.tunic = new Color(.42f, .05f, .12f); e.armor = new Color(.85f, .66f, .25f); e.accent = new Color(.95f, .78f, .3f);
                     break;
                 default:

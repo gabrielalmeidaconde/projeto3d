@@ -19,6 +19,14 @@ namespace Troia
         public int Floor { get; private set; } = 1;
         public float RemainingTime { get; private set; }
         public int Kills { get; private set; }
+        public float RunTime { get; private set; }
+        public int BestChain { get; private set; }
+        public int FloorsCleared => State == RunState.Won ? Floor : Floor - 1;
+        // Média entre o estilo médio e o pico; vencer vale um nível a mais.
+        public int FinalGrade => Mathf.Clamp(Mathf.RoundToInt((player.Style.AverageRank + player.Style.PeakRank) * .5f) + (State == RunState.Won ? 1 : 0), 0, 6);
+        // Kleos: a glória do herói, pontuação final da partida.
+        public int Kleos => Mathf.RoundToInt(Kills * 100 + FloorsCleared * 400 + player.Style.PeakRank * 500 + BestChain * 25
+            + (State == RunState.Won ? 5000 + RemainingTime * 20 : 0));
         public int Alive => enemies.Count(e => e && !e.Health.IsDead);
         public string Message { get; private set; }
         public bool FloorActive { get; private set; }
@@ -90,6 +98,8 @@ namespace Troia
                 if (Alive == 0) { FloorActive = false; StartFloor(); }
                 return;
             }
+            RunTime += dt;
+            BestChain = Mathf.Max(BestChain, player.Style.ChainHits);
             if (FloorActive)
             {
                 RemainingTime = Mathf.Max(0, RemainingTime - dt);
@@ -211,7 +221,7 @@ namespace Troia
                 if (pad.buttonSouth.wasPressedThisFrame) ChooseBlessing(HighlightedChoice);
             }
             if ((State == RunState.Won || State == RunState.Lost) && (Keyboard.current?.rKey.wasPressedThisFrame ?? false)) Restart(false);
-            if ((State == RunState.Won || State == RunState.Lost) && (pad?.buttonSouth.wasPressedThisFrame ?? false)) Restart(false);
+            // no controle, o A da tela final aciona o botão selecionado (Jogar novamente, Checkpoint ou Créditos)
         }
         public void EndRun(bool won)
         {
@@ -239,6 +249,7 @@ namespace Troia
             enemies.Clear(); pendingSpawn = FloorActive = false;
             foreach (var m in markers.Where(m => m.kind == MarkerKind.Barrier)) SetBarrier(m, false);
             Floor = checkpoint ? checkpointFloor : 1; Kills = 0;
+            if (!checkpoint) { RunTime = 0; BestChain = 0; }
             RemainingTime = checkpoint ? checkpointTime : config.startingTime;
             player.Style.ResetMeter();
             if (checkpoint) player.Favor.Restore(checkpointBlessings); else { player.Favor.ResetFavor(); checkpointFloor = 1; checkpointTime = config.startingTime; checkpointBlessings.Clear(); }

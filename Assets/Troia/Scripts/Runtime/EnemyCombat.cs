@@ -232,7 +232,8 @@ namespace Troia
             SetState(EnemyState.Dead); agent.enabled = false; controller.enabled = false;
             GameManager.Instance?.EnemyKilled(this, info);
             CombatVisuals.Burst(transform.position + Vector3.up, new Color(.85f, .2f, .1f));
-            Destroy(gameObject, .1f);
+            combatants.Remove(this);   // o corpo ainda cai na tela, mas já não conta como alvo
+            Destroy(gameObject, presentation && presentation.TemMorte ? 1.8f : .1f);
         }
         void OnGUI()
         {

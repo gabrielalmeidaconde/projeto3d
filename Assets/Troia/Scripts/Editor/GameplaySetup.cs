@@ -15,6 +15,10 @@ namespace Troia.Editor
             var existing = AssetDatabase.LoadAssetAtPath<GameplayConfig>(Root + "/Gameplay.asset");
             if (existing)
             {
+                var corpo = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Troia/Personagens/Animacoes/Quaternius/UAL1_Standard.fbx");
+                if (corpo && existing.enemyTypes != null)
+                    foreach (var enemy in existing.enemyTypes)
+                        if (enemy && !enemy.corpo) { enemy.corpo = corpo; EditorUtility.SetDirty(enemy); AssetDatabase.SaveAssets(); }
                 if (existing.enemyTypes == null || existing.enemyTypes.Length == 0)
                 {
                     existing.enemyTypes = EnemyDefaults.CreateAll(); SaveEnemies(existing);

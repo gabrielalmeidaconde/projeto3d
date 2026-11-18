@@ -29,7 +29,8 @@ MonoBehaviour:
   projectileSpeed: 16
   armored: 1
   look: 3
-  scale: 1.3
+  corpo: {fileID: 919132149155446097, guid: 5bd7c4e4a1624f59891012a1a0a6287f, type: 3}
+  scale: 1.12
   tunic: {r: 0.42, g: 0.05, b: 0.12, a: 1}
   armor: {r: 0.85, g: 0.66, b: 0.25, a: 1}
   accent: {r: 0.95, g: 0.78, b: 0.3, a: 1}
