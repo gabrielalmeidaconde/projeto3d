@@ -97,6 +97,7 @@ namespace Troia.EditorTools
                 BuildExterior(outside, fires);
                 BuildAtmosphere(fx);
                 BuildGameplayMarkers(gameplay);
+                BuildLotes(env);
                 Progress("NavMesh", 0.85f);
                 BakeNavMesh(gameplay);
                 CreateTestPlayer(gameplay, G(-50.5f, -39.5f), 190f);
@@ -226,6 +227,25 @@ namespace Troia.EditorTools
             g.Apply();
         }
 
+        /// <summary>Lista as peças paradas para o jogo fundir em lotes ao carregar a fase (ver CenarioEmLotes).</summary>
+        static void BuildLotes(Transform parent)
+        {
+            var go = new GameObject("Cenario_em_Lotes (funde as pecas ao iniciar)");
+            go.transform.SetParent(parent, false);
+            var fontes = new List<MeshRenderer>();
+            foreach (var mr in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+                if (GameObjectUtility.AreStaticEditorFlagsSet(mr.gameObject, StaticEditorFlags.ReflectionProbeStatic) && mr.GetComponent<MeshFilter>())
+                    fontes.Add(mr);
+            // ordem estável: a mesma cena gera sempre a mesma lista
+            fontes.Sort((a, b) =>
+            {
+                Vector3 pa = a.transform.position, pb = b.transform.position;
+                int c = pa.x.CompareTo(pb.x); if (c == 0) c = pa.z.CompareTo(pb.z); if (c == 0) c = pa.y.CompareTo(pb.y);
+                return c != 0 ? c : string.CompareOrdinal(a.name, b.name);
+            });
+            go.AddComponent<CenarioEmLotes>().fontes = fontes.ToArray();
+        }
+
         static void DecalGround(string kind, float x, float z, float size, float fade = 1f)
         {
             if (_decals == null) return;
@@ -337,7 +357,8 @@ namespace Troia.EditorTools
                 }
                 var mesh = TroiaMeshes.Debris(pts, 900 + idx);
                 var go = MeshObj($"Detritos_{a.Name}", parent, mesh, Vector3.zero, Quaternion.identity, Col.None);
-                go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.On;
+                // detritos miúdos no chão não projetam sombra: não se nota e eram milhares de triângulos por cascata
+                go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
                 idx++;
             }
         }
@@ -392,8 +413,11 @@ namespace Troia.EditorTools
             ConfigureRenderPipeline();
         }
 
-        /// <summary>Sombras em alta resolução e SSAO mais marcado no perfil de PC do URP.</summary>
-        static void ConfigureRenderPipeline()
+        /// <summary>
+        /// Perfil de PC do URP para a fase: sombra da lua em 2 cascatas até 70 m, sem sombra de luz pontual,
+        /// sem MSAA (a câmera já usa SMAA) e sem a cópia da cor opaca, que nenhum shader do jogo lê.
+        /// </summary>
+        public static void ConfigureRenderPipeline()
         {
             var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset");
             if (urp != null)
@@ -401,11 +425,16 @@ namespace Troia.EditorTools
                 var so = new SerializedObject(urp);
                 void SetF(string prop, float v) { var sp = so.FindProperty(prop); if (sp != null) sp.floatValue = v; }
                 void SetI(string prop, int v) { var sp = so.FindProperty(prop); if (sp != null) sp.intValue = v; }
-                SetF("m_ShadowDistance", 120f);
-                SetI("m_ShadowCascadeCount", 4);
+                void SetB(string prop, bool v) { var sp = so.FindProperty(prop); if (sp != null) sp.boolValue = v; }
+                SetF("m_ShadowDistance", 70f);
+                SetI("m_ShadowCascadeCount", 2);
+                SetF("m_Cascade2Split", 0.3f);
                 SetI("m_MainLightShadowmapResolution", 4096);
-                SetI("m_AdditionalLightsShadowmapResolution", 4096);
-                SetI("m_SoftShadowQuality", 3);
+                SetB("m_AdditionalLightShadowsSupported", false);
+                SetI("m_AdditionalLightsShadowmapResolution", 1024);
+                SetI("m_SoftShadowQuality", 2);
+                SetI("m_MSAA", 1);
+                SetB("m_RequireOpaqueTexture", false);
                 so.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(urp);
             }
@@ -429,6 +458,15 @@ namespace Troia.EditorTools
                 SetF("m_Settings.Intensity", 1.1f);
                 SetF("m_Settings.Radius", 0.6f);
                 SetF("m_Settings.DirectLightingStrength", 0.35f);
+                void SetI(string prop, int v) { var sp = so.FindProperty(prop); if (sp != null) sp.intValue = v; }
+                void SetB(string prop, bool v) { var sp = so.FindProperty(prop); if (sp != null) sp.boolValue = v; }
+                SetB("m_Settings.Downsample", true); // oclusão em meia resolução: quase igual depois do desfoque
+                SetI("m_Settings.BlurQuality", 0);
+                // normais da passada de profundidade+normais, que os decals DBuffer já exigem. Decals em espaço de tela
+                // dispensariam essa passada, mas pintam lama e fuligem também nos personagens (rosto manchado)
+                SetI("m_Settings.Source", 1);
+                SetI("m_Settings.NormalSamples", 1);
+                SetB("m_Settings.AfterOpaque", false);
                 so.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(obj);
             }
@@ -524,8 +562,9 @@ namespace Troia.EditorTools
             go.transform.position = tp;
             var t = go.GetComponent<Terrain>();
             t.materialTemplate = TroiaAssets.TerrainMat;
-            t.heightmapPixelError = 4f;
-            t.basemapDistance = 250f;
+            t.heightmapPixelError = 8f;
+            t.basemapDistance = 120f;
+            t.shadowCastingMode = ShadowCastingMode.Off; // chão quase plano: só recebe sombra
             t.drawInstanced = true;
             GameObjectUtility.SetStaticEditorFlags(go, TroiaAssets.StaticFlags);
         }
@@ -906,11 +945,11 @@ namespace Troia.EditorTools
             main.startSpeed = 0f;
             main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.12f);
             main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.55f, 0.2f, 1f), new Color(0.45f, 0.42f, 0.4f, 0.7f));
-            main.maxParticles = 4000;
+            main.maxParticles = 2200;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.gravityModifier = 0.015f;
             var em = ps.emission;
-            em.rateOverTime = 300f;
+            em.rateOverTime = 160f;
             var sh = ps.shape;
             sh.shapeType = ParticleSystemShapeType.Box;
             sh.rotation = new Vector3(-90f, 0f, 0f);
@@ -1005,9 +1044,13 @@ namespace Troia.EditorTools
             var sh = ps.shape;
             sh.scale = new Vector3(width, 0.6f, 0.2f);
             var em = ps.emission;
-            em.rateOverTime = 30f * width;
+            em.rateOverTime = 11f * width; // parede de chamas legível, não um bloco amarelo
             var main = ps.main;
-            main.maxParticles = 1200;
+            main.maxParticles = 400;
+            var luz = wall.GetComponentInChildren<Light>();
+            luz.intensity = 7f; luz.range = 16f;
+            var fl = luz.GetComponent<FireFlicker>();
+            fl.baseIntensity = luz.intensity; fl.intensityVariation = luz.intensity * 0.22f; fl.baseRange = luz.range; fl.rangeVariation = luz.range * 0.06f;
             wall.SetActive(false); // visual da barreira (ativado junto com o colisor)
         }
 

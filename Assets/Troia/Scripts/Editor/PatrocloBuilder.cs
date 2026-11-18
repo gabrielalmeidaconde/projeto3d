@@ -91,6 +91,8 @@ namespace Troia.EditorTools
             Object.DestroyImmediate(root);
             BuildShowroom(prefab);
             AssetDatabase.SaveAssets();
+            // as malhas foram recriadas sem níveis de detalhe: sem eles o herói pesa ~860 mil triângulos em cada passada
+            PatrocloLod.Gerar();
             Debug.Log($"[Troia] Pátroclo gerado: {PrefabPath} e {ScenePath}");
         }
 

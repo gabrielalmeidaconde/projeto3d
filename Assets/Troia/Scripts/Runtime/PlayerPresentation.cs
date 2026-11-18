@@ -201,29 +201,34 @@ namespace Troia
         /// <summary>
         /// Porte da arma em movimento. Os clipes de andar, correr, pular e rolar são de um boneco de mãos vazias: o punho
         /// sobe junto do peito e a lâmina de 1,2 m atravessava o elmo. Aqui o braço direito leva a arma como quem corre
-        /// armado: a espada vai baixa, ao lado do quadril, com a lâmina para trás e para fora; a lança vai deitada, com a
-        /// ponta para a frente. No rolamento a espada fica ao longo do eixo do giro e a lança ao longo do corpo.
+        /// armado: a espada vai em riste, à frente da cintura, com a ponta para a frente e para cima; a lança vai deitada,
+        /// com a ponta para a frente. No rolamento a espada fica ao longo do eixo do giro e a lança ao longo do corpo.
         /// </summary>
         void Porte(bool comLanca, bool noChao)
         {
             var ombroD = animador.Rig.Osso("upperarm01.R"); if (!ombroD || !peito) return;
-            // meio caminho entre o corpo inteiro e o peito: a arma acompanha o tronco sem chicotear a cada passada;
-            // no rolamento vale o peito inteiro (o corpo dá a volta completa)
-            Quaternion quadro = Quaternion.Slerp(modeloPatroclo.rotation, peito.rotation, Mathf.Lerp(.6f, 1, porteRolo));
+            // referência em pé: só o giro do tronco conta (meio caminho entre o corpo e o peito), não a inclinação; senão,
+            // quando ele se debruça para disparar, a ponta da arma mergulha para o chão. No rolamento vale o peito inteiro
+            // (o corpo dá a volta completa).
+            Vector3 frentePeito = Vector3.ProjectOnPlane(peito.forward, Vector3.up), frenteCorpo = modeloPatroclo.forward;
+            if (frentePeito.sqrMagnitude > .04f) frenteCorpo = Vector3.Slerp(frenteCorpo, frentePeito.normalized, .6f);
+            Quaternion quadro = Quaternion.Slerp(Quaternion.LookRotation(frenteCorpo, Vector3.up), peito.rotation, porteRolo);
             Vector3 mao, lamina, polo;
             if (comLanca)
             {
                 mao = Vector3.Lerp(new Vector3(.13f, -.44f, .06f), new Vector3(.14f, -.42f, -.02f), porteCorrida);
-                lamina = Vector3.Lerp(new Vector3(.07f, .05f, 1), new Vector3(.07f, -.03f, 1), porteCorrida);
+                lamina = Vector3.Lerp(new Vector3(.07f, .14f, 1), new Vector3(.07f, .06f, 1), porteCorrida);
                 polo = new Vector3(.6f, -.3f, -.8f);
                 mao = Vector3.Lerp(mao, new Vector3(.27f, -.38f, .08f), porteRolo);
                 lamina = Vector3.Slerp(lamina.normalized, new Vector3(.1f, .95f, .2f).normalized, porteRolo);
             }
             else
             {
-                mao = Vector3.Lerp(new Vector3(.15f, -.46f, .03f), new Vector3(.17f, -.42f, -.1f), porteCorrida);
-                lamina = Vector3.Lerp(new Vector3(.34f, -.36f, -1), new Vector3(.3f, -.2f, -1), porteCorrida);
-                polo = new Vector3(.5f, -.2f, -.9f);
+                // espada em riste: punho à frente da cintura, ponta para a frente e para cima, aberta para fora do elmo
+                // (levar a lâmina para trás, arrastada, foi rejeitado: "muito feio")
+                mao = Vector3.Lerp(new Vector3(.1f, -.33f, .27f), new Vector3(.12f, -.36f, .24f), porteCorrida);
+                lamina = Vector3.Lerp(new Vector3(.22f, .62f, .75f), new Vector3(.26f, .42f, .88f), porteCorrida);
+                polo = new Vector3(.6f, -.5f, -.6f);
                 mao = Vector3.Lerp(mao, new Vector3(.2f, -.36f, .1f), porteRolo);
                 lamina = Vector3.Slerp(lamina.normalized, new Vector3(1, -.15f, -.25f).normalized, porteRolo);
             }

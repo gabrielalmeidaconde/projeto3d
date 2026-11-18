@@ -32,9 +32,11 @@ namespace Troia.Tests
             yield return new WaitForSeconds(.6f);
             Assert.That(player.GetComponent<PlayerPresentation>().UsaPatroclo, Is.True, "O herói do jogo deve ser o Pátroclo");
             bool fotos = !System.Environment.GetCommandLineArgs().Contains("-troia-sem-fotos");
+            bool soLocomocao = System.Environment.GetCommandLineArgs().Contains("-troia-locomocao");
             string so = null;
             foreach (string a in System.Environment.GetCommandLineArgs()) if (a.StartsWith("-troia-so=")) so = a.Substring(10);
             var med = player.gameObject.AddComponent<MedidorDeColisoes>(); med.Preparar(player, fotos);
+            med.poses = System.Environment.GetCommandLineArgs().Contains("-troia-poses");
             Time.captureFramerate = 60;
             var comecar = typeof(PlayerCombat).GetMethod("BeginAttack", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(comecar, Is.Not.Null);
@@ -85,7 +87,7 @@ namespace Troia.Tests
                     med.rotulo = arma + "/dardo"; player.RequestShoot(); yield return Esperar(.7f);
                 }
             }
-            for (int w = 0; w < player.config.weapons.Length; w++)
+            for (int w = 0; w < player.config.weapons.Length && !soLocomocao; w++)
             {
                 player.SelectWeapon(w); med.rotulo = null; yield return Esperar(.6f);
                 var arma = player.Weapon;
@@ -134,6 +136,8 @@ namespace Troia.Tests
             public float dentro, frente, tDentro, tFrente, fotoArma = .015f, fotoCapa = .02f;
         }
         public string rotulo;
+        /// <summary>Fotografa as poses de locomoção (de trás, como a câmera do jogo, e de frente) para conferir o porte da arma.</summary>
+        public bool poses;
         PlayerCombat player;
         bool fotos;
         Transform cabeca, espada, lanca, modelo;
@@ -149,6 +153,7 @@ namespace Troia.Tests
         readonly System.Text.StringBuilder csv = new System.Text.StringBuilder("quadro;rotulo;t;elmo_cm;crista_cm;corpo_cm;z_arma;mao_cabeca_cm;capa_dentro_pct;capa_frente_pct\n");
         readonly System.Text.StringBuilder cabecalho = new System.Text.StringBuilder();
         int quadro;
+        bool aquecida;
 
         public void Preparar(PlayerCombat p, bool comFotos)
         {
@@ -235,6 +240,14 @@ namespace Troia.Tests
             if (!somas.TryGetValue(nome, out var s)) { s = new Soma(); somas[nome] = s; ordem.Add(nome); }
             s.quadros++;
             float t = golpe ? player.AttackTime : s.quadros / 60f;
+            if (poses && !golpe && s.quadros >= 30 && s.quadros % 13 == 0 && s.quadros < 30 + 13 * 4)
+            {
+                Vector3 meio = player.transform.position + Vector3.up * 1.05f; int n = s.quadros / 13;
+                if (!aquecida) { aquecida = true; Foto("pose_descarte", meio - player.transform.forward * 4, meio); }
+                Foto($"pose_{Limpo(nome)}_{n}_tras", meio + player.transform.TransformDirection(new Vector3(.9f, 1.0f, -3.4f)), meio);
+                Foto($"pose_{Limpo(nome)}_{n}_frente", meio + player.transform.TransformDirection(new Vector3(-1.6f, .5f, 3.2f)), meio);
+                Foto($"pose_{Limpo(nome)}_{n}_lado", meio + player.transform.TransformDirection(new Vector3(3.6f, .3f, .2f)), meio);
+            }
 
             // ---------------- arma contra o elmo, a crista e o tronco
             Transform arma = lanca && lanca.gameObject.activeInHierarchy ? lanca : espada && espada.gameObject.activeInHierarchy ? espada : null;

@@ -10,6 +10,8 @@ namespace Troia
         EnemyCombat enemy;
         EnemyModel.Rig rig;
         TrailRenderer trail;
+        Material merged;
+        static readonly int FlashId = Shader.PropertyToID("_Flash");
         readonly List<Material> materials = new List<Material>();
         readonly List<Color> baseColors = new List<Color>();
         Vector3 previousPosition;
@@ -21,10 +23,13 @@ namespace Troia
         {
             enemy = owner; previousPosition = transform.position;
             rig = EnemyModel.Build(transform, owner.Data);
-            foreach (var r in rig.root.GetComponentsInChildren<Renderer>())
-            {
-                materials.Add(r.sharedMaterial); baseColors.Add(r.sharedMaterial.color);
-            }
+            // one mesh per animated joint and a single material: ~6 draw calls per enemy instead of ~50
+            merged = ModeloFundido.Fundir(rig.root, rig.head, rig.rightArm, rig.leftArm, rig.rightLeg, rig.leftLeg);
+            if (!merged)
+                foreach (var r in rig.root.GetComponentsInChildren<Renderer>())
+                {
+                    materials.Add(r.sharedMaterial); baseColors.Add(r.sharedMaterial.color);
+                }
             if (rig.weaponTip)
             {
                 trail = rig.weaponTip.gameObject.AddComponent<TrailRenderer>();
@@ -122,6 +127,14 @@ namespace Troia
             float pulse = state == EnemyState.Windup ? .35f + .25f * Mathf.Sin(Time.time * 22) : 0;
             if (pulse <= 0 && flash <= 0 && !tinted) return;
             tinted = pulse > 0 || flash > 0;
+            if (merged)
+            {
+                // same result as the per-part lerps below, folded into one colour + coverage for the shader
+                float f = flash > 0 ? .75f : 0, cover = 1 - (1 - pulse) * (1 - f);
+                Color mix = cover > 0 ? (WarningColor * (pulse * (1 - f)) + Color.white * f) / cover : Color.white;
+                merged.SetColor(FlashId, new Color(mix.r, mix.g, mix.b, cover));
+                return;
+            }
             for (int i = 0; i < materials.Count; i++)
             {
                 if (!materials[i]) continue;

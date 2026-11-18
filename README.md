@@ -38,6 +38,26 @@ corredores de transição.
 - Texturas principais em 2048 (JPG); se o URP for atualizado, recopie o `Lit.shader` do pacote para
   `Assets/Troia/Shaders/TroiaLitSujo.shader` mantendo o fragmento `TroiaLitPassFragment`.
 
+### Desempenho
+
+- **Cenário em lotes:** ao carregar a fase, `CenarioEmLotes` (objeto `--- AMBIENTE --- > Cenario_em_Lotes`)
+  funde casas e adereços parados em uma malha por célula de 40 m, mais uma malha simples só para sombra.
+  As peças originais continuam na cena (colisão, NavMesh, edição); só o desenho delas é desligado em jogo.
+  Peças maiores que uma célula (muralhas, mar, exército) ficam soltas.
+- **Luzes de fogo sem sombra:** cada luz pontual com sombra redesenhava a cena 6 vezes (eram até 174 mapas
+  de sombra por quadro); a sombra da lua usa 2 cascatas até 70 m. Sem MSAA (a câmera já usa SMAA), sem cópia
+  da cor opaca e oclusão (SSAO) em meia resolução. Essa configuração do URP é gravada por
+  `TroiaMapBuilder.ConfigureRenderPipeline` ao gerar o mapa.
+- **Decals continuam em DBuffer**, de propósito: em espaço de tela dispensariam a passada de profundidade+normais
+  (~2 ms), mas pintam lama e fuligem também nos personagens.
+- **Pátroclo:** níveis de detalhe automáticos (Mesh LOD) gravados nas malhas; de perto continua a malha
+  cheia. `Gerar Pátroclo` já refaz os níveis no fim; avulso, menu `Troia > Personagem > Gerar níveis de detalhe (LOD)`.
+- **Inimigos:** `ModeloFundido` junta as ~50 peças de cada troiano em uma malha por articulação, com um
+  material só (cor no vértice, shader `HeroCartoon`).
+- **Medir:** `Ferramentas/desempenho.sh` (editor fechado) mede batches, triângulos e tempo de quadro em
+  1920x1080 em vários pontos do mapa e grava `Logs/desempenho.txt`; `-troia-perf-variantes` mede também
+  sem sombras, decals, partículas e luzes de fogo, e `-troia-perf-fotos` salva imagens em `Capturas/Desempenho`.
+
 ### Jogar: arsenal e combos
 
 Abra a cena e dê Play. O bootstrap substitui o controle temporário por movimentação e

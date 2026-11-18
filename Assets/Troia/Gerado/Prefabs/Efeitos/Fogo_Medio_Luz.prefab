@@ -44,13 +44,13 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.55, b: 0.24, a: 1}
-  m_Intensity: 10
-  m_Range: 17
+  m_Intensity: 6
+  m_Range: 15
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
-    m_Type: 2
+    m_Type: 0
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
@@ -109,11 +109,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ae04e5f9a816c7830a53250f994d8f3f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Troia.FireFlicker
-  baseIntensity: 10
-  intensityVariation: 3
-  baseRange: 17
-  rangeVariation: 1.02
+  m_EditorClassIdentifier: Troia.Runtime::Troia.FireFlicker
+  baseIntensity: 6
+  intensityVariation: 1.3199999
+  baseRange: 15
+  rangeVariation: 0.9
   speed: 7
 --- !u!1 &1491212113522546629
 GameObject:
@@ -754,7 +754,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 60
+    maxNumParticles: 36
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -1020,7 +1020,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 5.9
+      scalar: 3.64
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -5590,7 +5590,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 150
+    maxNumParticles: 90
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -5856,7 +5856,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 34.100002
+      scalar: 24.300001
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -10435,7 +10435,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 60
+    maxNumParticles: 40
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -10701,7 +10701,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 10.8
+      scalar: 7.25
       minScalar: 10
       maxCurve:
         serializedVersion: 2

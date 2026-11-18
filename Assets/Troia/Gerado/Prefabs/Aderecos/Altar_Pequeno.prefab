@@ -604,7 +604,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 60
+    maxNumParticles: 40
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -870,7 +870,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 7.6
+      scalar: 5.25
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -4853,7 +4853,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 86
+  m_StaticEditorFlags: 82
   m_IsActive: 1
 --- !u!4 &6682310369906198271
 Transform:
@@ -5554,7 +5554,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 60
+    maxNumParticles: 36
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -5820,7 +5820,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 4.3
+      scalar: 2.68
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -9830,8 +9830,8 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.55, b: 0.24, a: 1}
-  m_Intensity: 7
-  m_Range: 13
+  m_Intensity: 4.5
+  m_Range: 12
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -9895,11 +9895,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ae04e5f9a816c7830a53250f994d8f3f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Troia.FireFlicker
-  baseIntensity: 7
-  intensityVariation: 2.1000001
-  baseRange: 13
-  rangeVariation: 0.78
+  m_EditorClassIdentifier: Troia.Runtime::Troia.FireFlicker
+  baseIntensity: 4.5
+  intensityVariation: 0.99
+  baseRange: 12
+  rangeVariation: 0.71999997
   speed: 7
 --- !u!1 &6755160333124123264
 GameObject:
@@ -10540,7 +10540,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 150
+    maxNumParticles: 90
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -10806,7 +10806,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 23.699999
+      scalar: 17.1
       minScalar: 10
       maxCurve:
         serializedVersion: 2

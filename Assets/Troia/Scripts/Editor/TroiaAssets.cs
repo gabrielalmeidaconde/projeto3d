@@ -36,8 +36,9 @@ namespace Troia.EditorTools
         /// <summary>Direção (do chão para) a lua: noroeste, ~30° de altura.</summary>
         public static readonly Vector3 MoonDir = new Vector3(-0.42f, 0.5f, 0.76f).normalized;
 
-        public const StaticEditorFlags StaticFlags = StaticEditorFlags.BatchingStatic | StaticEditorFlags.OccluderStatic |
-                                                     StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic;
+        // sem BatchingStatic: quem junta as peças é o CenarioEmLotes, e o lote estático do Unity trocaria as malhas no build
+        public const StaticEditorFlags StaticFlags = StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic |
+                                                     StaticEditorFlags.ReflectionProbeStatic;
 
         public enum Col { None, Box, Mesh }
 
@@ -277,20 +278,21 @@ namespace Troia.EditorTools
             Pal[(int)M.Cloth] = Lit("M_Tecido_Vermelho", cloth, clothN, C(0.66f, 0.17f, 0.12f), 0.1f, grime: 0.6f);
             Pal[(int)M.ClothBlue] = Lit("M_Tecido_Azul", cloth, clothN, C(0.2f, 0.33f, 0.56f), 0.1f, grime: 0.6f);
             Pal[(int)M.Dark] = Lit("M_Abertura_Escura", null, null, C(0.02f, 0.018f, 0.016f), 0f);
-            Pal[(int)M.Charred] = Lit("M_Carbonizado", charred, charredN, white, 0.08f, 0f, 1f, new Color(2.6f, 2.6f, 2.6f), 0.2f, embers);
+            Pal[(int)M.Charred] = Lit("M_Carbonizado", charred, charredN, white, 0.08f, 0f, 1f, new Color(1.7f, 1.7f, 1.7f), 0.2f, embers);
             Pal[(int)M.Rope] = Lit("M_Corda", cloth, clothN, C(0.55f, 0.45f, 0.3f), 0.05f, grime: 0.5f);
             Pal[(int)M.Foliage] = Lit("M_Folhagem", TexGrass, TexGrassN, C(0.45f, 0.6f, 0.35f), 0.15f, grime: 0.2f);
             Pal[(int)M.Water] = Lit("M_Agua", null, null, C(0.02f, 0.04f, 0.07f), 0.95f);
-            Pal[(int)M.WindowLit] = Lit("M_Janela_Acesa", null, null, C(0.08f, 0.05f, 0.03f), 0.1f, 0f, 1f, new Color(2.2f, 1.05f, 0.4f));
+            Pal[(int)M.WindowLit] = Lit("M_Janela_Acesa", null, null, C(0.08f, 0.05f, 0.03f), 0.1f, 0f, 1f, new Color(1.6f, 0.76f, 0.29f));
             Pal[(int)M.PaintedBlue] = Lit("M_Madeira_Azul", wood, woodN, C(0.36f, 0.52f, 0.66f), 0.25f, grime: 0.85f);
             Pal[(int)M.HorseWood] = Lit("M_Madeira_Cavalo", wood, woodN, C(1.4f, 1.24f, 1.05f), 0.25f, grime: 0.55f);
 
             var flame = AlphaTex("T_Particula_Chama", TexGen.Flame(128), 128);
             var smoke = AlphaTex("T_Particula_Fumaca", TexGen.Smoke(128), 128);
             var spark = AlphaTex("T_Particula_Brasa", TexGen.Spark(64), 64);
-            FireMat = ParticleMat("M_Fogo", flame, C(2.6f, 1.25f, 0.42f), true);
+            // a fase tem bloom, ACES e exposição +0,85: chama aditiva acima de ~1,5 vira mancha amarela chapada
+            FireMat = ParticleMat("M_Fogo", flame, C(1.5f, 0.7f, 0.22f), true);
             SmokeMat = ParticleMat("M_Fumaca", smoke, C(1f, 1f, 1f, 1f), false);
-            EmberMat = ParticleMat("M_Brasa", spark, C(5f, 2f, 0.5f), true);
+            EmberMat = ParticleMat("M_Brasa", spark, C(3f, 1.2f, 0.3f), true);
 
             var tm = new Material(Shader.Find("Universal Render Pipeline/Terrain/Lit")) { name = "M_Terreno" };
             tm.EnableKeyword("_NORMALMAP");
@@ -407,8 +409,8 @@ namespace Troia.EditorTools
             var p = ScriptableObject.CreateInstance<VolumeProfile>();
             AssetDatabase.CreateAsset(p, path);
             var bloom = p.Add<Bloom>();
-            bloom.threshold.Override(1.0f);
-            bloom.intensity.Override(0.9f);
+            bloom.threshold.Override(1.1f);
+            bloom.intensity.Override(0.6f);
             bloom.scatter.Override(0.7f);
             bloom.tint.Override(new Color(1f, 0.82f, 0.7f));
             var tm = p.Add<Tonemapping>();
@@ -492,10 +494,10 @@ namespace Troia.EditorTools
                 main.startSize = new ParticleSystem.MinMaxCurve(0.25f + 0.7f * s, 0.45f + 1.4f * s);
                 main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
                 main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.82f, 0.5f), new Color(1f, 0.5f, 0.2f));
-                main.maxParticles = 150;
+                main.maxParticles = 90;
                 main.gravityModifier = -0.05f;
                 var em = ps.emission;
-                em.rateOverTime = 12f + 26f * s;
+                em.rateOverTime = 9f + 18f * s;
                 var sh = ps.shape;
                 sh.enabled = true;
                 if (size == FireSize.Grande)
@@ -538,9 +540,9 @@ namespace Troia.EditorTools
                 main.startSize = new ParticleSystem.MinMaxCurve(1.2f + 1.2f * s, 2.5f + 2.5f * s);
                 main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
                 main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.16f, 0.14f, 0.13f, 0.55f), new Color(0.25f, 0.22f, 0.2f, 0.45f));
-                main.maxParticles = 60;
+                main.maxParticles = 36;
                 var em = ps.emission;
-                em.rateOverTime = 2.5f + 4f * s;
+                em.rateOverTime = 1.6f + 2.4f * s;
                 var sh = ps.shape;
                 sh.shapeType = ParticleSystemShapeType.Cone;
                 sh.angle = 12f;
@@ -575,10 +577,10 @@ namespace Troia.EditorTools
                 main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f + s, 3f + 2f * s);
                 main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.08f);
                 main.startColor = new ParticleSystem.MinMaxGradient(new Color(1f, 0.75f, 0.3f), new Color(1f, 0.45f, 0.15f));
-                main.maxParticles = 60;
+                main.maxParticles = 40;
                 main.gravityModifier = -0.06f;
                 var em = ps.emission;
-                em.rateOverTime = 4f + 8f * s;
+                em.rateOverTime = 3f + 5f * s;
                 var sh = ps.shape;
                 sh.shapeType = ParticleSystemShapeType.Cone;
                 sh.angle = 25f;
@@ -603,17 +605,18 @@ namespace Troia.EditorTools
                 var l = lg.AddComponent<Light>();
                 l.type = LightType.Point;
                 l.color = new Color(1f, 0.55f, 0.24f);
+                // sem sombra: cada luz pontual com sombra redesenha a cena 6 vezes (eram até 174 mapas de sombra por quadro)
                 l.shadows = LightShadows.None;
                 switch (size)
                 {
-                    case FireSize.Tocha: l.range = 8f; l.intensity = 3f; break;
-                    case FireSize.Pequeno: l.range = 13f; l.intensity = 7f; break;
-                    case FireSize.Medio: l.range = 17f; l.intensity = 10f; l.shadows = LightShadows.Soft; break;
-                    default: l.range = 24f; l.intensity = 16f; l.shadows = LightShadows.Soft; break;
+                    case FireSize.Tocha: l.range = 8f; l.intensity = 2.2f; break;
+                    case FireSize.Pequeno: l.range = 12f; l.intensity = 4.5f; break;
+                    case FireSize.Medio: l.range = 15f; l.intensity = 6f; break;
+                    default: l.range = 20f; l.intensity = 9f; break;
                 }
                 var fl = lg.AddComponent<Troia.FireFlicker>();
                 fl.baseIntensity = l.intensity;
-                fl.intensityVariation = l.intensity * 0.3f;
+                fl.intensityVariation = l.intensity * 0.22f;
                 fl.baseRange = l.range;
                 fl.rangeVariation = l.range * 0.06f;
             }
