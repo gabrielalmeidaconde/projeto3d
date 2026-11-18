@@ -421,3 +421,45 @@ MonoBehaviour:
     fim: 0.6666667
     estocada: 0
     giro: 0
+  - id: bencao_zeus
+    clip: {fileID: 4043807988371827432, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0.15
+    impacto: 0.58
+    fim: 1
+    estocada: 0
+    giro: 0
+  - id: bencao_ares
+    clip: {fileID: 6824622970789808875, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0
+    impacto: 0.3
+    fim: 0.9
+    estocada: 0
+    giro: 0
+  - id: bencao_apolo
+    clip: {fileID: -4514217109003146267, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 1.3
+    impacto: 2
+    fim: 2.45
+    estocada: 0
+    giro: 0
+  - id: bencao_hermes
+    clip: {fileID: 5177481599410670366, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0.3
+    impacto: 0.34
+    fim: 0.8
+    estocada: 0
+    giro: 0
+  - id: bencao_atena
+    clip: {fileID: -2044582983327672346, guid: a900e0ad7392efee1bed7ccf9d921f81, type: 3}
+    inicio: 0
+    impacto: 0.12
+    fim: 0.6
+    estocada: 0
+    giro: 0
+  - id: bencao_poseidon
+    clip: {fileID: 6561345739285688216, guid: 5816e52d00f174ea889eb48e5b59e985, type: 3}
+    inicio: 0.1
+    impacto: 0.4
+    fim: 0.95
+    estocada: 0
+    giro: 0

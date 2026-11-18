@@ -30,6 +30,18 @@ namespace Troia
         RunState previousState = (RunState)(-1);
         bool showMoves;
         GameManager manager;
+        // bênçãos: painel do deus selecionado, faixa com os seis deuses, nome do poder ao conjurar e clarão de tela
+        DivineFavor favor;
+        Image flash, aura, blessingIcon, blessingBar;
+        Text blessingName, blessingState, banner;
+        RectTransform chipMarker;
+        readonly Image[] godChips = new Image[6];
+        readonly Image[] cardIcons = new Image[3];
+        readonly Text[] blessingPowers = new Text[3];
+        Button trainingBlessing;
+        float bannerAge = 9, flashAlpha, auraAlpha;
+        Color flashColor = Color.white, auraColor = Color.white;
+        public string DisplayedBlessing => blessingName ? blessingName.text : "";
 
         void Start()
         {
@@ -54,18 +66,103 @@ namespace Troia
                 eventObject.transform.SetParent(transform, false);
                 eventObject.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             }
-            BuildStatus(); BuildStyle(); BuildArsenal();
+            // por baixo dos painéis: moldura colorida enquanto um poder dura e clarão quando ele cai
+            aura = Cover(gameplayRoot, "Aura_divina"); aura.sprite = DivineLore.Vinheta(); aura.color = Color.clear;
+            flash = Cover(gameplayRoot, "Clarao_divino"); flash.color = Color.clear;
+            BuildStatus(); BuildStyle(); BuildArsenal(); BuildBlessing();
             var shade = Panel(root, "Fundo_Modal", Vector2.zero, Vector2.zero, Vector2.zero, new Color(.01f, .015f, .03f, .76f));
             shade.anchorMin = Vector2.zero; shade.anchorMax = Vector2.one; shade.offsetMin = shade.offsetMax = Vector2.zero;
             shade.GetComponent<Image>().raycastTarget = true; modalBackdrop = shade.gameObject; modalBackdrop.SetActive(false);
             BuildModals();
-            var footer = Panel(gameplayRoot, "Atalhos", new Vector2(.5f, 0), new Vector2(-420, 40), new Vector2(840, 26), new Color(.025f, .035f, .055f, .86f));
-            Label(footer, "WASD mover   ESPACO pulo duplo   CTRL esquiva   E avanco/arpao   R dardos   F foco   1/2/3 armas   H golpes   F2 treino", 12, Color.white, new Rect(10, 4, 820, 22), TextAnchor.MiddleCenter);
+            var footer = Panel(gameplayRoot, "Atalhos", new Vector2(.5f, 0), new Vector2(-500, 40), new Vector2(1000, 26), new Color(.025f, .035f, .055f, .86f));
+            Label(footer, "WASD mover   ESPAÇO pulo duplo   CTRL esquiva   E avanço/arpão   R dardos   F foco   1/2/3 armas   Q bênção   TAB troca de deus   H golpes   F2 treino", 12, Color.white, new Rect(10, 4, 980, 22), TextAnchor.MiddleCenter);
             var marker = Panel(gameplayRoot, "Alvo", Vector2.zero, Vector2.zero, new Vector2(110, 80), Color.clear);
             targetMarker = marker; targetMarker.pivot = new Vector2(.5f, .5f);
             Label(marker, "[    ]", 36, Gold, new Rect(0, 0, 110, 48), TextAnchor.MiddleCenter);
             targetName = Label(marker, "", 12, Color.white, new Rect(-30, 49, 170, 20), TextAnchor.MiddleCenter);
             targetBar = Bar(marker, new Rect(20, 72, 70, 4), Gold);
+            banner = Label(gameplayRoot, "", 34, Color.white, new Rect(0, 0, 760, 52), TextAnchor.MiddleCenter);
+            Place(banner.rectTransform, new Vector2(.5f, 1), new Vector2(-380, -168), new Vector2(760, 52));
+            banner.rectTransform.pivot = new Vector2(.5f, .5f); banner.rectTransform.anchoredPosition = new Vector2(0, -194);
+            banner.fontStyle = FontStyle.Bold; banner.color = Color.clear;
+            var sombra = banner.gameObject.AddComponent<Outline>(); sombra.effectColor = new Color(0, 0, 0, .85f); sombra.effectDistance = new Vector2(2, -2);
+            favor = manager.player.Favor;
+            favor.CastStarted += OnCast; favor.Unleashed += OnUnleashed;
+        }
+        void OnCast(God god, int level) { bannerAge = 0; banner.text = DivineLore.Poder(god); banner.color = Color.Lerp(DivineLore.Cor(god), Color.white, .35f); }
+        void OnUnleashed(God god, int level, Vector3 center, float radius)
+        {
+            flashColor = DivineLore.Claro(god);
+            flashAlpha = Mathf.Max(flashAlpha, god == God.Zeus ? .26f : god == God.Poseidon || god == God.Ares ? .16f : .1f);
+        }
+        void OnDestroy() { if (favor) { favor.CastStarted -= OnCast; favor.Unleashed -= OnUnleashed; } }
+        void BuildBlessing()
+        {
+            var panel = Panel(gameplayRoot, "Bencao", new Vector2(1, 0), new Vector2(-374, 166), new Vector2(350, 132), Ink);
+            Label(panel, "BÊNÇÃO  /  Q usar  ·  TAB trocar", 11, Muted, new Rect(16, 10, 320, 20));
+            blessingIcon = Icon(panel, new Rect(16, 33, 46, 46), DivineLore.Simbolo(God.Zeus), Color.white);
+            blessingName = Label(panel, "", 21, Gold, new Rect(72, 29, 266, 30));
+            blessingName.fontStyle = FontStyle.Bold;
+            blessingState = Label(panel, "", 12, Color.white, new Rect(72, 59, 266, 18));
+            blessingBar = Bar(panel, new Rect(72, 81, 262, 4), Gold);
+            for (int i = 0; i < 6; i++)
+                godChips[i] = Icon(panel, new Rect(16 + i * 32, 95, 24, 24), DivineLore.Simbolo((God)i), DivineLore.Cor((God)i));
+            chipMarker = Panel(panel, "Selecionado", Vector2.up, new Vector2(16, -122), new Vector2(24, 2), Color.white);
+            Label(panel, "4 a 9: escolha direta", 10, Muted, new Rect(206, 100, 130, 18), TextAnchor.MiddleRight);
+        }
+        void UpdateBlessing(PlayerCombat p)
+        {
+            var f = p.Favor; God god = f.Selected; int level = f.Level(god);
+            bool owned = level > 0;
+            Color color = DivineLore.Cor(god);
+            blessingIcon.sprite = DivineLore.Simbolo(god); blessingIcon.color = owned ? color : new Color(1, 1, 1, .14f);
+            blessingName.text = owned ? DivineLore.Poder(god) : "SEM BÊNÇÃO";
+            blessingName.color = owned ? Color.Lerp(color, Color.white, .25f) : Muted;
+            float cooldown = f.CooldownRemaining, cost = f.SelectedCost;
+            bool ready = owned && cooldown <= 0 && f.Amount >= cost && !f.Casting;
+            if (!owned) blessingState.text = "Vença 5 andares para receber a primeira.";
+            else if (god == God.Ares && f.FuryRemaining > 0) blessingState.text = $"Nv.{level}  ·  FÚRIA ATIVA  {f.FuryRemaining:0.0}s";
+            else if (god == God.Athena && f.ShieldRemaining > 0) blessingState.text = $"Nv.{level}  ·  ÉGIDE ATIVA  {f.ShieldRemaining:0.0}s";
+            else if (cooldown > 0) blessingState.text = $"Nv.{level}  ·  RECARGA  {cooldown:0.0}s";
+            else if (f.Amount < cost) blessingState.text = $"Nv.{level}  ·  FAVOR  {f.Amount:0} / {cost:0}";
+            else blessingState.text = $"Nv.{level}  ·  PRONTA  ·  {DivineLore.Resumo(god)}";
+            blessingState.color = ready ? Color.white : Muted;
+            SetBar(blessingBar, owned ? 1 - f.CooldownFraction : 0);
+            blessingBar.color = ready ? color : new Color(color.r, color.g, color.b, .45f);
+            for (int i = 0; i < 6; i++)
+            {
+                bool has = f.Level((God)i) > 0, selected = owned && i == (int)god;
+                Color c = DivineLore.Cor((God)i); c.a = selected ? 1 : has ? .42f : .1f;
+                godChips[i].color = c; godChips[i].rectTransform.localScale = Vector3.one * (selected ? 1.18f : 1);
+            }
+            chipMarker.gameObject.SetActive(owned);
+            chipMarker.anchoredPosition = new Vector2(16 + (int)god * 32, -122); chipMarker.GetComponent<Image>().color = color;
+            // nome do poder: entra grande, assenta e some
+            bannerAge += Time.unscaledDeltaTime;
+            float show = Mathf.Clamp01(bannerAge / .12f) * (1 - Mathf.Clamp01((bannerAge - .9f) / .45f));
+            var bc = banner.color; bc.a = show; banner.color = bc;
+            banner.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.35f, 1, Mathf.Clamp01(bannerAge / .16f));
+            flashAlpha = Mathf.MoveTowards(flashAlpha, 0, Time.unscaledDeltaTime * 2.4f);
+            flash.color = new Color(flashColor.r, flashColor.g, flashColor.b, flashAlpha);
+            // moldura na cor do poder que está durando
+            float want = 0; Color tint = auraColor;
+            if (f.ShieldRemaining > 0) { want = .26f * Mathf.Clamp01(f.ShieldRemaining / .5f); tint = DivineLore.Cor(God.Athena); }
+            else if (f.FuryRemaining > 0) { want = (.3f + .06f * Mathf.Sin(Time.unscaledTime * 6)) * Mathf.Clamp01(f.FuryRemaining / .5f); tint = DivineLore.Cor(God.Ares); }
+            else if (f.BoostRemaining > 0) { want = .16f * Mathf.Clamp01(f.BoostRemaining / .4f); tint = DivineLore.Cor(God.Hermes); }
+            auraAlpha = Mathf.MoveTowards(auraAlpha, want, Time.unscaledDeltaTime * 2.5f); auraColor = tint;
+            aura.color = new Color(tint.r, tint.g, tint.b, auraAlpha);
+        }
+        Image Cover(Transform parent, string name)
+        {
+            var rect = Panel(parent, name, Vector2.zero, Vector2.zero, Vector2.zero, Color.clear);
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
+            return rect.GetComponent<Image>();
+        }
+        Image Icon(Transform parent, Rect bounds, Sprite sprite, Color color)
+        {
+            var rect = Panel(parent, "Simbolo", Vector2.up, new Vector2(bounds.x + bounds.width * .5f, -bounds.y - bounds.height * .5f), bounds.size, color);
+            rect.pivot = new Vector2(.5f, .5f);
+            var image = rect.GetComponent<Image>(); image.sprite = sprite; image.preserveAspect = true; return image;
         }
         void BuildStatus()
         {
@@ -113,26 +210,30 @@ namespace Troia
             {
                 int index = i;
                 var card = Panel(choice, "Deus_" + i, Vector2.up, new Vector2(24 + i * 298, -116), new Vector2(286, 232), new Color(.09f, .11f, .16f));
-                blessingTitles[i] = Label(card, "", 20, Gold, new Rect(16, 12, 254, 30));
-                blessingDescriptions[i] = Label(card, "", 14, Color.white, new Rect(16, 54, 254, 115));
+                cardIcons[i] = Icon(card, new Rect(16, 14, 46, 46), DivineLore.Simbolo(God.Zeus), Color.white);
+                blessingTitles[i] = Label(card, "", 20, Gold, new Rect(72, 10, 200, 28));
+                blessingTitles[i].fontStyle = FontStyle.Bold;
+                blessingPowers[i] = Label(card, "", 12, Muted, new Rect(72, 39, 200, 20));
+                blessingDescriptions[i] = Label(card, "", 14, Color.white, new Rect(16, 72, 254, 100));
                 blessingButtons[i] = Button(card, "Escolher", new Rect(16, 178, 254, 38), () => manager.ChooseBlessing(index));
             }
             choicePanel.SetActive(false);
-            var pause = Panel(root, "Pausa", new Vector2(.5f, .5f), new Vector2(-280, 260), new Vector2(560, 520), Ink);
+            var pause = Panel(root, "Pausa", new Vector2(.5f, .5f), new Vector2(-280, 286), new Vector2(560, 572), Ink);
             pausePanel = pause.gameObject;
             pauseTitle = Label(pause, "", 28, Gold, new Rect(24, 20, 512, 48), TextAnchor.MiddleCenter);
             results = Label(pause, "", 15, Muted, new Rect(32, 78, 496, 75), TextAnchor.MiddleCenter);
             continueButton = Button(pause, "CONTINUAR", new Rect(48, 168, 464, 42), () => manager.TogglePause());
             Button(pause, "LISTA DE GOLPES  [H]", new Rect(48, 220, 464, 42), ShowMoveList);
             Button(pause, "TREINO LIVRE  [F2]", new Rect(48, 272, 464, 42), () => manager.BeginTraining());
-            Button(pause, "REINICIAR PARTIDA", new Rect(48, 324, 464, 42), () => manager.Restart(false));
-            checkpointButton = Button(pause, "RETOMAR CHECKPOINT", new Rect(48, 376, 464, 42), () => manager.Restart(true));
-            Label(pause, "No treino: alvos resistentes, tempo livre e favor ilimitado.", 12, Muted, new Rect(32, 441, 496, 36), TextAnchor.MiddleCenter);
+            trainingBlessing = Button(pause, "TROCAR BÊNÇÃO", new Rect(48, 324, 464, 42), () => { manager.player.Favor.Cycle(); RefreshModals(); });
+            Button(pause, "REINICIAR PARTIDA", new Rect(48, 376, 464, 42), () => manager.Restart(false));
+            checkpointButton = Button(pause, "RETOMAR CHECKPOINT", new Rect(48, 428, 464, 42), () => manager.Restart(true));
+            Label(pause, "No treino: alvos resistentes, tempo livre, favor ilimitado e todas as bênçãos.\nQ usa a bênção, TAB troca de deus, 4 a 9 escolhem direto.", 12, Muted, new Rect(32, 488, 496, 52), TextAnchor.MiddleCenter);
             pausePanel.SetActive(false);
             var list = Panel(root, "Golpes", new Vector2(.5f, .5f), new Vector2(-470, 270), new Vector2(940, 540), Ink);
             moveList = list.gameObject;
             Label(list, "ARSENAL / LISTA DE GOLPES", 25, Gold, new Rect(24, 18, 892, 44), TextAnchor.MiddleCenter);
-            moves = Label(list, "", 16, Color.white, new Rect(32, 80, 876, 350));
+            moves = Label(list, "", 15, Color.white, new Rect(32, 76, 876, 384));
             Button(list, "VOLTAR  [H]", new Rect(290, 466, 360, 42), () => { showMoves = false; RefreshModals(); });
             moveList.SetActive(false);
         }
@@ -150,6 +251,9 @@ namespace Troia
                 RefreshModals();
             }
             if ((Keyboard.current?.f2Key.wasPressedThisFrame ?? false) && manager.State != RunState.ChoosingBlessing) manager.BeginTraining();
+            // com o jogo pausado no treino, TAB continua trocando de deus (o botão da pausa mostra qual está escolhido)
+            if (manager.State == RunState.Paused && manager.TrainingMode && (Keyboard.current?.tabKey.wasPressedThisFrame ?? false))
+            { manager.player.Favor.Cycle(Keyboard.current.leftShiftKey.isPressed ? -1 : 1); RefreshModals(); }
         }
         void LateUpdate()
         {
@@ -158,7 +262,7 @@ namespace Troia
             SetBar(healthBar, p.Health.Current / p.Health.maximum);
             healthText.text = $"VIDA  {p.Health.Current:0} / {p.Health.maximum:0}";
             SetBar(favorBar, p.Favor.Amount / 100);
-            favorText.text = $"FAVOR {p.Favor.Amount:0}  /  {p.Favor.Selected} Nv.{p.Favor.Level(p.Favor.Selected)}";
+            favorText.text = $"FAVOR DIVINO  {p.Favor.Amount:0} / 100";
             floorText.text = manager.TrainingMode ? "TREINO LIVRE" : $"ANDAR {manager.Floor:00} / {manager.config.floors.Length}";
             clock.text = manager.TrainingMode ? "SEM LIMITE" : $"{Mathf.FloorToInt(manager.RemainingTime / 60):00}:{Mathf.FloorToInt(manager.RemainingTime % 60):00}";
             clock.color = manager.RemainingTime < 30 && !manager.TrainingMode ? new Color(1,.3f,.3f) : Color.white;
@@ -183,7 +287,7 @@ namespace Troia
                     (p.RecoveryRemaining > 0 ? $"RECUPERAÇÃO {p.RecoveryRemaining:0.0}s" : p.MoveCooldown(p.Weapon.heavy) > 0 ? $"PESADO {p.MoveCooldown(p.Weapon.heavy):0.0}s" : "PESADO PRONTO");
             }
             if (previousState != manager.State) { if (manager.State != RunState.Paused) showMoves = false; RefreshModals(); previousState = manager.State; }
-            UpdateTarget(p);
+            UpdateTarget(p); UpdateBlessing(p);
         }
         void UpdateTarget(PlayerCombat player)
         {
@@ -217,8 +321,12 @@ namespace Troia
                 for (int i = 0; i < manager.Choices.Length; i++)
                 {
                     var b = manager.Choices[i];
-                    blessingTitles[i].text = $"{i + 1}. {b.title}  /  Nv.{manager.player.Favor.Level(b.god) + 1}";
-                    blessingDescriptions[i].text = b.description + $"\n\nCusto: {b.cost:0} favor";
+                    Color color = DivineLore.Cor(b.god);
+                    cardIcons[i].sprite = DivineLore.Simbolo(b.god); cardIcons[i].color = color;
+                    blessingTitles[i].text = $"{i + 1}. {b.title.ToUpperInvariant()}  /  Nv.{manager.player.Favor.Level(b.god) + 1}";
+                    blessingTitles[i].color = Color.Lerp(color, Color.white, .2f);
+                    blessingPowers[i].text = DivineLore.Poder(b.god);
+                    blessingDescriptions[i].text = b.description + $"\nCusto: {b.cost:0} favor  ·  recarga {b.cooldown:0}s";
                 }
                 if (EventSystem.current) EventSystem.current.SetSelectedGameObject(blessingButtons[0].gameObject);
             }
@@ -228,6 +336,12 @@ namespace Troia
                 results.text = $"ANDAR {manager.Floor}   /   {manager.Kills} ELIMINAÇÕES   /   {manager.RemainingTime:0}s\nMELHOR ESTILO: {StyleMeter.Labels[manager.player.Style.PeakRank]}";
                 continueButton.gameObject.SetActive(manager.State == RunState.Paused);
                 checkpointButton.interactable = manager.HasCheckpoint;
+                var selected = manager.player.Favor.Selected;
+                bool canSwap = manager.TrainingMode && manager.State == RunState.Paused;
+                trainingBlessing.interactable = canSwap;
+                var swapLabel = trainingBlessing.GetComponentInChildren<Text>();
+                swapLabel.text = canSwap ? $"BÊNÇÃO: {DivineLore.Poder(selected)}   »   TROCAR  [TAB]" : "TROCAR BÊNÇÃO  (no treino livre)";
+                swapLabel.color = canSwap ? Color.Lerp(DivineLore.Cor(selected), Color.white, .3f) : Muted;
                 if (EventSystem.current && pausePanel.activeSelf) EventSystem.current.SetSelectedGameObject(continueButton.gameObject);
             }
             if (moveList.activeSelf) BuildMoveText();
@@ -237,7 +351,7 @@ namespace Troia
             moves.text = "L = LEVE / P = PESADO     |     TROQUE 1 / 2 / 3 DURANTE O COMBO\n\n";
             foreach (var weapon in manager.config.weapons)
                 moves.text += $"{weapon.displayName}\n{weapon.light.command}   /   P P\n{weapon.description}\n\n";
-            moves.text += "C / SEGURAR P: lançador / ESPAÇO duas vezes: pulo duplo\nE: avanço (espada/lança) ou arpão (escudo); blindados exigem quebra de guarda.\nR: dardos, 3 arremessos e 0,95s para esfriar. F: foco / T: próximo alvo.\nCTRL cancela; recargas persistem. Alterne ACERTOS; repetir não pontua.\nSofrer dano derruba dois níveis de estilo. Pesados e quedas exigem recuperação.";
+            moves.text += "C / SEGURAR P: lançador / ESPAÇO duas vezes: pulo duplo\nE: avanço (espada/lança) ou arpão (escudo); blindados exigem quebra de guarda.\nR: dardos, 3 arremessos e 0,95s para esfriar. F: foco / T: próximo alvo.\nCTRL cancela; recargas persistem. Alterne ACERTOS; repetir não pontua.\nSofrer dano derruba dois níveis de estilo. Pesados e quedas exigem recuperação.\nQ: bênção do deus selecionado. TAB troca de deus (SHIFT+TAB volta); 4 a 9 escolhem direto.";
         }
         RectTransform Panel(Transform parent, string name, Vector2 anchor, Vector2 position, Vector2 size, Color color)
         {

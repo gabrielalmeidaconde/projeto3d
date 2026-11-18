@@ -86,6 +86,7 @@ namespace Troia
             if (pulsoD) espada = pulsoD.Find("Espada");
             if (espada) { espadaLocal = espada.localRotation; espadaPos = espada.localPosition; }
             escudoBraco = refs.escudoBraco ? refs.escudoBraco.transform : null;
+            PrepararObstaculos(refs);
         }
         Transform O(string nome) => osso.TryGetValue(nome, out var t) ? t : null;
 
@@ -167,6 +168,134 @@ namespace Troia
             pulsoD.localRotation = Quaternion.Slerp(p0, pulsoD.localRotation, peso);
         }
         public Transform Osso(string nome) => O(nome);
+
+        // ------------------------------------------------------------------ a arma não atravessa a cabeça nem o tronco
+        // Cada obstáculo é uma cápsula de raio 1 num espaço local achatado pelos semi-eixos (vira elipsoide quando
+        // as duas pontas coincidem). 'punho' é o trecho da arma junto da mão que não conta (a mão pode encostar no corpo).
+        struct Obstaculo { public Transform osso, ate, visivel; public Vector3 a, b, eixos; public float punho, folga; }
+        readonly List<Obstaculo> obstaculos = new List<Obstaculo>();
+
+        void PrepararObstaculos(PatrocloDesign.Referencias refs)
+        {
+            var cabeca = O("head");
+            if (cabeca)
+            {
+                var casco = refs.elmo ? refs.elmo.transform.Find("Elmo_Casco") : null;
+                if (casco && Caixa(casco.GetComponent<SkinnedMeshRenderer>(), cabeca, out var c))
+                {
+                    // casco: cápsula em pé, redonda no plano horizontal
+                    float r = (c.extents.x + c.extents.z) * .5f, meia = Mathf.Max(0, c.extents.y - r);
+                    obstaculos.Add(new Obstaculo { osso = cabeca, visivel = casco, a = c.center - Vector3.up * meia, b = c.center + Vector3.up * meia,
+                        eixos = new Vector3(c.extents.x, r, c.extents.z), folga = .025f });
+                }
+                else obstaculos.Add(new Obstaculo { osso = cabeca, a = new Vector3(0, .09f, .02f), b = new Vector3(0, .09f, .02f), eixos = new Vector3(.1f, .13f, .12f), folga = .02f });
+                // crista: leque fino no plano do meio da cabeça; o elipsoide inscrito na caixa acompanha o arco dela
+                if (refs.crista && Caixa(refs.crista.GetComponent<SkinnedMeshRenderer>(), cabeca, out var k))
+                    obstaculos.Add(new Obstaculo { osso = cabeca, visivel = refs.crista.transform, a = k.center, b = k.center,
+                        eixos = new Vector3(Mathf.Max(.03f, k.extents.x), k.extents.y, k.extents.z), folga = .015f });
+            }
+            // tronco: quadril-cintura e cintura-peito (mais largo do que fundo)
+            foreach (var (de, ate, raio) in new[] { ("root", "spine03", .135f), ("spine03", "spine01", .15f) })
+                if (O(de) && O(ate))
+                    obstaculos.Add(new Obstaculo { osso = O(de), ate = O(ate), eixos = new Vector3(raio * 1.25f, raio, raio), punho = .25f, folga = .01f });
+        }
+        /// <summary>Caixa dos vértices de uma malha presos a um osso, no espaço desse osso (pose em que a malha foi presa).</summary>
+        static bool Caixa(SkinnedMeshRenderer smr, Transform osso, out Bounds caixa)
+        {
+            caixa = new Bounds();
+            if (!smr || !smr.sharedMesh || !smr.sharedMesh.isReadable) return false;
+            int i = System.Array.IndexOf(smr.bones, osso); if (i < 0) return false;
+            var malha = smr.sharedMesh; var bind = malha.bindposes[i]; var bw = malha.boneWeights; var v = malha.vertices;
+            bool tem = false;
+            for (int n = 0; n < v.Length; n++)
+            {
+                var w = bw[n];
+                float peso = (w.boneIndex0 == i ? w.weight0 : 0) + (w.boneIndex1 == i ? w.weight1 : 0) + (w.boneIndex2 == i ? w.weight2 : 0) + (w.boneIndex3 == i ? w.weight3 : 0);
+                if (peso <= .5f) continue;
+                Vector3 p = bind.MultiplyPoint3x4(v[n]);
+                if (!tem) { caixa = new Bounds(p, Vector3.zero); tem = true; } else caixa.Encapsulate(p);
+            }
+            return tem;
+        }
+
+        /// <summary>
+        /// Por cima da pose pronta: se a arma da mão direita (haste em +Z de 'arma', de z0 a z1) entra no elmo, na crista
+        /// ou no tronco, gira o pulso (e, se a própria mão está perto demais, recua a mão) só o bastante para ela passar
+        /// por fora. Não faz nada quando a arma já está livre, então não muda os golpes que não tocam no corpo.
+        /// </summary>
+        public void AfastarArma(Transform arma, float z0, float z1, float grossura)
+        {
+            if (!Valido || !arma || !arma.gameObject.activeInHierarchy) return;
+            for (int volta = 0; volta < 2; volta++)
+            {
+                bool mexeu = false;
+                foreach (var o in obstaculos)
+                {
+                    if (o.visivel && !o.visivel.gameObject.activeInHierarchy) continue;
+                    if (o.punho <= 0) mexeu |= Afastar(arma, z0, z1, grossura, o);
+                    else
+                    {
+                        if (z1 > o.punho) mexeu |= Afastar(arma, Mathf.Max(z0, o.punho), z1, grossura, o);
+                        if (z0 < -o.punho) mexeu |= Afastar(arma, z0, Mathf.Min(z1, -o.punho), grossura, o);
+                    }
+                }
+                if (!mexeu) break;
+            }
+        }
+        bool Afastar(Transform arma, float z0, float z1, float grossura, in Obstaculo o)
+        {
+            Vector3 inv = new Vector3(1 / o.eixos.x, 1 / o.eixos.y, 1 / o.eixos.z);
+            Vector3 A = arma.TransformPoint(0, 0, z0), B = arma.TransformPoint(0, 0, z1);
+            Vector3 a = Vector3.Scale(o.osso.InverseTransformPoint(A), inv), b = Vector3.Scale(o.osso.InverseTransformPoint(B), inv);
+            Vector3 c0 = Vector3.Scale(o.a, inv), c1 = Vector3.Scale(o.ate ? o.osso.InverseTransformPoint(o.ate.position) : o.b, inv);
+            float dist = Segmentos(a, b, c0, c1, out float u, out Vector3 naArma, out Vector3 noEixo);
+            float media = (o.eixos.x + o.eixos.y + o.eixos.z) / 3f;
+            float entra = 1 + (grossura + o.folga) / media - dist;
+            if (entra <= 0) return false;
+            Vector3 n = naArma - noEixo;
+            if (dist < 1e-4f)
+            {
+                // a arma passa pelo meio: sai para o lado em que a mão está
+                n = Vector3.Scale(o.osso.InverseTransformPoint(pulsoD.position), inv) - noEixo;
+                n = Vector3.ProjectOnPlane(n, b - a);
+                if (n.sqrMagnitude < 1e-6f) n = Vector3.right;
+            }
+            Vector3 empurra = o.osso.TransformVector(Vector3.Scale(n.normalized * entra, o.eixos));
+            Vector3 ponto = Vector3.Lerp(A, B, u), alavanca = ponto - pulsoD.position;
+            // longe da mão basta girar o pulso; junto da mão é a mão que tem de sair
+            float gira = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.1f, .3f, alavanca.magnitude));
+            if (gira > 0) pulsoD.rotation = Quaternion.FromToRotation(alavanca, alavanca + empurra * gira) * pulsoD.rotation;
+            if (gira < 1)
+            {
+                Quaternion giro = pulsoD.rotation;
+                Dois(bracoD, anteD, pulsoD, pulsoD.position + empurra * (1 - gira), anteD.position - bracoD.position);
+                pulsoD.rotation = giro;
+            }
+            return true;
+        }
+        /// <summary>Menor distância entre dois segmentos; 'u' é a posição ao longo do primeiro (0..1).</summary>
+        static float Segmentos(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2, out float u, out Vector3 em1, out Vector3 em2)
+        {
+            Vector3 d1 = q1 - p1, d2 = q2 - p2, r = p1 - p2;
+            float a = d1.sqrMagnitude, e = d2.sqrMagnitude, f = Vector3.Dot(d2, r), t;
+            if (a <= 1e-9f && e <= 1e-9f) { u = 0; t = 0; }
+            else if (a <= 1e-9f) { u = 0; t = Mathf.Clamp01(f / e); }
+            else
+            {
+                float c = Vector3.Dot(d1, r);
+                if (e <= 1e-9f) { t = 0; u = Mathf.Clamp01(-c / a); }
+                else
+                {
+                    float b = Vector3.Dot(d1, d2), den = a * e - b * b;
+                    u = den > 1e-9f ? Mathf.Clamp01((b * f - c * e) / den) : 0;
+                    t = (b * u + f) / e;
+                    if (t < 0) { t = 0; u = Mathf.Clamp01(-c / a); }
+                    else if (t > 1) { t = 1; u = Mathf.Clamp01((b - c) / a); }
+                }
+            }
+            em1 = p1 + d1 * u; em2 = p2 + d2 * t;
+            return Vector3.Distance(em1, em2);
+        }
         static Vector3 Seguro(Vector3 v, Vector3 padrao) => v.sqrMagnitude < 1e-4f ? padrao : v;
 
         static void Ombro(Transform clavicula, Transform braco, Vector3 alvo, Quaternion mr, float lado)

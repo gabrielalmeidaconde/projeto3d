@@ -52,7 +52,7 @@ namespace Troia
         bool perfectDodgeAwarded;
         float yaw, pitch = 16, cameraDistance = 6, stateTime, attackTime, dodgeReady, shotReady;
         float bufferExpiry, heavyPressed = -1, lastGrounded = -10, jumpQueued = -10, graceUntil, ghostUntil;
-        float preservedTime, preserveUntil, swapUntil, shake, rushDuration;
+        float preservedTime, preserveUntil, swapUntil, shake, rushDuration, castDuration;
         float bufferedAttackTime;
         int pendingWeapon = -1, pulse, sequence, actionCounter;
         AttackInput? buffered;
@@ -121,6 +121,7 @@ namespace Troia
             if (State == PlayerState.Attacking) TickAttack(dt);
             if (State == PlayerState.Dodging && stateTime >= config.dodgeDuration) SetState(PlayerState.Locomotion);
             if (State == PlayerState.Staggered && stateTime > .3f) SetState(PlayerState.Locomotion);
+            if (State == PlayerState.Casting && stateTime >= castDuration) SetState(PlayerState.Locomotion);
             if (State == PlayerState.Locomotion && buffered.HasValue && Time.time <= bufferExpiry)
             {
                 float originalExpiry = bufferExpiry;
@@ -228,7 +229,19 @@ namespace Troia
             }
             if ((k?.rKey.isPressed ?? false) || (g?.rightTrigger.isPressed ?? false)) RequestShoot();
             if ((k?.qKey.wasPressedThisFrame ?? false) || (g?.leftShoulder.wasPressedThisFrame ?? false)) Favor.Activate();
-            if ((k?.tabKey.wasPressedThisFrame ?? false) || (g?.dpad.down.wasPressedThisFrame ?? false)) Favor.Cycle();
+            // TAB (ou G) passa para o próximo deus, com SHIFT volta; 4 a 9 escolhem direto
+            bool back = k != null && (k.leftShiftKey.isPressed || k.rightShiftKey.isPressed);
+            if ((k?.tabKey.wasPressedThisFrame ?? false) || (k?.gKey.wasPressedThisFrame ?? false)) Favor.Cycle(back ? -1 : 1);
+            if (g?.dpad.down.wasPressedThisFrame ?? false) Favor.Cycle();
+            if (k != null)
+            {
+                if (k.digit4Key.wasPressedThisFrame) Favor.Select(God.Zeus);
+                if (k.digit5Key.wasPressedThisFrame) Favor.Select(God.Ares);
+                if (k.digit6Key.wasPressedThisFrame) Favor.Select(God.Apollo);
+                if (k.digit7Key.wasPressedThisFrame) Favor.Select(God.Hermes);
+                if (k.digit8Key.wasPressedThisFrame) Favor.Select(God.Athena);
+                if (k.digit9Key.wasPressedThisFrame) Favor.Select(God.Poseidon);
+            }
         }
         public void RequestJump() { if (CanAct) jumpQueued = Time.time; }
         public void SetMoveInput(Vector2 input, float cameraYaw, bool sprint)
@@ -308,7 +321,7 @@ namespace Troia
         }
         public bool RequestApproach()
         {
-            if (!CanAct || !Weapon || State == PlayerState.Staggered || State == PlayerState.Rushing || State == PlayerState.Dodging || ApproachCooldown > 0 || RecoveryRemaining > 0) return false;
+            if (!CanAct || !Weapon || State == PlayerState.Staggered || State == PlayerState.Rushing || State == PlayerState.Dodging || State == PlayerState.Casting || ApproachCooldown > 0 || RecoveryRemaining > 0) return false;
             Vector3 forward = cameraTransform ? cameraTransform.forward : transform.forward;
             var target = Targeting.FindTarget(forward, Weapon.utilityRange, 100);
             if (!target || Vector3.Distance(target.transform.position, transform.position) < 1.8f) return false;
@@ -350,7 +363,7 @@ namespace Troia
         }
         public bool RequestShoot()
         {
-            if (!CanAct || !Weapon || State == PlayerState.Staggered || State == PlayerState.Dodging || State == PlayerState.Rushing || Time.time < shotReady) return false;
+            if (!CanAct || !Weapon || State == PlayerState.Staggered || State == PlayerState.Dodging || State == PlayerState.Rushing || State == PlayerState.Casting || Time.time < shotReady) return false;
             Vector3 center = transform.position + Vector3.up * 1.2f;
             Vector3 forward = cameraTransform ? cameraTransform.forward : transform.forward;
             var target = Targeting.FindTarget(forward, Weapon.projectileRange, 65);
@@ -373,6 +386,24 @@ namespace Troia
                 go.AddComponent<PlayerProjectile>().Initialize(this, Weapon, (aimPoint - origin).normalized, action);
             }
             presentation?.Shoot(); return true;
+        }
+        /// <summary>
+        /// Gesto de uma bênção: o herói para e faz a pose por 'seconds'; nada o interrompe até o poder cair ('protect').
+        /// Esquiva e pulo cancelam o gesto; o combo em andamento continua valendo depois dele.
+        /// </summary>
+        public void BeginCast(float seconds, float protect = 0)
+        {
+            if (seconds <= 0 || !CanAct || State == PlayerState.Staggered) return;
+            var keep = CurrentAttack; float keepTime = attackTime;
+            CancelAttack(); rushTarget = null;
+            if (keep) { preserved = keep; preservedTime = keepTime; preserveUntil = Time.time + seconds + .6f; }
+            castDuration = seconds; graceUntil = Mathf.Max(graceUntil, Time.time + protect);
+            SetState(PlayerState.Casting);
+        }
+        /// <summary>Tranco de câmera pedido de fora (poderes divinos): tremor e fechada rápida do campo de visão.</summary>
+        public void Kick(float shakeAmount, float punchAmount)
+        {
+            shake = Mathf.Max(shake, shakeAmount); punch = Mathf.Max(punch, punchAmount);
         }
         public void GhostFor(float seconds)
         {

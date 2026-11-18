@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:BlessingSO
   god: 0
   title: Zeus
-  description: 'Q: raio em area. Finalizadores soltam raios; niveis ampliam dano
-    e alcance.'
+  description: "Q: ergue a espada e raios caem em toda a \xE1rea. Finalizadores soltam raios; n\xEDveis ampliam dano e alcance."
   cost: 40
   cooldown: 8

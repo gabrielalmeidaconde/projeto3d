@@ -180,6 +180,8 @@ namespace Troia.Tests
                 Assert.That(favor.Activate(), Is.True, blessing.title);
                 Assert.That(favor.Activate(), Is.False, "Recarga " + blessing.title);
                 Assert.That(favor.Amount, Is.EqualTo(100 - blessing.cost).Within(.01f));
+                // Zeus e Poseidon tem gesto de preparo: o poder cai quando o golpe do heroi chega.
+                if (favor.Casting) yield return new WaitUntil(() => !favor.Casting);
                 switch (blessing.god)
                 {
                     case God.Zeus: Assert.That(enemy.Health.Current, Is.LessThan(enemyHealth)); break;

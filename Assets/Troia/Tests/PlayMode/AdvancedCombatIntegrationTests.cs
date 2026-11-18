@@ -284,6 +284,9 @@ namespace Troia.Tests
             var first = Enemy(3); var second = Enemy(5);
             player.Favor.Grant(manager.config.blessings.First(b => b.god == God.Zeus)); player.Favor.Gain(100);
             Assert.That(player.Favor.Activate(), Is.True);
+            Assert.That(player.State, Is.EqualTo(PlayerState.Casting), "O raio cai no fim do gesto");
+            Assert.That(first.Health.Current, Is.EqualTo(first.Health.maximum));
+            yield return new WaitUntil(() => !player.Favor.Casting);
             Assert.That(player.Style.ChainHits, Is.EqualTo(2)); Assert.That(player.Style.Score, Is.EqualTo(15).Within(.1f));
             Assert.That(first.Health.Current, Is.LessThan(first.Health.maximum)); Assert.That(second.Health.Current, Is.LessThan(second.Health.maximum));
             yield return null;

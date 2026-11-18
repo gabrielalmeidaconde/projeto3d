@@ -8,7 +8,7 @@ namespace Troia
     public enum AttackMotion { Slash, Thrust, Spin, Uppercut, Overhead }
     public enum God { Zeus, Ares, Apollo, Hermes, Athena, Poseidon }
     public enum EnemyKind { Soldier, Archer, Captain, Hector }
-    public enum PlayerState { Locomotion, Attacking, Dodging, Staggered, Dead, Rushing }
+    public enum PlayerState { Locomotion, Attacking, Dodging, Staggered, Dead, Rushing, Casting }
 
     [Serializable]
     public struct DamageInfo

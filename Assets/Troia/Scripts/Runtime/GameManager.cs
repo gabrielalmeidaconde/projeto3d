@@ -180,7 +180,7 @@ namespace Troia
                 State = RunState.ChoosingBlessing;
                 choices = config.blessings.OrderBy(_ => Random.value).Take(3).ToArray();
                 HighlightedChoice = 0; Time.timeScale = 0;
-                PlayerCombat.LockCursor(false); Message = "Escolha uma bencao: 1, 2 ou 3";
+                PlayerCombat.LockCursor(false); Message = "Escolha uma bênção: 1, 2 ou 3";
             }
             else { transition = 2; SetDestination(); }
         }
@@ -231,7 +231,7 @@ namespace Troia
         }
         public void Restart(bool checkpoint)
         {
-            TrainingMode = false;
+            TrainingMode = false; player.Favor.QuickCooldown = false;
             Time.timeScale = 1; hitStopUntil = 0;
             foreach (var enemy in enemies) if (enemy) Destroy(enemy.gameObject);
             foreach (var projectile in FindObjectsByType<EnemyProjectile>(FindObjectsSortMode.None)) Destroy(projectile.gameObject);
@@ -289,8 +289,9 @@ namespace Troia
         {
             Restart(false); TrainingMode = true; transition = 0;
             foreach (var blessing in config.blessings) player.Favor.Grant(blessing);
-            player.Favor.Cycle(); player.Favor.Gain(100);
-            StartFloor(); Message = "TREINO / F2 reinicia / Esc para sair";
+            // todas as bênçãos liberadas, favor sempre cheio e recarga curta: TAB troca de deus, Q usa
+            player.Favor.Select(God.Zeus); player.Favor.Gain(100); player.Favor.QuickCooldown = true;
+            StartFloor(); Message = "TREINO LIVRE  /  Q usa a bênção  ·  TAB troca de deus  ·  F2 reinicia";
         }
         public bool HasCheckpoint => checkpointFloor > 1;
         void OnDestroy() { if (Instance == this) { Instance = null; Time.timeScale = 1; PlayerCombat.LockCursor(false); } }

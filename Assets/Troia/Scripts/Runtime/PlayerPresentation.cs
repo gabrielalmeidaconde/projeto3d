@@ -26,11 +26,25 @@ namespace Troia
         PatrocloTocador tocador;
         PanoDinamico capaViva, raboVivo;
         Transform modeloPatroclo, peito;
-        float fasePassos, relogioAnim, ombro, giroModelo, estocadaPeso, estocadaSolta;
+        float fasePassos, relogioAnim, ombro, giroModelo, estocadaPeso, estocadaSolta, grito;
+        Color corDoRastro = Color.white;
+        Transform cabeca, pescoco;
         bool estocadaAlta;
+        float porte, porteCorrida, porteRolo;   // arma em posição de porte: peso, quanto de disparada, quanto de rolamento
         public bool UsaClipes => tocador;
         public bool UsaPatroclo => animador;
         public PatrocloAnimador Animador => animador;
+        /// <summary>Ponta da arma em uso (o raio de Zeus desce nela).</summary>
+        public Vector3 PontaDaArma
+        {
+            get
+            {
+                if (lanca && lanca.gameObject.activeInHierarchy) return lanca.TransformPoint(Vector3.forward * 1.35f);
+                if (espada && espada.gameObject.activeInHierarchy) return espada.TransformPoint(Vector3.forward * 1.3f);
+                if (rightWeapon) return rightWeapon.TransformPoint(Vector3.forward * 1.2f);
+                return transform.position + Vector3.up * 2.3f;
+            }
+        }
 
         public void Initialize(PlayerCombat combat)
         {
@@ -54,6 +68,7 @@ namespace Troia
             rightPistol.gameObject.SetActive(false); leftPistol.gameObject.SetActive(false);
             player.Events.OnStyleRankChanged += StyleChanged;
             Equip(player.Weapon);
+            gameObject.AddComponent<DivinePresentation>().Initialize(player, this, null);
         }
         void IniciarPatroclo(GameObject prefab)
         {
@@ -62,7 +77,7 @@ namespace Troia
             design = go.GetComponent<PatrocloDesign>(); design.escudo = PosicaoEscudo.Braco;
             animador = go.AddComponent<PatrocloAnimador>(); animador.Preparar(design);
             var r = animador.Rig;
-            modeloPatroclo = go.transform; peito = r.Osso("spine01");
+            modeloPatroclo = go.transform; peito = r.Osso("spine01"); pescoco = r.Osso("neck01"); cabeca = r.Osso("head");
             // clipes humanoides (corpo inteiro) quando a biblioteca existe; senão fica a animação por fórmula
             biblioteca = PatrocloAnimacoesSO.Carregar();
             if (biblioteca) { tocador = go.AddComponent<PatrocloTocador>(); tocador.Preparar(biblioteca.avatar); }
@@ -87,6 +102,7 @@ namespace Troia
             player.Events.OnStyleRankChanged += StyleChanged;
             Equip(player.Weapon);
             CombatVisuals.Prewarm(transform.position + Vector3.up * 1.2f); rastro.Aquecer(transform.position + Vector3.up * 1.2f);
+            gameObject.AddComponent<DivinePresentation>().Initialize(player, this, go.transform);
         }
         /// <summary>Escolhe os clipes do quadro a partir do estado do combate e avalia a pose.</summary>
         void Animar(in PatrocloAnimador.Estado e, float dt)
@@ -98,16 +114,29 @@ namespace Troia
             void Laco(string id, float tempo, float peso = 1) { var t = T(id); if (t != null && peso > 0) tocador.Pedir(id, t.clip, tempo, peso); }
             var golpe = e.golpe ? biblioteca.Golpe(e.golpe.id) : null;
             if (e.golpe && golpe == null) golpe = biblioteca.Golpe(e.arma == WeaponKind.Spear ? "Lanca_Estocada1" : e.arma == WeaponKind.Shield ? "Escudo_Corte1" : "Corte_1");
-            float querOmbro = 0;
+            float querOmbro = 0, querGrito = 0;
+            float querPorte = 0, querCorrida = 0, querRolo = 0;
             if (e.estado == PlayerState.Dead) { Trecho("morte", e.tempoEstado / 1.6f); transicao = .1f; }
             else if (e.estado == PlayerState.Staggered) { Trecho("dano", e.tempoEstado / .3f); transicao = .05f; }
+            else if (e.estado == PlayerState.Dodging && player.Favor.DivineDash && T("bencao_hermes") != null)
+            {
+                // passo de Hermes: em vez de rolar, o herói dispara num bote baixo com a lâmina à frente
+                Trecho("bencao_hermes", e.tempoEstado / Mathf.Max(.1f, player.config.dodgeDuration)); transicao = .04f;
+            }
             else if (e.estado == PlayerState.Dodging)
             {
                 // rolamento na direção da esquiva: o corpo vira para onde rola
                 Trecho("esquiva", e.tempoEstado / Mathf.Max(.1f, player.config.dodgeDuration)); transicao = .05f;
                 if (e.esquivaLocal.sqrMagnitude > .01f) alvoGiro = Mathf.Atan2(e.esquivaLocal.x, e.esquivaLocal.z) * Mathf.Rad2Deg;
+                querPorte = querRolo = 1;
             }
-            else if (e.estado == PlayerState.Rushing) { Laco("investida", relogioAnim * 1.25f); transicao = .08f; }
+            else if (e.estado == PlayerState.Casting && Gesto(out var gesto, out float tempoGesto))
+            {
+                // gesto da bênção: o auge da pose cai junto com o poder
+                tocador.Pedir(gesto.id, gesto.clip, tempoGesto); transicao = .08f;
+                querGrito = player.Favor.CastGod == God.Ares ? Mathf.Clamp01(e.tempoEstado / .12f) * (1 - Mathf.InverseLerp(.38f, .56f, e.tempoEstado)) : 0;
+            }
+            else if (e.estado == PlayerState.Rushing) { Laco("investida", relogioAnim * 1.25f); transicao = .08f; querPorte = querCorrida = 1; }
             else if (golpe != null)
             {
                 tocador.Pedir(e.golpe.id, golpe.clip, golpe.Tempo(e.golpe, e.tempoGolpe)); transicao = .07f;
@@ -115,9 +144,10 @@ namespace Troia
             }
             else if (!e.noChao)
             {
-                if (e.cambalhota > 0) { Trecho("pulo_duplo", 1 - e.cambalhota); transicao = .06f; }
+                if (e.cambalhota > 0) { Trecho("pulo_duplo", 1 - e.cambalhota); transicao = .06f; querRolo = 1; }
                 else if (e.velY > 2f) Trecho("pulo", 1 - Mathf.Clamp01(e.velY / 9f));
                 else Laco("no_ar", relogioAnim);
+                querPorte = 1;
             }
             else
             {
@@ -140,16 +170,78 @@ namespace Troia
                 if (lanca > 0) { var t = T("arremesso"); if (t != null) tocador.Pedir("arremesso", t.clip, Mathf.Lerp(t.inicio, t.fim, 1 - e.arremesso), lanca); transicao = .06f; }
                 // assinatura dele: parado e fora de combate, a espada grande descansa no ombro
                 if (!e.emCombate && e.arma != WeaponKind.Spear && lanca <= 0) querOmbro = 1 - Mathf.InverseLerp(2.5f, 4.5f, v);
+                // andando e correndo a arma vai em posição de porte (os clipes de corrida são de mãos vazias)
+                querPorte = (1 - pParado) * resto; querCorrida = pDisparar;
             }
             tocador.Avaliar(dt, transicao);
             giroModelo = Mathf.MoveTowardsAngle(giroModelo, alvoGiro, 1400 * dt);
             modeloPatroclo.localRotation = Quaternion.Euler(0, giroModelo, 0);
+            porte = Mathf.MoveTowards(porte, querPorte, dt / .14f); porteRolo = Mathf.MoveTowards(porteRolo, querRolo, dt / .1f);
+            porteCorrida = Mathf.MoveTowards(porteCorrida, querCorrida, dt / .2f);
+            if (porte > 0) Porte(e.arma == WeaponKind.Spear, e.noChao);
             if (e.arma != WeaponKind.Spear) estocadaPeso = 0;
             else Estocada(e.golpe, e.tempoGolpe, golpe != null && golpe.estocada > 0, golpe != null && golpe.estocada == 2, dt);
+            // grito de Ares: peito aberto e cabeça para o céu por cima do clipe
+            grito = Mathf.MoveTowards(grito, querGrito, dt / .1f);
+            if (grito > 0)
+            {
+                float g = Mathf.SmoothStep(0, 1, grito);
+                if (peito) peito.localRotation *= Quaternion.Euler(-9 * g, 0, 0);
+                if (pescoco) pescoco.localRotation *= Quaternion.Euler(-12 * g, 0, 0);
+                if (cabeca) cabeca.localRotation *= Quaternion.Euler(-17 * g, 0, 0);
+            }
             ombro = Mathf.MoveTowards(ombro, querOmbro, dt / .3f);
             if (ombro > 0 && peito)
                 animador.Rig.BracoDireito(peito.TransformPoint(new Vector3(.27f, -.02f, .255f)), peito.TransformDirection(new Vector3(1, -.55f, -.15f)),
                     peito.TransformDirection(new Vector3(.1f, .7f, -.7f)), Mathf.SmoothStep(0, 1, ombro));
+            // rede de segurança para qualquer pose (rolamento, quedas, transições): a arma não entra no elmo nem no tronco
+            if (e.arma == WeaponKind.Spear) animador.Rig.AfastarArma(lanca, -1.15f, 1.35f, .02f);
+            else animador.Rig.AfastarArma(espada, -.17f, 1.17f, .04f);
+        }
+        /// <summary>
+        /// Porte da arma em movimento. Os clipes de andar, correr, pular e rolar são de um boneco de mãos vazias: o punho
+        /// sobe junto do peito e a lâmina de 1,2 m atravessava o elmo. Aqui o braço direito leva a arma como quem corre
+        /// armado: a espada vai baixa, ao lado do quadril, com a lâmina para trás e para fora; a lança vai deitada, com a
+        /// ponta para a frente. No rolamento a espada fica ao longo do eixo do giro e a lança ao longo do corpo.
+        /// </summary>
+        void Porte(bool comLanca, bool noChao)
+        {
+            var ombroD = animador.Rig.Osso("upperarm01.R"); if (!ombroD || !peito) return;
+            // meio caminho entre o corpo inteiro e o peito: a arma acompanha o tronco sem chicotear a cada passada;
+            // no rolamento vale o peito inteiro (o corpo dá a volta completa)
+            Quaternion quadro = Quaternion.Slerp(modeloPatroclo.rotation, peito.rotation, Mathf.Lerp(.6f, 1, porteRolo));
+            Vector3 mao, lamina, polo;
+            if (comLanca)
+            {
+                mao = Vector3.Lerp(new Vector3(.13f, -.44f, .06f), new Vector3(.14f, -.42f, -.02f), porteCorrida);
+                lamina = Vector3.Lerp(new Vector3(.07f, .05f, 1), new Vector3(.07f, -.03f, 1), porteCorrida);
+                polo = new Vector3(.6f, -.3f, -.8f);
+                mao = Vector3.Lerp(mao, new Vector3(.27f, -.38f, .08f), porteRolo);
+                lamina = Vector3.Slerp(lamina.normalized, new Vector3(.1f, .95f, .2f).normalized, porteRolo);
+            }
+            else
+            {
+                mao = Vector3.Lerp(new Vector3(.15f, -.46f, .03f), new Vector3(.17f, -.42f, -.1f), porteCorrida);
+                lamina = Vector3.Lerp(new Vector3(.34f, -.36f, -1), new Vector3(.3f, -.2f, -1), porteCorrida);
+                polo = new Vector3(.5f, -.2f, -.9f);
+                mao = Vector3.Lerp(mao, new Vector3(.2f, -.36f, .1f), porteRolo);
+                lamina = Vector3.Slerp(lamina.normalized, new Vector3(1, -.15f, -.25f).normalized, porteRolo);
+            }
+            // balanço da passada: o braço armado ainda marca o ritmo, só que curto
+            float passada = noChao ? 1 - porteRolo : 0, fase = fasePassos * 2 * Mathf.PI;
+            mao += new Vector3(0, .012f * Mathf.Sin(fase * 2), .035f * Mathf.Sin(fase)) * passada;
+            lamina += new Vector3(0, .05f * Mathf.Sin(fase + 1), 0) * passada;
+            animador.Rig.BracoDireito(ombroD.position + quadro * mao, quadro * polo, quadro * lamina, Mathf.SmoothStep(0, 1, porte));
+        }
+        /// <summary>Trecho de clipe e instante do gesto da bênção em andamento.</summary>
+        bool Gesto(out PatrocloAnimacoesSO.Trecho gesto, out float tempo)
+        {
+            God deus = player.Favor.CastGod; tempo = 0;
+            gesto = biblioteca.Movimento(DivineLore.Clipe(deus));
+            if (gesto == null) return false;
+            float t = player.StateTime, auge = Mathf.Max(.05f, DivineLore.Auge(deus)), fim = Mathf.Max(auge + .05f, DivineLore.Trava(deus));
+            tempo = t <= auge ? Mathf.Lerp(gesto.inicio, gesto.impacto, t / auge) : Mathf.Lerp(gesto.impacto, gesto.fim, Mathf.Clamp01((t - auge) / (fim - auge)));
+            return true;
         }
         /// <summary>
         /// Estocada de lança por cima do clipe: o corpo dá o passo e o giro; o braço recolhe e solta a haste em linha
@@ -186,7 +278,7 @@ namespace Troia
             bool comLanca = profile.kind == WeaponKind.Spear;
             if (espada) espada.gameObject.SetActive(!comLanca);
             if (lanca) lanca.gameObject.SetActive(comLanca);
-            rastro.Limpar(); rastro.cor = profile.color * .5f;
+            rastro.Limpar(); corDoRastro = profile.color * .5f; rastro.cor = corDoRastro;
             if (profile.kind == WeaponKind.Shield && animador.Rig.escudoBraco)
             { rastro.arma = animador.Rig.escudoBraco; rastro.eixo = Vector3.up; rastro.inicio = -.46f; rastro.fim = .46f; }
             else if (comLanca) { rastro.arma = lanca; rastro.eixo = Vector3.forward; rastro.inicio = .55f; rastro.fim = 1.35f; }
@@ -200,7 +292,7 @@ namespace Troia
             previousPosition = transform.position;
             if (player.IsGrounded) chaoAte = Time.time + .1f;
             var move = player.CurrentAttack;
-            if (move) combateAte = Time.time + 3.5f;
+            if (move || player.State == PlayerState.Casting) combateAte = Time.time + 3.5f;
             else if (Time.time > combateAte - 3)
                 foreach (var enemy in EnemyCombat.Combatants)
                     if (enemy && (enemy.transform.position - transform.position).sqrMagnitude < 100) { combateAte = Time.time + 3.5f; break; }
@@ -227,6 +319,8 @@ namespace Troia
             bool comLanca = e.arma == WeaponKind.Spear;
             if (espada) espada.gameObject.SetActive(!comLanca && !(arremesso > .3f && !move));
             rastro.emitindo = move && player.AttackTime >= move.hitStart * .4f && player.AttackTime <= move.hitEnd + .06f;
+            // em fúria (Ares) a lâmina risca fogo
+            rastro.cor = player.Favor.FuryRemaining > 0 ? new Color(1.9f, .42f, .1f) : corDoRastro;
             rastro.Passo(dt);
             hookTime -= dt;
             if (hook) { hook.enabled = hookTime > 0 && hookTarget; if (hook.enabled) { hook.SetPosition(0, maoGancho.position); hook.SetPosition(1, hookTarget.position + Vector3.up); } }

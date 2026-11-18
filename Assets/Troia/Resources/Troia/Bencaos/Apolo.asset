@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:BlessingSO
   god: 2
   title: Apolo
-  description: 'Q: cura. Subir para S ou mais recupera vida.'
+  description: "Q: a luz do sol cura o her\xF3i. Subir para a nota S ou mais recupera vida."
   cost: 40
   cooldown: 8

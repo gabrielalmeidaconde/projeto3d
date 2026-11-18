@@ -59,6 +59,16 @@ namespace Troia.EditorTools
             ("esquiva", "Roll", .12f, .95f), ("dano", "Hit_Chest", 0, .33f), ("morte", "Death01", 0, 2.4f), ("arremesso", "OverhandThrow", .12f, .75f),
             ("investida", "Sprint_Loop", 0, 0),
         };
+        // gestos das bênçãos: início, auge da pose (quando o poder cai) e fim dentro do clipe
+        static readonly (string id, string clipe, float inicio, float auge, float fim)[] Gestos =
+        {
+            ("bencao_zeus", "Melee_1H_Attack_Chop", .15f, .58f, 1.0f),        // ergue a espada ao céu e desce o golpe
+            ("bencao_ares", "Melee_Blocking", 0f, .3f, .9f),                  // braços abertos, peito para a frente (o grito vem por cima)
+            ("bencao_apolo", "Idle_Rail_Call", 1.3f, 2.0f, 2.45f),            // lâmina erguida na vertical, escudo ao peito
+            ("bencao_hermes", "Sword_Dash", .3f, .34f, .8f),                  // bote baixo com a lâmina à frente
+            ("bencao_atena", "Shield_OneShot", 0f, .12f, .6f),                // escudo apresentado de frente
+            ("bencao_poseidon", "Melee_2H_Attack_Slice", .1f, .4f, .95f),     // varrida larga rente ao chão
+        };
 
         [MenuItem("Troia/Personagem/Montar biblioteca de animação", priority = 48)]
         public static void MontarBiblioteca()
@@ -98,6 +108,11 @@ namespace Troia.EditorTools
             {
                 var c = Achar(clipe); if (!c) { faltam.Add(clipe); continue; }
                 lib.movimentos.Add(new PatrocloAnimacoesSO.Trecho { id = id, clip = c, inicio = inicio, fim = fim > 0 ? Mathf.Min(fim, c.length) : c.length });
+            }
+            foreach (var (id, clipe, inicio, auge, fim) in Gestos)
+            {
+                var c = Achar(clipe); if (!c) { faltam.Add(clipe); continue; }
+                lib.movimentos.Add(new PatrocloAnimacoesSO.Trecho { id = id, clip = c, inicio = inicio, impacto = Mathf.Min(auge, c.length), fim = Mathf.Min(fim, c.length) });
             }
             Object.DestroyImmediate(boneco);
             Debug.Log("direção dos botes (graus fora da frente): " + string.Join(" ", relato));

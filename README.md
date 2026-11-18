@@ -50,7 +50,10 @@ combate; também funciona após regerar o mapa.
 - **R** arremessa dardos; três arremessos exigem 0,95 s de recuperação compartilhada.
 - Segure pesado para lançar; pule e pressione **E** para perseguir, ou pesado no ar para cair em área.
 - Combos: **L L L** (escudo: **L L**); **L P** e **L L P** fecham com finalizadores diferentes; **P P**. Não há ramos por pausa.
-- **Q** poder divino, **Tab** trocar deus, **Esc** pausa, **H** lista de golpes, **F2** treino livre.
+- **Q** usa a bênção do deus selecionado, **Tab** (ou **G**) passa para o próximo deus, **Shift+Tab** volta e
+  **4 a 9** escolhem direto (Zeus, Ares, Apolo, Hermes, Atena, Poseidon).
+- **Esc** pausa, **H** lista de golpes, **F2** treino livre (todas as bênçãos liberadas, favor cheio e recarga curta;
+  a pausa do treino também tem um botão para trocar de bênção).
 - Controle: analógico esquerdo mover, direito câmera, **A** pulo, **B** esquiva,
   **X/Y** leve/pesado, **LT** foco, **RB** aproximação, **RT** projéteis,
   **LB** poder, direcional esquerdo/direito armas, direcional baixo trocar deus, **Start** pausa.
@@ -87,6 +90,24 @@ provisório (`HeroModel`).
 
 Para conferir os golpes sem jogar: `Ferramentas/pranchas.sh` gera pranchas de pose em `Capturas/Golpes`, e o
 teste explícito `PatrocloCapturas` joga no treino e salva imagens da câmera do jogo em `Capturas/Jogo`.
+
+**Bênçãos dos deuses.** Cada deus tem gesto, efeito e som próprios; o painel no canto inferior direito mostra o deus
+selecionado, a recarga e os seis símbolos (os que o herói já tem ficam acesos):
+
+| Deus | Poder (Q) | O que se vê |
+| --- | --- | --- |
+| Zeus | Raio de Zeus | ergue a espada, arcos estalam na lâmina e, quando o golpe desce, raios caem em cada inimigo da área |
+| Ares | Fúria de Ares | grito de guerra com labareda; enquanto dura, brasas sobem do herói e a lâmina risca fogo |
+| Apolo | Luz de Apolo | lâmina erguida, pilar de luz dourada e selo solar no chão enquanto cura |
+| Hermes | Passo de Hermes | arranque com rastros fantasmas, rajadas de vento e penas; corta quem estiver no caminho |
+| Atena | Égide de Atena | cúpula de hexágonos que ondula onde o golpe bate e se desfaz em cacos no fim |
+| Poseidon | Maré de Poseidon | varrida da lâmina, parede de água em anel e jatos que erguem os inimigos |
+
+Zeus e Poseidon têm um gesto de preparo (cerca de 0,3 s): o favor é gasto ao apertar **Q** e o poder cai quando o golpe
+do herói chega; durante o preparo nada o interrompe. As regras ficam em `DivineFavor.cs`; nomes, cores, tempos e
+símbolos em `DivineLore.cs`; os efeitos em `DivineVfx.cs` com os shaders `Resources/Troia/Divino`; os sons (sintetizados)
+em `DivineAudio.cs`; e os gestos na tabela `Gestos` de `PatrocloClipes.cs`. O teste explícito
+`PatrocloCapturas.BencaosEmJogo` usa cada bênção no treino e salva as imagens em `Capturas/Bencaos`.
 
 São 20 andares nas seis arenas. O timer global começa em 180 segundos; acertos variados
 aumentam o estilo e kills recuperam tempo/favor. Bênçãos e checkpoints após 5/10/15;

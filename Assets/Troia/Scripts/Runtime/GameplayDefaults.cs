@@ -40,12 +40,12 @@ namespace Troia
             }
             string[] titles = { "Zeus", "Ares", "Apolo", "Hermes", "Atena", "Poseidon" };
             string[] descriptions = {
-                "Q: raio em area. Finalizadores soltam raios; niveis ampliam dano e alcance.",
-                "Q: furia por alguns segundos. Dano aumenta com a nota de estilo.",
-                "Q: cura. Subir para S ou mais recupera vida.",
-                "Q: dash ofensivo. Depois de esquivar, dano do proximo combo aumenta.",
-                "Q: escudo temporario. Esquivar no momento do ataque realiza parry.",
-                "Q: onda que lanca inimigos. Lancadores levantam inimigos proximos." };
+                "Q: ergue a espada e raios caem em toda a área. Finalizadores soltam raios; níveis ampliam dano e alcance.",
+                "Q: grito de guerra; por alguns segundos ataca mais rápido e mais forte. O dano cresce com a nota de estilo.",
+                "Q: a luz do sol cura o herói. Subir para a nota S ou mais recupera vida.",
+                "Q: arranque que atravessa e corta os inimigos. Depois de esquivar, o próximo combo fere mais.",
+                "Q: a égide bloqueia todo dano por alguns segundos. Esquivar no instante do ataque apara o golpe.",
+                "Q: a maré ergue os inimigos no ar. Lançadores levantam também os inimigos próximos." };
             c.blessings = new BlessingSO[6];
             for (int i = 0; i < 6; i++)
             {

@@ -28,7 +28,7 @@ Checkpoints duram a sessão atual, com bênçãos e tempo preservados após os a
 | Avançar (espada/foice) / puxar (machado) | E | RB |
 | Pistolas duplas | R (pode segurar) | RT |
 | Trocar arma | 1 / 2 / 3 | Direcional esquerdo / direito |
-| Poder divino / trocar deus | Q / Tab | LB / direcional baixo |
+| Poder divino / trocar deus | Q / Tab ou G (Shift volta; 4 a 9 escolhem direto) | LB / direcional baixo |
 | Lista de golpes / treino livre | H / F2 | Menu de pausa |
 | Pausa | Esc | Start |
 
