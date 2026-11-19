@@ -20,6 +20,44 @@ namespace Troia
             public int estocada;
             [Tooltip("Graus que o bote do clipe sai fora da frente do herói (o jogo gira o modelo para compensar).")]
             public float giro;
+            [Tooltip("Para onde o peito aponta (graus, relativo à frente do clipe) ao longo do trecho, de início a fim; vazio = sem limite.")]
+            public float[] corpo;
+            [Tooltip("Giro de propósito (Fúria, Roda): sem limite; depois do impacto a volta continua até o herói terminar de frente.")]
+            public bool livre;
+
+            /// <summary>Limite de quanto o tronco pode virar para longe do alvo durante o golpe.</summary>
+            public const float LimiteCorpo = 55;
+
+            /// <summary>
+            /// Giro do modelo para este instante do clipe: a mira e, se o clipe virar o corpo mais que LimiteCorpo para
+            /// longe do alvo, o que passar disso é desfeito (o tronco ainda torce, mas o herói não termina de costas).
+            /// </summary>
+            public float GiroModelo(float tempoClipe)
+            {
+                float r = -giro;
+                if (corpo == null || corpo.Length < 2 || fim <= inicio) return r;
+                if (livre)
+                {
+                    // completa a volta no sentido em que o corpo gira: termina num múltiplo de 360°, de frente para o alvo
+                    float e = corpo[corpo.Length - 1] + r;
+                    float perto = Mathf.Round(e / 360) * 360;
+                    float sentido = e - Amostra(Mathf.Clamp01((impacto - inicio) / (fim - inicio)));
+                    float alvoFinal = Mathf.Abs(e - perto) < 60 ? perto : (sentido < 0 ? Mathf.Floor(e / 360) : Mathf.Ceil(e / 360)) * 360;
+                    float k = Mathf.Clamp01((tempoClipe - impacto) / Mathf.Max(.01f, fim - impacto));
+                    return r + (alvoFinal - e) * k * k * (3 - 2 * k);
+                }
+                float mundo = Amostra(Mathf.Clamp01((tempoClipe - inicio) / (fim - inicio))) + r;
+                if (mundo > LimiteCorpo) r -= mundo - LimiteCorpo;
+                else if (mundo < -LimiteCorpo) r -= mundo + LimiteCorpo;
+                return r;
+            }
+
+            float Amostra(float fracao)
+            {
+                float u = fracao * (corpo.Length - 1);
+                int i = Mathf.Min((int)u, corpo.Length - 2);
+                return Mathf.Lerp(corpo[i], corpo[i + 1], u - i);
+            }
 
             /// <summary>
             /// Instante do clipe para um golpe em andamento: o impacto do clipe cai exatamente em hitStart. A preparação

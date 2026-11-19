@@ -30,17 +30,17 @@ namespace Troia.EditorTools
             // ---------------------------------------------------------------- XIFOS
             ("Corte_1", "Sword_Regular_Combo", 0f, .2f, .45f),                      // abre o combo: corte com giro do tronco
             ("Corte_2", "Sword_Regular_Combo", .45f, .7f, 1.05f),                   // continua do giro: avanço fundo e corte baixo
-            ("Corte_3", "Sword_Regular_Combo", 1.05f, 1.5f, 2.3f),                  // fecha: sobe, corta e afunda na base
+            ("Corte_3", "Sword_Heavy_Combo", 2.2f, 2.5f, 3.4f),                    // fecha: ergue a espada acima da cabeça e desce o corte, afundando na base
             ("Pesado", "Sword_Heavy_Combo", .1f, .36f, .75f),                       // P: corte pesado de baixo para cima
             ("Xifos_Execucao", "Sword_Heavy_Combo", .75f, 1.15f, 1.45f),            // P P: emenda do giro no segundo corte
-            ("Xifos_Mirmidao", "Sword_Heavy_Combo", 2.2f, 2.5f, 3.4f),              // P P P: o corte final, afundando na base
+            ("Xifos_Mirmidao", "Sword_Attack", .05f, .33f, .75f),                  // P P P: golpe de cima com o corpo inteiro, em avanço
             ("Xifos_Ruptura", "Sword_Heavy_Combo", 1.45f, 1.78f, 2.25f),            // L P: corte baixo de giro
-            ("Xifos_Ascendente", "Sword_Attack", .1f, .33f, .8f),                   // L L P: corte que sobe e lança
+            ("Xifos_Ascendente", "Sword_Regular_C", .3f, .62f, 1.1f),              // L L P: lançador do meio do combo (o mesmo salto do C)
             ("Lancador", "Sword_Regular_C", .3f, .62f, 1.1f),                       // C: salta junto com o golpe que sobe
-            ("Xifos_Furia", "Melee_2H_Attack_Spin", .4f, .95f, 1.6f),               // L L L P: giro de corpo inteiro
+            ("Xifos_Furia", "Sword_Heavy_Combo", .15f, .45f, 1f),                  // L L L P: giro de corpo inteiro, de base baixa, a espada rente ao chão
             ("Xifos_Investida", "Sword_Dash", .2f, .32f, 1f),                       // E: bote fundo
             ("Aereo_1", "Sword_Regular_A", 0f, .2f, .43f), ("Aereo_2", "Sword_Regular_B", 0f, .2f, .5f),
-            ("Aereo_3", "Sword_Regular_Combo", 1.05f, 1.5f, 2.3f),  // no ar L L L: sobe e corta para baixo
+            ("Aereo_3", "Sword_Heavy_Combo", 2.2f, 2.5f, 3.4f),  // no ar L L L: a Sentença no ar, golpe de cima
             ("Xifos_Talho", "Sword_Heavy_Combo", .75f, 1.15f, 1.45f),  // no ar L L P
             ("Xifos_Cacada", "Sword_Dash", .2f, .32f, 1f),
             ("Queda", "Sword_Regular_C", .15f, .45f, 1.25f),  // queda: no ar com o joelho erguido e a espada atrás da cabeça; corta ao pousar
@@ -52,9 +52,9 @@ namespace Troia.EditorTools
             ("Lanca_Icaro", "Sword_Heavy_Combo", .85f, 1.15f, 1.5f),                // L P: corte que sobe e lança
             ("Lanca_Giro", "Sword_Heavy_Combo", 1.45f, 1.78f, 2.25f),               // P: varrida baixa de giro
             ("Lanca_Ceifa", "Sword_Regular_C", .22f, .62f, 1.25f),                  // P P: salta e ceifa
-            ("Lanca_Roda", "Melee_2H_Attack_Spin", .45f, .85f, 1.5f),               // P P P: a lança roda em volta do corpo
+            ("Lanca_Roda", "Sword_Heavy_Combo", .15f, .45f, 1f),                   // P P P: giro baixo, a lança varrendo em volta do corpo
             ("Lanca_Haste", "Sword_Regular_B", 0f, .2f, .5f),  // P L: revés com a haste
-            ("Lanca_Arremetida", "Sword_Regular_Combo", 1.05f, 1.5f, 2.3f),  // P L L: sobe e desce a lança
+            ("Lanca_Arremetida", "Sword_Heavy_Combo", 2.2f, 2.5f, 3.4f),  // P L L: lança erguida e cravada para baixo, afundando na base
             ("Lanca_Alavanca", "Sword_Attack", .1f, .33f, .8f),                     // C
             ("Lanca_Falange", "Sword_Dash", .2f, .32f, 1f), ("Lanca_Perseguicao", "Sword_Dash", .2f, .32f, 1f),
             ("Lanca_Aereo1", "Sword_Dash", .2f, .32f, 1f), ("Lanca_Aereo2", "Sword_Regular_A", 0f, .2f, .43f),
@@ -76,12 +76,12 @@ namespace Troia.EditorTools
             ("Escudo_Borboleta", "Shield_Dash", 0f, .12f, .45f),
             ("Escudo_Aereo1", "Sword_Regular_A_Espelho", 0f, .2f, .43f), ("Escudo_Aereo2", "Sword_Regular_B_Espelho", 0f, .2f, .5f),
             ("Escudo_Aereo3", "Sword_Heavy_Combo_Espelho", .1f, .36f, .75f), ("Escudo_Aereo4", "Melee_Hook_Espelho", 0f, .22f, .47f),
-            ("Escudo_Disco", "Sword_Regular_Combo_Espelho", 1.05f, 1.5f, 2.3f),  // no ar L L P: sobe e desce o escudo
+            ("Escudo_Disco", "Sword_Heavy_Combo_Espelho", 2.2f, 2.5f, 3.4f),  // no ar L L P: a borda do escudo desce de cima
             ("Escudo_Chuva", "Sword_Regular_C_Espelho", .15f, .45f, 1.25f),  // queda: escudo erguido no ar, esmaga ao pousar
             ("Escudo_Rajada", "Sword_Heavy_Combo_Espelho", 1.5f, 1.85f, 2.3f), ("Escudo_CruzFinal", "Sword_Regular_B_Espelho", 0f, .27f, .53f),
         };
         // golpes sem mira: giros de 360° (o peito passa por todos os lados) e o chute
-        static readonly HashSet<string> SemMira = new HashSet<string> { "Xifos_Furia", "Lanca_Roda", "Escudo_Relampago" };
+        static readonly HashSet<string> SemMira = new HashSet<string> { "Xifos_Furia", "Lanca_Roda", "Escudo_Relampago", "Escudo_Aereo3" };
         // quedas em área: o "impacto" é o auge da arma erguida; a mira vale para o golpe que vem logo depois, no pouso
         static readonly HashSet<string> Quedas = new HashSet<string> { "Queda", "Lanca_Meteoro", "Escudo_Chuva" };
         // estocadas de lança com o braço guiado: 1 = baixa (do quadril), 2 = alta (por cima do escudo)
@@ -168,7 +168,25 @@ namespace Troia.EditorTools
                     giro = Mathf.Clamp(aPeito * .8f, -60, 60);
                     relato.Add($"{id}:{giro:0} (peito {aPeito:0}, mão {aMao:0})");
                 }
-                lib.golpes.Add(new PatrocloAnimacoesSO.Trecho { id = id, clip = c, inicio = inicio, impacto = impacto, fim = Mathf.Min(fim, c.length), estocada = estocada, giro = giro });
+                // curva de para onde o peito aponta ao longo do trecho: no jogo, o que o clipe virar além do limite é
+                // desfeito (os clipes giram o corpo inteiro até 250°; o herói terminava de costas ou de frente para a câmera)
+                float[] corpo = null;
+                if (ombroD && ombroE)
+                {
+                    bool espelhoC = c.name.EndsWith("_Espelho");
+                    Vector3 frente = AssetDatabase.GetAssetPath(c).Contains("KayKit") ? Vector3.forward : Vector3.back;
+                    float fimC = Mathf.Min(fim, c.length * .999f);
+                    corpo = new float[24];
+                    for (int k = 0; k < corpo.Length; k++)
+                    {
+                        boneco.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                        c.SampleAnimation(boneco, Mathf.Lerp(inicio, fimC, k / (corpo.Length - 1f)));
+                        Vector3 ombros = Vector3.ProjectOnPlane(ombroD.position - ombroE.position, Vector3.up);
+                        float a = Vector3.SignedAngle(frente, Vector3.Cross(ombros, Vector3.up), Vector3.up) * (espelhoC ? -1 : 1);
+                        corpo[k] = k == 0 ? a : corpo[k - 1] + Mathf.DeltaAngle(corpo[k - 1], a);   // sem saltos de 360°
+                    }
+                }
+                lib.golpes.Add(new PatrocloAnimacoesSO.Trecho { id = id, clip = c, inicio = inicio, impacto = impacto, fim = Mathf.Min(fim, c.length), estocada = estocada, giro = giro, corpo = corpo, livre = SemMira.Contains(id) });
             }
             foreach (var (id, clipe, inicio, fim) in Movimentos)
             {

@@ -145,7 +145,8 @@ namespace Troia
             else if (golpe != null)
             {
                 tocador.Pedir(e.golpe.id, golpe.clip, golpe.Tempo(e.golpe, e.tempoGolpe)); transicao = .07f;
-                alvoGiro = -golpe.giro;      // o bote do clipe passa a sair na direção em que o herói olha
+                // mira (o bote do clipe sai na direção em que o herói olha) e limite de giro do corpo ao longo do golpe
+                alvoGiro = golpe.GiroModelo(golpe.Tempo(e.golpe, e.tempoGolpe));
             }
             else if (!e.noChao)
             {

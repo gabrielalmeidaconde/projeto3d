@@ -122,8 +122,12 @@ combate; também funciona após regerar o mapa.
   - espada, lança e escudo usam os clipes do Quaternius, de corpo inteiro; os do KayKit são contidos demais (o corpo
     quase não se mexe) e só ficaram no giro de 360° e no chute. O escudo usa os mesmos golpes espelhados (`_Espelho`):
     quem faz o arco é o braço do escudo. A sequência L L L da espada é o combo contínuo do Quaternius;
-  - **mira**: ao montar a biblioteca, cada golpe ganha um giro que faz o peito encarar o alvo no impacto (os clipes
-    giram o tronco até 180°; sem isso o herói golpeava de costas);
+  - **mira e limite de giro**: os clipes do Quaternius giram o corpo inteiro (até 400° num golpe). Ao montar a
+    biblioteca, cada golpe ganha a mira (o peito encara o alvo no impacto) e a curva de para onde o peito aponta; no
+    jogo, o que passar de 55° para longe do alvo é desfeito (`Trecho.GiroModelo`), então o tronco torce mas o herói
+    nunca termina de costas. Giros de propósito (Fúria, Roda de bronze) completam a volta e terminam de frente;
+  - conferir um combo de verdade: `Ferramentas/filme_combo.sh LLL 0` filma o golpe final quadro a quadro (câmera do
+    jogo e de lado); com uma lista de ids no 4º argumento compara trechos candidatos sem remontar nada;
   - **ritmo**: a preparação começa lenta e acelera até o impacto, e o acompanhamento sai rápido e assenta
     (`PatrocloAnimacoesSO.Trecho.Tempo`); nas quedas o herói cai armado e o golpe desce ao pousar;
   - conferir: `Ferramentas/auditoria.sh` fotografa todos os golpes em cinco momentos (pranchas em `Capturas/Auditoria`).
