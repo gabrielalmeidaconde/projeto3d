@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
   id: Queda
   animationState: Queda
-  displayName: Juizo do ceu
+  displayName: "Ju\xEDzo do c\xE9u"
   command: 
   motion: 4
   input: 1

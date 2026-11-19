@@ -38,6 +38,42 @@ corredores de transição.
 - Texturas principais em 2048 (JPG); se o URP for atualizado, recopie o `Lit.shader` do pacote para
   `Assets/Troia/Shaders/TroiaLitSujo.shader` mantendo o fragmento `TroiaLitPassFragment`.
 
+### Música em camadas
+
+A trilha de combate segue a nota de estilo, como no Devil May Cry: oito faixas tocam juntas, em sincronia, e cada
+nota liga mais uma. Fora de combate fica só a base; na pausa e na escolha de bênção a música fica abafada.
+
+| Nota | Entra |
+| --- | --- |
+| fora de combate | base: cordas graves e bordão de ré |
+| D | tambores de guerra (taiko) |
+| C | baixo e darbuka |
+| B | guitarras pesadas, uma de cada lado |
+| A | bateria e cordas em staccato |
+| S | melodia no aulos e metais |
+| SS | coro, bumbo duplo e pratos |
+| SSS | solo de guitarra em harmonia e viradas de tom-tom |
+
+- Camada nova entra na próxima batida (150 BPM); ao apanhar, as de cima saem em pouco mais de um segundo.
+- Faixas em `Assets/Troia/Resources/Troia/Musica` (16 compassos, 25,6 s, loop perfeito), compostas e sintetizadas por
+  `Ferramentas/musica/gerar_musica.py` (Python com numpy e scipy; sem amostras de terceiros). O mesmo script grava
+  `Capturas/Musica/previa_D_ate_SSS.wav`, que sobe de D a SSS e cai ao apanhar, para ouvir sem abrir o jogo.
+- No jogo: `MusicaDinamica.cs` (volume geral em `MusicaDinamica.VolumeGeral`); importação em `ImportarMusica.cs`.
+
+### Interface (HUD e menus)
+
+- Tema da Ilíada: placas de pedra com filetes de ouro, greca, louros, medalhões; fontes **Cinzel** (títulos, números,
+  nota de estilo) e **Marcellus** (texto), ambas SIL OFL, em `Resources/Troia/UI/Fontes` com as licenças.
+- Arte gerada por `Ferramentas/interface/gerar_interface.py` em `Resources/Troia/UI` (o sufixo `_bN` é a borda do
+  9-slice; `ImportarInterface.cs` configura a importação). Peças de código em `InterfaceArte.cs`.
+- Durante o jogo o HUD fica nos cantos, a 70% do tamanho dos menus (`GameplayHUD.EscalaHUD`); os controles
+  ficam na tela **Controles** da pausa e não ocupam mais a borda de baixo.
+- O Canvas é de sobreposição: o URP o desenha depois do pós-processamento, então as cores não pegam a gradação
+  noturna nem o bloom, e brasas e fogo não passam na frente. Para capturas fora da tela use
+  `GameplayHUD.Fotografar` (o `-troia-smoke` já usa).
+- Conferir: `Ferramentas/interface.sh` passa por todas as telas (fora e dentro da luta, poder, bênçãos, pausa, golpes,
+  derrota, vitória) e salva em `Capturas/Interface`.
+
 ### Desempenho
 
 - **Cenário em lotes:** ao carregar a fase, `CenarioEmLotes` (objeto `--- AMBIENTE --- > Cenario_em_Lotes`)
@@ -70,6 +106,27 @@ combate; também funciona após regerar o mapa.
 - **R** arremessa dardos; três arremessos exigem 0,95 s de recuperação compartilhada.
 - Segure pesado para lançar; pule e pressione **E** para perseguir, ou pesado no ar para cair em área.
 - Combos: **L L L** (escudo: **L L**); **L P** e **L L P** fecham com finalizadores diferentes; **P P**. Não há ramos por pausa.
+- Combos avançados (arsenal versão 8+), todos por comando explícito:
+
+  | Arma | L L L P | P P P | P L L | no ar L L P |
+  | --- | --- | --- | --- | --- |
+  | Xifos | Fúria de Pátroclo (giro, 3 acertos) | Golpe do mirmidão | — | Talho do falcão |
+  | Lança | Lança de Peleu | Roda de bronze (4 acertos) | Golpe de haste › Arremetida | Estrela cadente |
+  | Escudo | — | Terremoto | Empurrão de hoplita › Gancho de bronze | Disco cadente |
+
+  A lista de golpes (H) é gerada da árvore de combos de cada arma; a pausa tem a tela **Controles** (teclado e controle).
+  Golpe novo: defina em `ArsenalDefaults` (suba `Version`), dê a ele um trecho de clipe em `PatrocloClipes.Golpes` e rode
+  `Troia > Gameplay > Criar configuracao e combos` e `Troia > Personagem > Montar biblioteca de animação`.
+  `CombosAvancadosTests` executa cada combo no treino; a variante explícita `CapturasDosGolpes` fotografa cada golpe novo.
+- Animação dos golpes (`PatrocloClipes.Golpes`, um trecho de clipe por golpe):
+  - espada, lança e escudo usam os clipes do Quaternius, de corpo inteiro; os do KayKit são contidos demais (o corpo
+    quase não se mexe) e só ficaram no giro de 360° e no chute. O escudo usa os mesmos golpes espelhados (`_Espelho`):
+    quem faz o arco é o braço do escudo. A sequência L L L da espada é o combo contínuo do Quaternius;
+  - **mira**: ao montar a biblioteca, cada golpe ganha um giro que faz o peito encarar o alvo no impacto (os clipes
+    giram o tronco até 180°; sem isso o herói golpeava de costas);
+  - **ritmo**: a preparação começa lenta e acelera até o impacto, e o acompanhamento sai rápido e assenta
+    (`PatrocloAnimacoesSO.Trecho.Tempo`); nas quedas o herói cai armado e o golpe desce ao pousar;
+  - conferir: `Ferramentas/auditoria.sh` fotografa todos os golpes em cinco momentos (pranchas em `Capturas/Auditoria`).
 - **Q** usa a bênção do deus selecionado, **Tab** (ou **G**) passa para o próximo deus, **Shift+Tab** volta e
   **4 a 9** escolhem direto (Zeus, Ares, Apolo, Hermes, Atena, Poseidon).
 - **Esc** pausa, **H** lista de golpes, **F2** treino livre (todas as bênçãos liberadas, favor cheio e recarga curta;

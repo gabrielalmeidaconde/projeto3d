@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Lanca
   m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
   id: Lanca
-  displayName: LANCA / DORY
-  description: Alcance e controle. Estocadas da falange, varreduras com a haste e
-    avanco ao alvo.
+  displayName: "LAN\xC7A / DORY"
+  description: "Alcance e controle. Estocadas da falange, varreduras com a haste
+    e avan\xE7o ao alvo."
   kind: 1
   color: {r: 0.18, g: 0.82, b: 1, a: 1}
   light: {fileID: 11400000, guid: 80def90d61ed207938fdd08c30e462a8, type: 2}

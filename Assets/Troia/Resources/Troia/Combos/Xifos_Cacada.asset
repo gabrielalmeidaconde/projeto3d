@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
   id: Xifos_Cacada
   animationState: Xifos_Cacada
-  displayName: Cacada aerea
+  displayName: "Ca\xE7ada a\xE9rea"
   command: 
   motion: 1
   input: 0

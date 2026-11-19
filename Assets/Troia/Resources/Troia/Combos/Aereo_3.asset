@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
   id: Aereo_3
   animationState: Aereo_3
-  displayName: Sentenca celeste
+  displayName: "Senten\xE7a celeste"
   command: 
   motion: 0
   input: 0

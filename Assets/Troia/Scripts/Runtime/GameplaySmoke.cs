@@ -18,7 +18,7 @@ namespace Troia
                 yield return null;
             bool passed = gm.FloorActive && gm.Alive > 0 && gm.player.IsGrounded;
             Directory.CreateDirectory("Capturas");
-            CaptureCamera("gameplay-camera");
+            yield return CaptureCamera("gameplay-camera");
             Debug.Log($"TROIA_SMOKE {(passed ? "PASS" : "FAIL")} floor={gm.Floor} alive={gm.Alive} grounded={gm.player.IsGrounded} hp={gm.player.Health.Current}");
             gm.BeginTraining(); yield return new WaitForSecondsRealtime(.25f);
             var player = gm.player;
@@ -26,7 +26,7 @@ namespace Troia
             Vector3 viewPosition=view.position; Quaternion viewRotation=view.rotation;
             view.position=player.transform.TransformPoint(new Vector3(-2.2f,1.3f,3.1f));
             view.LookAt(player.transform.position+Vector3.up*1.05f);
-            CaptureCamera("personagem-frente");
+            yield return CaptureCamera("personagem-frente");
             view.SetPositionAndRotation(viewPosition,viewRotation);
             foreach (var enemy in EnemyCombat.Combatants)
                 if (enemy && enemy.trainingDummy && player.Targeting.Lock(enemy)) break;
@@ -35,7 +35,7 @@ namespace Troia
                 player.SelectWeapon(i); yield return new WaitForSecondsRealtime(.2f);
                 player.RequestAttack(AttackInput.Light);
                 yield return new WaitForSecondsRealtime(player.Weapon.light.hitStart + .035f);
-                CaptureCamera("arma-" + player.Weapon.id);
+                yield return CaptureCamera("arma-" + player.Weapon.id);
                 yield return new WaitForSecondsRealtime(player.Weapon.light.duration + .05f);
             }
             // Exercise a real damage chain in the rendered player before using any grade fixtures.
@@ -53,7 +53,7 @@ namespace Troia
             int realHits=player.Style.ChainHits-beforeHits;
             bool flowPassed=realDamage>40 && realHits>=3 && player.WeaponIndex==1;
             passed &= flowPassed;
-            CaptureCamera("combate-fluido");
+            yield return CaptureCamera("combate-fluido");
             Debug.Log($"TROIA_FLOW {(flowPassed ? "PASS" : "FAIL")} hits={realHits} damage={realDamage:0.0} weapon={player.WeaponIndex}");
             // Grade fixtures exercise every visible rank without relying on random AI timing.
             var hud = gm.GetComponent<GameplayHUD>();
@@ -62,13 +62,13 @@ namespace Troia
                 player.Style.RegisterHit("qa_" + i, false, player.Weapon.id, false, false, 9000 + i, 17, "Variedade / captura de validacao");
             yield return null;
             passed &= hud.DisplayedRank == "SSS";
-            CaptureCamera("estilo-SSS");
+            yield return CaptureCamera("estilo-SSS");
             hud.ShowMoveList(); yield return null;
-            CaptureCamera("lista-de-golpes");
+            yield return CaptureCamera("lista-de-golpes");
             gm.Restart(false); yield return null;
             gm.TogglePause(); yield return null;
             passed &= !hud.MoveListVisible && gm.State == RunState.Paused;
-            CaptureCamera("pausa");
+            yield return CaptureCamera("pausa");
             gm.Restart(false);
             for (int floor = 1; floor <= 5; floor++)
             {
@@ -78,18 +78,22 @@ namespace Troia
                 gm.CompleteFloor();
                 yield return null;
             }
-            CaptureCamera("bencaos");
+            yield return CaptureCamera("bencaos");
             Debug.Log($"TROIA_PRESENTATION {(passed ? "PASS" : "FAIL")} arsenal={player.config.weapons.Length} ui=SSS");
             yield return new WaitForSecondsRealtime(.2f);
             Application.Quit(passed ? 0 : 1);
         }
-        static void CaptureCamera(string name)
+        static IEnumerator CaptureCamera(string name)
         {
             var camera = Camera.main;
-            if (!camera) return;
+            if (!camera) yield break;
             var rt = new RenderTexture(1280, 720, 24);
             var previousTarget = camera.targetTexture; var previousActive = RenderTexture.active;
-            camera.targetTexture = rt; Canvas.ForceUpdateCanvases(); camera.Render(); RenderTexture.active = rt;
+            // o HUD é de sobreposição e não sai em camera.Render: o próprio HUD monta cena + interface
+            var hud = GameManager.Instance ? GameManager.Instance.GetComponent<GameplayHUD>() : null;
+            if (hud) yield return hud.Fotografar(camera, rt);
+            else { camera.targetTexture = rt; Canvas.ForceUpdateCanvases(); camera.Render(); }
+            RenderTexture.active = rt;
             var texture = new Texture2D(1280, 720, TextureFormat.RGB24, false);
             texture.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); texture.Apply();
             File.WriteAllBytes(Path.GetFullPath("Capturas/" + name + ".png"), texture.EncodeToPNG());

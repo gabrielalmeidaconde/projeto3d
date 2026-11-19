@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
   id: Xifos
   displayName: XIFOS
-  description: Equilibrio e cancelamentos. Corte triplo, estocadas e ruptura ascendente.
+  description: "Equil\xEDbrio e cancelamentos. Corte triplo, estocadas e ruptura
+    ascendente."
   kind: 0
   color: {r: 1, g: 0.65, b: 0.2, a: 1}
   light: {fileID: 11400000, guid: d639dc941af2a9e41b9b35c7e672e8f6, type: 2}

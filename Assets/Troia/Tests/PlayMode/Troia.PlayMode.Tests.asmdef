@@ -1,5 +1,5 @@
 {
   "name": "Troia.PlayMode.Tests",
-  "references": ["Troia.Runtime", "Unity.InputSystem"],
+  "references": ["Troia.Runtime", "Unity.InputSystem", "Unity.RenderPipelines.Universal.Runtime", "UnityEngine.UI"],
   "optionalUnityReferences": ["TestAssemblies"]
 }

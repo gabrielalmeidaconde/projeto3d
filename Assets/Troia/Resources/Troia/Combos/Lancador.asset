@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
   id: Lancador
   animationState: Lancador
-  displayName: Ascensao
+  displayName: "Ascens\xE3o"
   command: 
   motion: 3
   input: 1

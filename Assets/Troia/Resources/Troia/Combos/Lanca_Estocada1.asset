@@ -15,7 +15,7 @@ MonoBehaviour:
   id: Lanca_Estocada1
   animationState: Lanca_Estocada1
   displayName: Ponta de bronze
-  command: L L L   /   L P   /   L L P
+  command: L L L   /   L P   /   L L P   /   L L L P
   motion: 1
   input: 0
   damage: 16

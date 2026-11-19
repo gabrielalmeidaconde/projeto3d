@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
   id: Lanca_Estocada3
   animationState: Lanca_Estocada3
-  displayName: Perfuracao real
+  displayName: "Perfura\xE7\xE3o real"
   command: 
   motion: 1
   input: 0
@@ -37,5 +37,5 @@ MonoBehaviour:
   hitCount: 1
   next: {fileID: 0}
   delayedNext: {fileID: 0}
-  heavyNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: 28dcbc77b0c3649819c1a90fb69a7ede, type: 2}
   delayedThreshold: 0.4515

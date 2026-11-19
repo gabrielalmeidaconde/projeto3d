@@ -91,6 +91,11 @@ namespace Troia
             lanca.SetParent(r.pulsoD, false); lanca.localPosition = r.espadaPos; lanca.localRotation = r.espadaLocal;
             foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 2;
             foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true)) smr.updateWhenOffscreen = true;
+            // crista e rabos de crina são tufos soltos: o nível de detalhe automático apaga tufos inteiros (duas partes da
+            // crista ficam sem nenhum triângulo do 4º nível em diante) e ela some e reaparece conforme a distância da
+            // câmera. São malhas pequenas (poucos milhares de triângulos): ficam sempre na versão cheia.
+            foreach (var peca in new[] { design.refs.crista, design.refs.raboCostas, design.refs.raboEscudo })
+                if (peca && peca.TryGetComponent<SkinnedMeshRenderer>(out var pelos)) pelos.forceMeshLod = 0;
             rastro = gameObject.AddComponent<RastroDeArma>();
             var fill = Joint(transform, "Luz_personagem", new Vector3(-.7f, 2.1f, 1.1f)).gameObject.AddComponent<Light>();
             fill.type = LightType.Point; fill.color = new Color(1, .86f, .74f);

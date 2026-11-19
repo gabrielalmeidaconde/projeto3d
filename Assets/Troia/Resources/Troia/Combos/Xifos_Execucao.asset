@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
   id: Xifos_Execucao
   animationState: Xifos_Execucao
-  displayName: Execucao
+  displayName: "Execu\xE7\xE3o"
   command: 
   motion: 4
   input: 1
@@ -37,5 +37,5 @@ MonoBehaviour:
   hitCount: 1
   next: {fileID: 0}
   delayedNext: {fileID: 0}
-  heavyNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: 4297ff681663e658d83c1826809812bf, type: 2}
   delayedThreshold: 0.43

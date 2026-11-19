@@ -223,6 +223,55 @@ namespace Troia.EditorTools
             est.Fechar();
         }
 
+        /// <summary>
+        /// Estabilidade do pano com as poses dos clipes do jogo (parado, guarda, andar, correr), sem carregar a fase:
+        /// agitação média e máxima de capa e rabo de crina e quantos nós chegaram a ser soltos por ficarem presos na frente.
+        /// Um pano assentado fica abaixo de ~0,5 m/s parado. Saída em Logs/pano_clipes.txt.
+        /// </summary>
+        public static void DiagnosticoPanoClipes()
+        {
+            var est = new PatrocloEstudio("lado", 64);
+            var anim = est.modelo.AddComponent<PatrocloAnimador>(); anim.Preparar(est.design);
+            var lib = AssetDatabase.LoadAssetAtPath<PatrocloAnimacoesSO>(PatrocloClipes.Biblioteca);
+            var tocador = est.modelo.AddComponent<PatrocloTocador>(); tocador.Preparar(lib.avatar);
+            var esq = new Dictionary<string, Transform>(); foreach (var b in est.design.refs.ossos) if (b) esq[b.name] = b;
+            var panos = new List<PanoDinamico>
+            {
+                PanoDinamico.Criar(est.design.refs.capa.GetComponent<SkinnedMeshRenderer>(), esq, ConfigCapa()),
+                PanoDinamico.Criar(est.design.refs.raboCostas.GetComponent<SkinnedMeshRenderer>(), esq, ConfigRabo())
+            };
+            const float dt = 1 / 60f;
+            var sb = new System.Text.StringBuilder();
+            foreach (bool colisoes in new[] { true, false })
+                foreach (string id in new[] { "parado", "guarda", "andar", "correr", "disparar" })
+                {
+                    var trecho = lib.Movimento(id); if (trecho == null) continue;
+                    foreach (var p in panos) p.Ajustes.colisoes = colisoes;
+                    tocador.Pedir(id, trecho.clip, 0); tocador.Firmar(); tocador.Avaliar(dt, 0);
+                    foreach (var p in panos) p.Reiniciar();
+                    var soma = new float[panos.Count]; var pico = new float[panos.Count];
+                    var soltos = new int[panos.Count];
+                    const int quadros = 300, aquece = 90;
+                    for (int q = 0; q < quadros; q++)
+                    {
+                        tocador.Pedir(id, trecho.clip, q * dt); tocador.Avaliar(dt, 0);
+                        for (int k = 0; k < panos.Count; k++)
+                        {
+                            panos[k].Passo(dt);
+                            if (q < aquece) continue;
+                            float a = panos[k].Agitacao(dt); soma[k] += a; pico[k] = Mathf.Max(pico[k], a); soltos[k] = Mathf.Max(soltos[k], panos[k].Soltos);
+                        }
+                    }
+                    sb.Append($"{(colisoes ? "com colisão" : "sem colisão"),-12} {id,-9}");
+                    for (int k = 0; k < panos.Count; k++)
+                        sb.Append($" | {panos[k].name,-20} agitação {soma[k] / (quadros - aquece),5:0.00} máx {pico[k],6:0.00}  nós soltos (máx) {soltos[k],2}");
+                    sb.AppendLine();
+                }
+            File.WriteAllText("Logs/pano_clipes.txt", sb.ToString());
+            Debug.Log("pano com clipes:\n" + sb);
+            est.Fechar();
+        }
+
         /// <summary>Prancha da física de pano: parado, corrida, sprint, giro e pulo, vistos de lado e de trás.</summary>
         public static void PranchaPano()
         {

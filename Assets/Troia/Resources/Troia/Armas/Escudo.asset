@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime::Troia.WeaponSO
   id: Escudo
   displayName: ESCUDO / ASPIS
-  description: Impacto e quebra de guarda. O arpao puxa o alvo; a borda do escudo
-    finaliza.
+  description: "Impacto e quebra de guarda. O arp\xE3o puxa o alvo; a borda do escudo
+    finaliza."
   kind: 5
   color: {r: 0.95, g: 0.28, b: 0.1, a: 1}
   light: {fileID: 11400000, guid: 2a400626ff775f709a2d3c6c90c7de8e, type: 2}

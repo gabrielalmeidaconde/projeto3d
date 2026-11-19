@@ -323,7 +323,8 @@ namespace Troia.Tests
             for (int i = 0; i < 40; i++) player.Style.RegisterHit("grade_" + i, false);
             yield return null;
             var hud = manager.GetComponent<GameplayHUD>();
-            Assert.That(hud.Canvas.renderMode, Is.EqualTo(RenderMode.ScreenSpaceCamera));
+            // sobreposição: o URP desenha a interface depois do pós-processamento (cores fiéis, nada do mundo na frente)
+            Assert.That(hud.Canvas.renderMode, Is.EqualTo(RenderMode.ScreenSpaceOverlay));
             Assert.That(hud.DisplayedRank, Is.EqualTo("SSS"));
             hud.ShowMoveList(); Assert.That(hud.MoveListVisible, Is.True);
             Assert.That(manager.State, Is.EqualTo(RunState.Paused)); Assert.That(Time.timeScale, Is.Zero);

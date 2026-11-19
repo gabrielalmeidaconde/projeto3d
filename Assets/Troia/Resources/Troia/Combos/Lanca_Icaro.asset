@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
   id: Lanca_Icaro
   animationState: Lanca_Icaro
-  displayName: Icaro
+  displayName: "\xCDcaro"
   command: 
   motion: 3
   input: 1

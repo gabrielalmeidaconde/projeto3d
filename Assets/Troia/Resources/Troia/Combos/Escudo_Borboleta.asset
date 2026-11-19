@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
   id: Escudo_Borboleta
   animationState: Escudo_Borboleta
-  displayName: Cacada de bronze
+  displayName: "Ca\xE7ada de bronze"
   command: 
   motion: 2
   input: 0

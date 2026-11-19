@@ -47,7 +47,7 @@ namespace Troia
             var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = heavy ? 42 : 30; shape.radius = .05f;
             var renderer = root.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Stretch; renderer.lengthScale = 1; renderer.velocityScale = .07f;
-            var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); material.color = quente * 2.2f;
+            var material = MaterialParticula(quente * 2.2f, true);
             renderer.sharedMaterial = material; root.AddComponent<OwnedMaterial>().material = material;
             var light = root.AddComponent<Light>(); light.type = LightType.Point; light.color = quente; light.range = heavy ? 6 : 3.5f;
             light.intensity = silent ? 0 : heavy ? 9 : 4; light.shadows = LightShadows.None;
@@ -55,6 +55,41 @@ namespace Troia
             root.AddComponent<Clarao>();
             ps.Play(); ps.Emit(heavy ? 34 : 16); Object.Destroy(root, .7f);
         }
+        static Texture2D ponto;
+
+        /// <summary>Ponto redondo e macio, gerado uma vez: faíscas e estilhaços deixam de ser quadrados chapados.</summary>
+        static Texture2D Ponto()
+        {
+            if (ponto) return ponto;
+            const int n = 32;
+            ponto = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "Ponto_macio", wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float dx = (x + .5f) / n * 2 - 1, dy = (y + .5f) / n * 2 - 1;
+                    float a = Mathf.Clamp01(1 - Mathf.Sqrt(dx * dx + dy * dy));
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)(a * a * (3 - 2 * a) * 255));
+                }
+            ponto.SetPixels32(px); ponto.Apply();
+            return ponto;
+        }
+
+        /// <summary>Material de partícula transparente com o ponto macio (aditivo para faíscas, mistura comum para estilhaços).</summary>
+        public static Material MaterialParticula(Color cor, bool aditivo)
+        {
+            var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            m.SetTexture("_BaseMap", Ponto()); m.color = cor;
+            m.SetFloat("_Surface", 1); m.SetFloat("_Blend", aditivo ? 2 : 0); m.SetFloat("_ZWrite", 0);
+            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)(aditivo ? UnityEngine.Rendering.BlendMode.One : UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha));
+            m.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
+            m.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            return m;
+        }
+
         public static void Burst(Vector3 position, Color color, float radius = .35f)
         {
             var root = new GameObject("Impacto"); root.transform.position = position;
@@ -65,8 +100,8 @@ namespace Troia
             var emission = ps.emission; emission.rateOverTime = 0;
             var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Sphere; shape.radius = radius;
             var renderer = root.GetComponent<ParticleSystemRenderer>();
-            var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
-            material.color = color; renderer.sharedMaterial = material;
+            var material = MaterialParticula(color, false);
+            renderer.sharedMaterial = material;
             root.AddComponent<OwnedMaterial>().material = material;
             ps.Play(); ps.Emit(18); Object.Destroy(root, .6f);
         }

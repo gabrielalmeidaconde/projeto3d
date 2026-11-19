@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime:Troia:ComboSO
   id: Corte_3
   animationState: Corte_3
-  displayName: Sentenca
+  displayName: "Senten\xE7a"
   command: 
   motion: 0
   input: 0
@@ -37,5 +37,5 @@ MonoBehaviour:
   hitCount: 1
   next: {fileID: 0}
   delayedNext: {fileID: 0}
-  heavyNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: 3b95acf9ba6fdc524a20e1f5ccfa6416, type: 2}
   delayedThreshold: 0.43

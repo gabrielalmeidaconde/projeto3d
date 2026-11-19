@@ -116,7 +116,9 @@ a aparência de boneco fofo. A cápsula física permanece igual.
 - `PlayerProjectile`: varredura, bloqueio por cenário e crédito do acerto ao dono.
 - `PlayerPresentation` e `CombatAudio`: corpo articulado procedural, armas, rastros,
   movimentos, pulo duplo e áudio sintetizado localmente.
-- `GameplayHUD`: Canvas uGUI na câmera, medidor de estilo, retículo, arsenal e menus.
+- `GameplayHUD`: Canvas uGUI de sobreposição, medidor de estilo, mira, arsenal, bênção e menus (arte em
+  `InterfaceArte`); `GameplayHUD.Fotografar` monta cena + interface para capturas fora da tela.
+- `MusicaDinamica`: trilha em oito camadas que acompanham a nota de estilo.
 - `Health`, `IDamageable`, `DamageInfo`: contrato comum para dano, direção,
   knockback, lançamento, stagger, finalizador e origem.
 - `CombatEvents`: eventos por jogador para hit, finalizador, lançamento, esquiva e nota.
@@ -185,7 +187,7 @@ Build de desenvolvimento: execute `Troia.Editor.GameplaySetup.BuildWindows` via
 O argumento `-troia-smoke` na build de desenvolvimento executa uma checagem inicial,
 salva a câmera em `Capturas/gameplay-camera.png` e encerra com código 0 em caso de sucesso.
 O diagnóstico também salva as três armas, o HUD em SSS, a lista de golpes, pausa e
-escolha de bênçãos. O HUD uGUI é renderizado pela câmera e aparece nessas capturas,
-inclusive em execução oculta. O SSS do diagnóstico usa uma sequência de acertos de
+escolha de bênçãos. O HUD é de sobreposição; as capturas usam `GameplayHUD.Fotografar`, que
+desenha a cena e a interface juntas, inclusive em execução oculta. O SSS do diagnóstico usa uma sequência de acertos de
 teste para conferir o layout. Resultados e limites da validação estão
 em [VALIDACAO.md](VALIDACAO.md).

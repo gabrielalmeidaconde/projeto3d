@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Troia.Runtime::Troia.ComboSO
   id: Escudo_Aereo2
   animationState: Escudo_Aereo2
-  displayName: Reves celeste
+  displayName: "Rev\xE9s celeste"
   command: 
   motion: 0
   input: 0
@@ -37,5 +37,5 @@ MonoBehaviour:
   hitCount: 1
   next: {fileID: 11400000, guid: 933ce3f3ee795a3b9bb961ed860dfad7, type: 2}
   delayedNext: {fileID: 0}
-  heavyNext: {fileID: 0}
+  heavyNext: {fileID: 11400000, guid: 69ace659f1ae9e46692984163bb774b0, type: 2}
   delayedThreshold: 0.731

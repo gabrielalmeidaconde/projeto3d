@@ -125,6 +125,101 @@ namespace Troia.Tests
         }
     }
 
+    /// <summary>
+    /// Filma o herói quadro a quadro (parado, correndo, freando, virando, golpeando) pela câmera do jogo e por uma câmera
+    /// de perto, atrás dele, e registra a agitação de cada pano (capa, rabo de crina) em Logs/filme.csv.
+    /// Serve para caçar tremedeira e estalos do pano e da crista. -troia-lod0 força a malha cheia (sem Mesh LOD).
+    /// </summary>
+    public class PatrocloFilme
+    {
+        [UnityTest, Explicit, Timeout(1500000)] public IEnumerator Filmar()
+        {
+            yield return SceneManager.LoadSceneAsync("Assets/Troia/Cenas/Fase1_NoiteDaInvasao.unity");
+            yield return null;
+            var gm = GameManager.Instance; var player = gm.player; player.readInput = false;
+            yield return new WaitForSeconds(.6f);
+            var args = System.Environment.GetCommandLineArgs();
+            string pasta = "Capturas/Filme"; foreach (string a in args) if (a.StartsWith("-troia-pasta=")) pasta = a.Substring(13);
+            Directory.CreateDirectory(pasta);
+            gm.BeginTraining(); yield return new WaitForSeconds(.5f);
+            player.Targeting.Clear();
+            foreach (var enemy in EnemyCombat.Combatants.ToArray())
+            {
+                if (!enemy) continue;
+                var agente = enemy.GetComponent<UnityEngine.AI.NavMeshAgent>(); if (agente) agente.enabled = false;
+                enemy.transform.position += new Vector3(0, -200, 0);
+            }
+            if (args.Contains("-troia-lod0"))
+                foreach (var smr in player.GetComponentsInChildren<SkinnedMeshRenderer>(true)) smr.forceMeshLod = 0;
+            var filme = player.gameObject.AddComponent<Filmador>(); filme.player = player; filme.pasta = pasta;
+            Time.captureFramerate = 60;
+            float rumo = player.transform.eulerAngles.y;
+            IEnumerator Fase(string nome, float segundos) { filme.fase = nome; float fim = Time.time + segundos; while (Time.time < fim) yield return null; }
+            yield return Fase("parado", 1f);
+            player.SetMoveInput(new Vector2(0, 1), rumo, false); yield return Fase("correr", 1.5f);
+            player.SetMoveInput(Vector2.zero, rumo, false); yield return Fase("frear", 1.2f);
+            for (int i = 1; i <= 4; i++) { player.SetMoveInput(new Vector2(0, 1), rumo + 90 * i, i > 2); yield return Fase("virar", .45f); }
+            player.SetMoveInput(Vector2.zero, rumo, false); yield return Fase("frear2", 1f);
+            player.RequestAttack(AttackInput.Light); yield return Fase("golpe", .45f);
+            player.RequestAttack(AttackInput.Light); yield return Fase("golpe", .45f);
+            player.RequestAttack(AttackInput.Light); yield return Fase("golpe", 1.2f);
+            yield return Fase("descanso", 1.5f);
+            Time.captureFramerate = 0;
+            filme.Fechar();
+            gm.EndRun(false);
+        }
+    }
+    [DefaultExecutionOrder(10000)]
+    public class Filmador : MonoBehaviour
+    {
+        public PlayerCombat player; public string pasta, fase;
+        PanoDinamico[] panos; int quadro; bool aquecida;
+        readonly System.Text.StringBuilder csv = new System.Text.StringBuilder();
+        void LateUpdate()
+        {
+            if (!player || fase == null) return;
+            if (panos == null)
+            {
+                panos = player.GetComponentsInChildren<PanoDinamico>(true);
+                csv.Append("quadro;fase;velocidade");
+                foreach (var p in panos) csv.Append($";{p.name}_agitacao;{p.name}_barra_x;{p.name}_barra_y;{p.name}_barra_z");
+                csv.AppendLine();
+            }
+            csv.Append($"{quadro};{fase};{player.GetComponent<CharacterController>().velocity.magnitude:0.00}");
+            foreach (var p in panos)
+            {
+                int c = p.Colunas, linhas = p.Ossos.Length / c;
+                Vector3 barra = player.transform.InverseTransformPoint(p.Ossos[(linhas - 1) * c + c / 2].position);
+                csv.Append($";{(p.Pronto ? p.Agitacao(1 / 60f) : 0):0.00};{barra.x:0.000};{barra.y:0.000};{barra.z:0.000}");
+            }
+            csv.AppendLine();
+            if (quadro % 3 == 0)
+            {
+                var camera = Camera.main;
+                Vector3 meio = player.transform.position + Vector3.up * 1.25f;
+                if (!aquecida) { aquecida = true; Foto(camera, "descarte", false, meio); }
+                Foto(camera, $"jogo_{quadro:0000}", false, meio);
+                Foto(camera, $"perto_{quadro:0000}", true, meio);
+            }
+            quadro++;
+        }
+        public void Fechar() { File.WriteAllText("Logs/filme.csv", csv.ToString()); fase = null; }
+        void Foto(Camera camera, string nome, bool perto, Vector3 meio)
+        {
+            if (!camera) return;
+            var view = camera.transform; Vector3 p0 = view.position; Quaternion r0 = view.rotation; float fov = camera.fieldOfView;
+            if (perto) { view.position = meio + player.transform.TransformDirection(new Vector3(.9f, .55f, -2.3f)); view.LookAt(meio); camera.fieldOfView = 40; }
+            var rt = new RenderTexture(960, 720, 24) { antiAliasing = 2 };
+            var antes = camera.targetTexture; var ativo = RenderTexture.active;
+            camera.targetTexture = rt; camera.Render(); RenderTexture.active = rt;
+            var tex = new Texture2D(960, 720, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, 960, 720), 0, 0); tex.Apply();
+            File.WriteAllBytes(Path.GetFullPath(pasta + "/" + nome + ".jpg"), tex.EncodeToJPG(88));
+            camera.targetTexture = antes; RenderTexture.active = ativo; Destroy(tex); rt.Release(); Destroy(rt);
+            view.SetPositionAndRotation(p0, r0); camera.fieldOfView = fov;
+        }
+    }
+
     /// <summary>Mede depois que a pose e o pano do quadro estão prontos.</summary>
     [DefaultExecutionOrder(10000)]
     public class MedidorDeColisoes : MonoBehaviour

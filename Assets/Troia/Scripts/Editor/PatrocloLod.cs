@@ -33,6 +33,9 @@ namespace Troia.EditorTools
                 int t0 = Triangulos(m, 0);
                 antes += t0;
                 if (t0 < MinimoDeTriangulos) { menor += t0; continue; }
+                // crista e rabos de crina são tufos soltos: a simplificação apaga tufos inteiros (partes da crista chegavam a
+                // zero triângulos) e a peça pisca com a distância. São pequenas; em jogo ficam na malha cheia (PlayerPresentation).
+                if (m.name.Contains("Crista") || m.name.Contains("Rabo_de_Crina")) { menor += t0; continue; }
                 MeshLodUtility.GenerateMeshLods(m, -1);
                 EditorUtility.SetDirty(m);
                 int ultimo = Triangulos(m, m.lodCount - 1);

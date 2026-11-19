@@ -8,8 +8,7 @@ namespace Troia
     /// Cria uma grade de ossos sobre a malha (pelas UVs), refaz os pesos da malha para eles e simula os nós
     /// (Verlet): o topo acompanha o corpo, o resto pende do ombro, sente arrasto do ar, gira com o corpo e
     /// colide com cápsulas do tronco, das pernas e dos braços. Parado, a peça volta à forma em que foi modelada.
-    /// O tronco vale como parede para o que nasce atrás dele: o pano pode voar para os lados, mas não atravessa
-    /// as costas nem fica preso do lado do peito.
+    /// O alvo de cada nó fica sempre atrás das costas, e um nó que fique preso na frente do peito é solto para voltar.
     /// </summary>
     public class PanoDinamico : MonoBehaviour
     {
@@ -28,17 +27,23 @@ namespace Troia
             public float vento = .5f, rigidezLateral = .5f;
             public float raioExtra = 0f;
             public bool colisoes = true;
+            [Tooltip("Limite de dobra ao longo da queda: distância mínima entre um nó e o segundo acima dele, como fração do comprimento esticado (0 desliga). Evita que uma mecha dobre sobre si mesma.")]
+            public float dobraMinima = 0f;
         }
         public static Config ParaCapa() => new Config { arrastoTopo = 3f, arrastoBarra = 1.7f };
         public static Config ParaRabo() => new Config
         {
             colunas = 1, linhas = 6, topoEmV1 = false, ancora = "head", misturaInicio = .25f, misturaFim = 1f, linhasComCorpo = 1.1f,
-            rigidezTopo = 320, rigidezBarra = 16, arrastoTopo = 2.5f, arrastoBarra = 1.5f, vento = .35f
+            rigidezTopo = 320, rigidezBarra = 16, arrastoTopo = 2.5f, arrastoBarra = 1.5f, vento = .35f,
+            // a mecha cai por cima da capa: não chega mais perto do tronco do que na pose em que foi modelada (o raio de
+            // cada nó é limitado pelo repouso), senão afunda na capa, some e reaparece; e não dobra sobre si mesma
+            raioExtra = .06f, dobraMinima = .7f
         };
-        // 'atras': nós que no repouso ficam atrás do tronco; para eles a cápsula do tronco vale como parede
-        // (nunca passam para o lado do peito), e não só como cilindro que empurra para o lado mais próximo
-        struct Capsula { public Transform a, b; public float raio; public float[] raioNo; public bool[] atras; }
+        // 'atras' (só no tronco): nós que no repouso ficam atrás das costas; 'parede': raio do tronco para cada um deles,
+        // medido com o tronco alargado para os lados e limitado pelo repouso (parado, nada é corrigido)
+        struct Capsula { public Transform a, b; public float raio; public float[] raioNo, parede; public bool[] atras; }
         const float LarguraTronco = 1.3f;     // o tronco é mais largo do que fundo
+        const float TrancoMaximo = .02f;      // m por colisão que podem virar velocidade (2 cm a 120 Hz = 2,4 m/s)
 
         Config cfg;
         SkinnedMeshRenderer alvo;
@@ -47,6 +52,7 @@ namespace Troia
         Matrix4x4 bindAncora;
         int C, R;
         Vector3[] repouso, noAncora, desloc, pos, ant, alvoAtual, alvoAnterior;
+        float[] tempoNaFrente; bool[] solto;
         float[] compV, compH;
         Quaternion[] quadroRepouso;
         Transform[] ossos;
@@ -82,6 +88,7 @@ namespace Troia
             return sb.ToString();
         }
         public int Colunas => C;
+        float[] dobraNo;
 
         int I(int c, int r) => r * C + c;
 
@@ -139,8 +146,16 @@ namespace Troia
                 }
 
             pivoRepouso = repouso[I(C / 2, 0)];
+            // limite de dobra por nó: nunca mais apertado do que a curva que a peça já tem no repouso
+            dobraNo = new float[n];
+            if (cfg.dobraMinima > 0)
+                for (int r = 2; r < R; r++) for (int c = 0; c < C; c++)
+                {
+                    float esticado = Vector3.Distance(repouso[I(c, r)], repouso[I(c, r - 1)]) + Vector3.Distance(repouso[I(c, r - 1)], repouso[I(c, r - 2)]);
+                    dobraNo[I(c, r)] = Mathf.Min(cfg.dobraMinima * esticado, Vector3.Distance(repouso[I(c, r)], repouso[I(c, r - 2)]) * .97f);
+                }
             noAncora = new Vector3[n]; desloc = new Vector3[n]; pos = new Vector3[n]; ant = new Vector3[n];
-            alvoAtual = new Vector3[n]; alvoAnterior = new Vector3[n]; compV = new float[n]; compH = new float[n]; quadroRepouso = new Quaternion[n];
+            alvoAtual = new Vector3[n]; alvoAnterior = new Vector3[n]; tempoNaFrente = new float[n]; solto = new bool[n]; compV = new float[n]; compH = new float[n]; quadroRepouso = new Quaternion[n];
             for (int i = 0; i < n; i++) { noAncora[i] = bindAncora.MultiplyPoint3x4(repouso[i]); desloc[i] = repouso[i] - pivoRepouso; }
             for (int r = 0; r < R; r++) for (int c = 0; c < C; c++)
             {
@@ -215,7 +230,7 @@ namespace Troia
                     // no repouso nenhuma cápsula pode empurrar o pano (ele já foi modelado encostado no corpo):
                     // o raio de cada nó é limitado pela distância que ele tem da cápsula na pose de repouso
                     int ia = System.Array.IndexOf(bones, ta), ib = System.Array.IndexOf(bones, tb);
-                    var porNo = new float[n]; var atras = tronco ? new bool[n] : null;
+                    var porNo = new float[n]; var atras = tronco ? new bool[n] : null; var parede = tronco ? new float[n] : null;
                     for (int i = 0; i < n; i++)
                     {
                         float r0 = raio + cfg.raioExtra;
@@ -226,11 +241,19 @@ namespace Troia
                             float l2 = ab.sqrMagnitude, t = l2 > 1e-8f ? Mathf.Clamp01(Vector3.Dot(repouso[i] - pa, ab) / l2) : 0;
                             Vector3 fora = repouso[i] - (pa + ab * t);
                             r0 = Mathf.Min(r0, fora.magnitude - .004f);
-                            if (tronco) atras[i] = Vector3.Dot(fora, solta.MultiplyVector(Vector3.forward).normalized) < -.005f;
+                            if (tronco)
+                            {
+                                // a parede mede a distância com o tronco alargado para os lados: o limite do repouso
+                                // tem de ser tirado na mesma medida, senão ela empurra o pano já na pose parada
+                                float fz = Vector3.Dot(fora, solta.MultiplyVector(Vector3.forward).normalized), lx = Vector3.Dot(fora, solta.MultiplyVector(Vector3.right).normalized);
+                                float resto2 = Mathf.Max(0, fora.sqrMagnitude - fz * fz - lx * lx);
+                                atras[i] = fz < -.005f;
+                                parede[i] = Mathf.Min(raio + cfg.raioExtra, Mathf.Sqrt(fz * fz + resto2 + lx * lx / (LarguraTronco * LarguraTronco)) - .004f);
+                            }
                         }
                         porNo[i] = r0;
                     }
-                    capsulas.Add(new Capsula { a = ta, b = tb, raio = raio + cfg.raioExtra, raioNo = porNo, atras = atras });
+                    capsulas.Add(new Capsula { a = ta, b = tb, raio = raio + cfg.raioExtra, raioNo = porNo, atras = atras, parede = parede });
                 }
             pronto = true;
             Reiniciar();
@@ -274,18 +297,10 @@ namespace Troia
                 {
                     int i = I(c, r);
                     Vector3 comCorpo = a.MultiplyPoint3x4(noAncora[i]);
-                    if (r == 0) { alvoAtual[i] = Vector3.Lerp(pivo + giro * desloc[i] * escala, comCorpo, corpo); continue; }
-                    // cada linha pende da linha de cima (e não direto do ombro): se o tronco se curva ou torce, o pano
-                    // desce de onde ele larga as costas, em vez de atravessar o corpo para ficar debaixo do ombro
-                    int cima = I(c, r - 1);
-                    Vector3 alvo = Vector3.Lerp(alvoAtual[cima] + giro * (desloc[i] - desloc[cima]) * escala, comCorpo, corpo);
-                    for (int volta = 0; volta < 2; volta++)
-                    {
-                        if (!cfg.colisoes || !Parede(ref alvo, i)) break;
-                        // empurrado para fora das costas: mantém o comprimento do pano até a linha de cima
-                        Vector3 d = alvo - alvoAtual[cima]; float m = d.magnitude;
-                        if (m > 1e-5f) alvo = alvoAtual[cima] + d * (compV[i] * escala / m);
-                    }
+                    Vector3 alvo = Vector3.Lerp(pivo + giro * desloc[i] * escala, comCorpo, corpo);
+                    // o alvo pende do ombro; se o corpo se curva ou torce e ele cairia dentro do tronco, fica nas costas
+                    // (senão a mola puxa o pano para dentro do corpo e ele fica brigando com a colisão)
+                    if (r > 0 && cfg.colisoes) AlvoAtrasDasCostas(ref alvo, i);
                     alvoAtual[i] = alvo;
                 }
             }
@@ -297,7 +312,7 @@ namespace Troia
         {
             if (!pronto) return;
             Alvos();
-            for (int i = 0; i < pos.Length; i++) { pos[i] = ant[i] = alvoAnterior[i] = alvoAtual[i]; }
+            for (int i = 0; i < pos.Length; i++) { pos[i] = ant[i] = alvoAnterior[i] = alvoAtual[i]; tempoNaFrente[i] = 0; solto[i] = false; }
             primeiro = false;
             Escrever();
         }
@@ -373,42 +388,89 @@ namespace Troia
                             Vector3 corr = d * ((m - alvoM) / m * .5f * cfg.rigidezLateral);
                             pos[i] -= corr; pos[j] += corr;
                         }
+                    // dobra: o nó não chega perto demais do segundo acima dele (a mecha não dobra sobre si mesma)
+                    if (cfg.dobraMinima > 0)
+                        for (int r = 2; r < R; r++) for (int c = 0; c < C; c++)
+                        {
+                            int i = I(c, r), k = I(c, r - 2);
+                            Vector3 d = pos[i] - pos[k]; float m = d.magnitude, minimo = dobraNo[i] * escala;
+                            if (minimo > 0 && m < minimo && m > 1e-5f) pos[i] = pos[k] + d * (minimo / m);
+                        }
                     if (cfg.colisoes) Colidir();
                 }
             }
+            if (cfg.colisoes) SoltarPresos(dt);
             Escrever();
         }
 
         /// <summary>
-        /// Tronco como parede para o nó 'i': se o ponto está na sombra do tronco e não está atrás das costas, vai para
-        /// a superfície das costas. Sem isto, um nó que passa do meio do corpo é empurrado para o peito e fica preso lá.
+        /// Mantém um alvo atrás das costas: se o corpo se curva ou torce e o alvo que pende do ombro cairia dentro do
+        /// tronco (ou na frente dele), ele recua até a superfície das costas. A correção some aos poucos para os lados e
+        /// além das pontas do tronco, para o alvo nunca saltar (alvo que salta faz o pano chicotear).
         /// </summary>
-        bool Parede(ref Vector3 p, int i)
+        void AlvoAtrasDasCostas(ref Vector3 p, int i)
         {
-            bool mexeu = false;
             for (int k = 0; k < capsulas.Count; k++)
             {
                 var cap = capsulas[k];
                 if (cap.atras == null || !cap.atras[i]) continue;
-                float raio = cap.raioNo[i] * cap.a.lossyScale.x;
+                float raio = cap.parede[i] * cap.a.lossyScale.x;
                 if (raio <= 0) continue;
-                Vector3 a = cap.a.position, ab = cap.b.position - a, f = cap.a.forward, lado = cap.a.right;
-                float l2 = ab.sqrMagnitude, t = l2 > 1e-8f ? Mathf.Clamp01(Vector3.Dot(p - a, ab) / l2) : 0;
-                Vector3 d = p - (a + ab * t);
-                float fz = Vector3.Dot(d, f), lx = Vector3.Dot(d, lado);
-                Vector3 resto = d - f * fz - lado * lx;
-                float sobra = raio * raio - resto.sqrMagnitude - lx * lx / (LarguraTronco * LarguraTronco);
-                if (sobra <= 0) continue;
-                float limite = -Mathf.Sqrt(sobra);
+                Tronco(cap, p, out float fz, out float lx, out float ponta2);
+                float sobra = raio * raio - ponta2 - lx * lx / (LarguraTronco * LarguraTronco);
+                float limite = sobra > 0 ? -Mathf.Sqrt(sobra) : 0;
                 if (fz <= limite) continue;
-                p += f * (limite - fz); mexeu = true;
+                float largo = raio * LarguraTronco;
+                float peso = (1 - Mathf.SmoothStep(largo, largo * 2, Mathf.Abs(lx))) * (1 - Mathf.SmoothStep(0, raio, Mathf.Sqrt(ponta2)));
+                if (peso > 0) p += cap.a.forward * ((limite - fz) * peso);
             }
-            return mexeu;
         }
+        /// <summary>Ponto no referencial de um trecho do tronco: à frente (+) ou atrás (-), para o lado, e quanto passa das pontas.</summary>
+        static void Tronco(in Capsula cap, Vector3 p, out float fz, out float lx, out float ponta2)
+        {
+            Vector3 a = cap.a.position, ab = cap.b.position - a, f = cap.a.forward, lado = cap.a.right;
+            float l2 = ab.sqrMagnitude, t = l2 > 1e-8f ? Mathf.Clamp01(Vector3.Dot(p - a, ab) / l2) : 0;
+            Vector3 d = p - (a + ab * t);
+            fz = Vector3.Dot(d, f); lx = Vector3.Dot(d, lado);
+            ponta2 = (d - f * fz - lado * lx).sqrMagnitude;
+        }
+
+        /// <summary>
+        /// Nó preso do lado errado. A colisão empurra cada nó para fora do tronco pelo lado mais próximo; se um nó que
+        /// nasce atrás das costas vai parar na frente do peito (rolamento, giro brusco, arremesso), ela passa a segurá-lo
+        /// lá e a capa fica enfiada no corpo. Quando isso dura mais de 0,2 s, o nó deixa de colidir com o tronco e a
+        /// mola o leva de volta para trás em poucos quadros; a colisão volta quando ele sai pelas costas.
+        /// Nada é teleportado: empurrar o nó de uma vez para as costas fazia o pano estalar e chicotear.
+        /// </summary>
+        void SoltarPresos(float dt)
+        {
+            for (int i = C; i < pos.Length; i++)
+            {
+                bool naFrente = false, dentro = false;
+                for (int k = 0; k < capsulas.Count; k++)
+                {
+                    var cap = capsulas[k];
+                    if (cap.atras == null || !cap.atras[i]) continue;
+                    float escala = cap.a.lossyScale.x, raio = cap.parede[i] * escala;
+                    if (raio <= 0) continue;
+                    Tronco(cap, pos[i], out float fz, out float lx, out float ponta2);
+                    float lateral2 = ponta2 + lx * lx / (LarguraTronco * LarguraTronco);
+                    float sobra = raio * raio - lateral2;
+                    if (sobra > 0 && fz > -Mathf.Sqrt(sobra)) dentro = true;
+                    // na frente e colado: dentro da sombra do tronco (com 5 cm de folga) e até 4 cm além do peito
+                    float folgado = raio + .05f * escala, sobraFolgada = folgado * folgado - lateral2;
+                    if (sobraFolgada > 0 && fz > 0 && fz < Mathf.Sqrt(sobraFolgada) + .04f * escala) naFrente = true;
+                }
+                tempoNaFrente[i] = naFrente ? tempoNaFrente[i] + dt : 0;
+                if (tempoNaFrente[i] > .2f) solto[i] = true;
+                else if (solto[i] && !naFrente && !dentro) solto[i] = false;
+            }
+        }
+        /// <summary>Depuração: quantos nós estão atravessando o tronco de volta para as costas.</summary>
+        public int Soltos { get { int n = 0; if (solto != null) foreach (bool b in solto) if (b) n++; return n; } }
 
         void Colidir()
         {
-            for (int i = C; i < pos.Length; i++) Parede(ref pos[i], i);
             for (int k = 0; k < capsulas.Count; k++)
             {
                 var cap = capsulas[k];
@@ -417,12 +479,19 @@ namespace Troia
                 for (int i = C; i < pos.Length; i++)
                 {
                     float raio = cap.raioNo[i] * escala;
-                    if (raio <= 0 || (cap.atras != null && cap.atras[i])) continue;
+                    if (raio <= 0 || (cap.atras != null && solto[i])) continue;
                     float t = l2 > 1e-8f ? Mathf.Clamp01(Vector3.Dot(pos[i] - a, ab) / l2) : 0;
                     Vector3 d = pos[i] - (a + ab * t); float m = d.magnitude;
                     if (m >= raio || m < 1e-6f) continue;
-                    // só a posição: a velocidade sai sozinha da diferença de posições (o pano acompanha o corpo que o empurra)
-                    pos[i] += d * ((raio - m) / m);
+                    // quem nasce atrás das costas e entrou no tronco além do meio não é empurrado para o peito (era assim
+                    // que a capa ia parar na frente do corpo): segue solto e a mola o traz de volta
+                    if (cap.atras != null && cap.atras[i] && Vector3.Dot(d, cap.a.forward) > 0) continue;
+                    // a velocidade sai sozinha da diferença de posições (o pano acompanha o corpo que o empurra), mas
+                    // com teto: um empurrão fundo de uma vez só não pode virar um tranco de vários m/s
+                    float empurra = raio - m, teto = TrancoMaximo * escala;
+                    Vector3 n = d / m;
+                    pos[i] += n * empurra;
+                    if (empurra > teto) ant[i] += n * (empurra - teto);
                 }
             }
             if (!float.IsNegativeInfinity(chao))

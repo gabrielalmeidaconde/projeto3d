@@ -74,6 +74,7 @@ namespace Troia
             player.cameraTransform = Camera.main ? Camera.main.transform : null;
             startPosition = spawn.transform.position + Vector3.up * .1f; startRotation = spawn.transform.rotation;
             gameObject.AddComponent<GameplayHUD>();
+            gameObject.AddComponent<MusicaDinamica>();
             Restart(false);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-troia-smoke") >= 0) gameObject.AddComponent<GameplaySmoke>();

@@ -21,11 +21,26 @@ namespace Troia
             [Tooltip("Graus que o bote do clipe sai fora da frente do herói (o jogo gira o modelo para compensar).")]
             public float giro;
 
-            /// <summary>Instante do clipe para um golpe em andamento: o impacto do clipe cai exatamente em hitStart.</summary>
+            /// <summary>
+            /// Instante do clipe para um golpe em andamento: o impacto do clipe cai exatamente em hitStart. A preparação
+            /// começa lenta e acelera até o impacto (antecipação e chicotada) e o acompanhamento sai rápido e assenta,
+            /// em vez de tocar tudo em velocidade constante.
+            /// Queda em área: o golpe fica preso em hitStart enquanto o herói cai e salta para hitEnd ao pousar; aqui
+            /// 'impacto' é o auge (arma erguida), mantido na queda, e o golpe para baixo toca a partir do pouso.
+            /// </summary>
             public float Tempo(ComboSO golpe, float tempoGolpe)
             {
                 float hs = Mathf.Max(.01f, golpe.hitStart), d = Mathf.Max(hs + .01f, golpe.duration);
-                return tempoGolpe <= hs ? Mathf.Lerp(inicio, impacto, tempoGolpe / hs) : Mathf.Lerp(impacto, fim, Mathf.Clamp01((tempoGolpe - hs) / (d - hs)));
+                if (golpe.slam)
+                {
+                    float he = Mathf.Clamp(golpe.hitEnd, hs, d - .01f);
+                    if (tempoGolpe < he - .001f) { float u = Mathf.Clamp01(tempoGolpe / hs); return Mathf.Lerp(inicio, impacto, 1 - (1 - u) * (1 - u)); }
+                    float v = Mathf.Clamp01((tempoGolpe - he) / (d - he));
+                    return Mathf.Lerp(impacto, fim, 1 - Mathf.Pow(1 - v, 2.4f));
+                }
+                if (tempoGolpe <= hs) return Mathf.Lerp(inicio, impacto, Mathf.Pow(Mathf.Clamp01(tempoGolpe / hs), 1.45f));
+                float w = Mathf.Clamp01((tempoGolpe - hs) / (d - hs));
+                return Mathf.Lerp(impacto, fim, 1 - (1 - w) * (1 - w));
             }
         }
         public Avatar avatar;
